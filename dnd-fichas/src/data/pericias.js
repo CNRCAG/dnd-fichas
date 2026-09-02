@@ -1,0 +1,21 @@
+// As 18 perícias do 5e e o atributo em que cada uma se baseia.
+export const PERICIAS = [
+  { chave: "acrobacia", label: "Acrobacia", atributo: "destreza" },
+  { chave: "adestrarAnimais", label: "Adestrar Animais", atributo: "sabedoria" },
+  { chave: "arcanismo", label: "Arcanismo", atributo: "inteligencia" },
+  { chave: "atletismo", label: "Atletismo", atributo: "forca" },
+  { chave: "atuacao", label: "Atuação", atributo: "carisma" },
+  { chave: "enganacao", label: "Enganação", atributo: "carisma" },
+  { chave: "furtividade", label: "Furtividade", atributo: "destreza" },
+  { chave: "historia", label: "História", atributo: "inteligencia" },
+  { chave: "intimidacao", label: "Intimidação", atributo: "carisma" },
+  { chave: "intuicao", label: "Intuição", atributo: "sabedoria" },
+  { chave: "investigacao", label: "Investigação", atributo: "inteligencia" },
+  { chave: "medicina", label: "Medicina", atributo: "sabedoria" },
+  { chave: "natureza", label: "Natureza", atributo: "inteligencia" },
+  { chave: "percepcao", label: "Percepção", atributo: "sabedoria" },
+  { chave: "persuasao", label: "Persuasão", atributo: "carisma" },
+  { chave: "prestidigitacao", label: "Prestidigitação", atributo: "destreza" },
+  { chave: "religiao", label: "Religião", atributo: "inteligencia" },
+  { chave: "sobrevivencia", label: "Sobrevivência", atributo: "sabedoria" },
+];

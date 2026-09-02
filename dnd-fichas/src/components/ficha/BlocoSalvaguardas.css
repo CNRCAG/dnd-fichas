@@ -1,0 +1,49 @@
+.salvaguardas-aviso {
+  font-size: var(--text-sm);
+  color: var(--color-ink-soft);
+  margin: 0 0 var(--space-2);
+}
+
+.salvaguardas-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-width: 260px;
+}
+
+.salvaguarda-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+}
+
+.salvaguarda-marcador {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-line);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.salvaguarda-marcador.is-proficiente {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.salvaguarda-label {
+  flex: 1;
+  font-size: var(--text-sm);
+}
+
+.salvaguarda-modificador {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-primary);
+  min-width: 2rem;
+  text-align: right;
+}
