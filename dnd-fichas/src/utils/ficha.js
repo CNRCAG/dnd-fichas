@@ -35,5 +35,6 @@ export function criarFichaVazia(nome) {
     },
     magias: [],
     espacosMagia: criarEspacosMagiaVazios(),
+    habilidades: [],
   };
 }

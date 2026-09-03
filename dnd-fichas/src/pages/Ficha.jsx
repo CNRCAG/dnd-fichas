@@ -13,10 +13,12 @@ import BlocoPericias from "../components/ficha/BlocoPericias";
 import BlocoInventario from "../components/ficha/BlocoInventario";
 import BlocoMoedas from "../components/ficha/BlocoMoedas";
 import BlocoMagias from "../components/ficha/BlocoMagias";
+import BlocoHabilidades from "../components/ficha/BlocoHabilidades";
 import "./Ficha.css";
 
 const ABAS = [
   { chave: "combate", label: "Combate" },
+  { chave: "habilidades", label: "Habilidades" },
   { chave: "pericias", label: "Perícias" },
   { chave: "magias", label: "Magias" },
   { chave: "inventario", label: "Inventário" },
@@ -94,6 +96,10 @@ export default function Ficha() {
 
   function handleChangeMagias(novasMagias) {
     atualizarFicha(id, () => ({ magias: novasMagias }));
+  }
+
+  function handleChangeHabilidades(novasHabilidades) {
+    atualizarFicha(id, () => ({ habilidades: novasHabilidades }));
   }
 
   function handleChangeEspacoMagia(nivel, campo, novoValor) {
@@ -181,6 +187,15 @@ export default function Ficha() {
                 bonusProficiencia={bonusProficiencia}
               />
             </>
+          )}
+
+          {abaAtiva === "habilidades" && (
+            <BlocoHabilidades
+              classeId={ficha.classeId}
+              classeNome={classe?.nome}
+              habilidades={ficha.habilidades ?? []}
+              onChangeHabilidades={handleChangeHabilidades}
+            />
           )}
 
           {abaAtiva === "pericias" && (
