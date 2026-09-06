@@ -78,6 +78,31 @@
   width: 4rem !important;
 }
 
+.inventario-tabela select {
+  width: 100%;
+  padding: var(--space-1);
+  background: var(--color-bg-inset);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+}
+
+.inventario-coluna-equipado {
+  text-align: center;
+}
+
+.inventario-coluna-equipado input[type="checkbox"] {
+  accent-color: var(--color-accent);
+  width: 16px;
+  height: 16px;
+}
+
+.inventario-nao-aplica {
+  color: var(--color-ink-soft);
+}
+
 .inventario-remover {
   background: none;
   border: none;

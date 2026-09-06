@@ -14,6 +14,24 @@ export function formatarModificador(mod) {
   return mod >= 0 ? `+${mod}` : `${mod}`;
 }
 
+// Os textos de dano das magias são descritivos (ex: "8d6 fogo (metade se
+// resistir)"), então pra poder rolar extraímos só o primeiro trecho que
+// parece uma notação de dado válida.
+export function extrairDadosDoDano(texto) {
+  if (!texto) return null;
+  const combinacao = texto.match(/\d*d\d+(?:[+-]\d+)?/i);
+  return combinacao ? combinacao[0] : null;
+}
+
+// Verifica se um texto de dano de arma é rolável: notação de dado
+// ("1d8", "2d6+3") ou um valor fixo numérico ("1", caso da zarabatana).
+// Armas sem dano de verdade (ex: Rede, cujo campo é "—") não são.
+export function podeRolarDano(texto) {
+  if (!texto) return false;
+  const limpo = texto.trim();
+  return /^\d*d\d+([+-]\d+)?$/i.test(limpo) || /^\d+$/.test(limpo);
+}
+
 export const ATRIBUTOS = [
   { chave: "forca", label: "Força", abreviacao: "FOR" },
   { chave: "destreza", label: "Destreza", abreviacao: "DES" },

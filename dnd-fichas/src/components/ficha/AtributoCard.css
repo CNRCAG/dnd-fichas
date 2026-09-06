@@ -47,9 +47,20 @@
 }
 
 .atributo-modificador {
+  font-family: var(--font-body);
   font-size: var(--text-lg);
   font-weight: 500;
   color: var(--color-primary);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-2);
+  cursor: pointer;
+}
+
+.atributo-modificador:hover {
+  color: var(--color-accent);
+  border-color: var(--color-line);
 }
 
 .atributo-abreviacao {

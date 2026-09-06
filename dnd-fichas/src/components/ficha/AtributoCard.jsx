@@ -1,4 +1,6 @@
 import { calcularModificador, formatarModificador } from "../../utils/dnd";
+import { rolarTesteD20 } from "../../utils/dados";
+import { useRolagem } from "../../context/useRolagem";
 import "./AtributoCard.css";
 
 export default function AtributoCard({
@@ -8,12 +10,18 @@ export default function AtributoCard({
   bonusRacial = 0,
   onChange,
 }) {
+  const { registrarRolagem } = useRolagem();
   const total = valor + bonusRacial;
   const modificador = calcularModificador(total);
 
   function handleChange(evento) {
     const novoValor = Number(evento.target.value);
     onChange(Number.isNaN(novoValor) ? 0 : novoValor);
+  }
+
+  function handleRolar() {
+    const resultado = rolarTesteD20(modificador);
+    registrarRolagem(`Teste de ${label}`, resultado, "d20");
   }
 
   return (
@@ -33,9 +41,14 @@ export default function AtributoCard({
           {formatarModificador(bonusRacial)} racial &rarr; total {total}
         </span>
       )}
-      <span className="atributo-modificador">
-        {formatarModificador(modificador)}
-      </span>
+      <button
+        type="button"
+        className="atributo-modificador"
+        onClick={handleRolar}
+        title={`Rolar teste de ${label} (d20${formatarModificador(modificador)})`}
+      >
+        🎲 {formatarModificador(modificador)}
+      </button>
       <span className="atributo-abreviacao">{abreviacao}</span>
     </div>
   );

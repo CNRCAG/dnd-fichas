@@ -11,6 +11,10 @@
   min-width: 180px;
 }
 
+.raca-classe-campo--largo {
+  flex-basis: 100%;
+}
+
 .raca-classe-label {
   font-size: var(--text-xs);
   color: var(--color-ink-soft);

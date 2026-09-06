@@ -11,8 +11,8 @@ export function FichasProvider({ children }) {
     salvarFichas(fichas);
   }, [fichas]);
 
-  function criarFicha(nome) {
-    const novaFicha = criarFichaVazia(nome);
+  function criarFicha(nome, overrides = {}) {
+    const novaFicha = { ...criarFichaVazia(nome), ...overrides };
     setFichas((atual) => [...atual, novaFicha]);
     return novaFicha;
   }

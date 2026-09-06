@@ -1,0 +1,158 @@
+.ataques-secao {
+  margin-bottom: var(--space-4);
+}
+
+.ataques-secao-titulo {
+  font-size: var(--text-xs);
+  color: var(--color-ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: var(--space-2);
+}
+
+.ataques-secao-titulo span {
+  text-transform: none;
+  letter-spacing: normal;
+  font-style: italic;
+}
+
+.ataques-nome-fixo {
+  display: inline-block;
+  padding: var(--space-1);
+  color: var(--color-ink);
+}
+
+.ataques-adicionar-manual {
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.ataques-adicionar-manual:hover {
+  background: var(--color-primary);
+  color: var(--color-bg-raised);
+}
+
+.ataques-vazio {
+  font-size: var(--text-sm);
+  color: var(--color-ink-soft);
+}
+
+.ataques-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.ataques-tabela th {
+  text-align: left;
+  font-size: var(--text-xs);
+  color: var(--color-ink-soft);
+  font-weight: 500;
+  padding: 0 var(--space-2) var(--space-1);
+}
+
+.ataques-tabela td {
+  padding: var(--space-1) var(--space-2) var(--space-1) 0;
+  border-bottom: 1px solid var(--color-line);
+  vertical-align: middle;
+}
+
+.ataques-tabela input[type="text"],
+.ataques-tabela select {
+  width: 100%;
+  padding: var(--space-1);
+  border: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+}
+
+.ataques-tabela select {
+  background: var(--color-bg-inset);
+  border-radius: var(--radius-sm);
+}
+
+.ataques-tabela input:focus,
+.ataques-tabela select:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.ataques-coluna-acerto {
+  text-align: center;
+  font-weight: 600;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.ataques-acerto-linha {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+.ataques-rolar-botao {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+}
+
+.ataques-rolar-botao:hover {
+  color: var(--color-accent);
+  border-color: var(--color-line);
+}
+
+.ataques-bonus-input {
+  width: 3rem;
+  text-align: center;
+  background: var(--color-bg-inset);
+  border-radius: var(--radius-sm);
+}
+
+.ataques-dano-input {
+  width: 3.5rem;
+  display: inline-block;
+}
+
+.ataques-tipo-input {
+  width: 5.5rem;
+}
+
+.ataques-dano-preview {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-ink-soft);
+  padding: 0 var(--space-1);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ataques-dano-preview:hover {
+  color: var(--color-accent);
+}
+
+.ataques-remover {
+  background: none;
+  border: none;
+  color: var(--color-danger);
+  font-size: var(--text-lg);
+  line-height: 1;
+  padding: 0 var(--space-1);
+}

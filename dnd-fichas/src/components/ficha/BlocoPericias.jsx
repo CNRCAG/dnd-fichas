@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { PERICIAS } from "../../data/pericias";
 import { ATRIBUTOS, formatarModificador } from "../../utils/dnd";
+import { rolarTesteD20 } from "../../utils/dados";
+import { useRolagem } from "../../context/useRolagem";
 import "./BlocoPericias.css";
 
 export default function BlocoPericias({
@@ -10,6 +12,7 @@ export default function BlocoPericias({
   onTogglePericia,
 }) {
   const [expandidas, setExpandidas] = useState(() => new Set());
+  const { registrarRolagem } = useRolagem();
 
   function alternarExpandida(chave) {
     setExpandidas((atual) => {
@@ -35,6 +38,12 @@ export default function BlocoPericias({
             modificadorAtributo + (proficiente ? bonusProficiencia : 0);
           const aberta = expandidas.has(pericia.chave);
 
+          function handleRolar(evento) {
+            evento.stopPropagation();
+            const resultado = rolarTesteD20(modificador);
+            registrarRolagem(`Perícia: ${pericia.label}`, resultado, "d20");
+          }
+
           return (
             <li key={pericia.chave} className="pericia-item">
               <div className="pericia-linha">
@@ -56,12 +65,17 @@ export default function BlocoPericias({
                 >
                   <span className="pericia-nome">{pericia.label}</span>
                   <span className="pericia-atributo">({atributo?.abreviacao})</span>
-                  <span className="pericia-modificador">
-                    {formatarModificador(modificador)}
-                  </span>
                   <span className={aberta ? "pericia-seta is-aberta" : "pericia-seta"}>
                     ▾
                   </span>
+                </button>
+                <button
+                  type="button"
+                  className="pericia-modificador-botao"
+                  onClick={handleRolar}
+                  title={`Rolar ${pericia.label} (d20${formatarModificador(modificador)})`}
+                >
+                  🎲 {formatarModificador(modificador)}
                 </button>
               </div>
 

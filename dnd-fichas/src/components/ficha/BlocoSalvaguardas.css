@@ -40,10 +40,21 @@
   font-size: var(--text-sm);
 }
 
-.salvaguarda-modificador {
+.salvaguarda-modificador-botao {
+  font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-primary);
   min-width: 2rem;
   text-align: right;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+}
+
+.salvaguarda-modificador-botao:hover {
+  color: var(--color-accent);
+  border-color: var(--color-line);
 }

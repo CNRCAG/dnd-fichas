@@ -129,6 +129,59 @@
   color: var(--color-ink-soft);
 }
 
+.ficha-notas-textarea--curta {
+  min-height: 90px;
+}
+
+.ficha-campo-texto {
+  display: block;
+  margin-bottom: var(--space-3);
+}
+
+.ficha-campo-texto-label {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-ink-soft);
+  margin-bottom: var(--space-1);
+}
+
+.ficha-campo-texto input[type="text"] {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-inset);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+}
+
+.ficha-campo-texto input[type="text"]::placeholder {
+  color: var(--color-ink-soft);
+}
+
+.ficha-levelup-botao {
+  width: 100%;
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.ficha-levelup-botao:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.ficha-levelup-botao:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 @media (max-width: 820px) {
   .ficha-shell {
     grid-template-columns: 1fr;

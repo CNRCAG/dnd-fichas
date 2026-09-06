@@ -1,5 +1,7 @@
 import { ESCOLAS } from "../../data/magiasSistema";
-import { ATRIBUTOS } from "../../utils/dnd";
+import { ATRIBUTOS, extrairDadosDoDano } from "../../utils/dnd";
+import { rolarFormula } from "../../utils/dados";
+import { useRolagem } from "../../context/useRolagem";
 
 function labelResistencia(magia) {
   if (magia.resistencia) {
@@ -11,7 +13,15 @@ function labelResistencia(magia) {
 }
 
 export default function DetalheMagia({ magia }) {
+  const { registrarRolagem } = useRolagem();
   const temEfeitoMecanico = Boolean(magia.dano || magia.condicao);
+  const formulaDano = extrairDadosDoDano(magia.dano);
+
+  function handleRolarDano() {
+    if (!formulaDano) return;
+    const resultado = rolarFormula(formulaDano);
+    registrarRolagem(`${magia.nome} (dano)`, resultado, "formula");
+  }
 
   return (
     <dl className="item-catalogo-detalhes">
@@ -45,7 +55,19 @@ export default function DetalheMagia({ magia }) {
       {magia.dano && (
         <div>
           <dt>Dano</dt>
-          <dd>{magia.dano}</dd>
+          <dd>
+            {magia.dano}
+            {formulaDano && (
+              <button
+                type="button"
+                className="magia-rolar-dano-botao"
+                onClick={handleRolarDano}
+                title={`Rolar ${formulaDano}`}
+              >
+                🎲 {formulaDano}
+              </button>
+            )}
+          </dd>
         </div>
       )}
       {magia.condicao && (

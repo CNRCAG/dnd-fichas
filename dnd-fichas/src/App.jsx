@@ -3,6 +3,7 @@ import Topbar from "./components/layout/Topbar";
 import Home from "./pages/Home";
 import Ficha from "./pages/Ficha";
 import NovaFicha from "./pages/NovaFicha";
+import PainelRolagens from "./components/rolagem/PainelRolagens";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="/nova" element={<NovaFicha />} />
         </Routes>
       </main>
+      <PainelRolagens />
     </div>
   );
 }

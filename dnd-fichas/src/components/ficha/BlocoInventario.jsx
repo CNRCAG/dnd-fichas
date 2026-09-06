@@ -17,7 +17,16 @@ export default function BlocoInventario({ inventario, onChangeInventario }) {
   function handleAdicionarDoCatalogo(item) {
     onChangeInventario([
       ...inventario,
-      { id: crypto.randomUUID(), nome: item.nome, quantidade: 1, peso: item.peso },
+      {
+        id: crypto.randomUUID(),
+        nome: item.nome,
+        quantidade: 1,
+        peso: item.peso,
+        tipoItem: item.tipoItem,
+        origemId: item.id,
+        equipado: false,
+        atributoAtaque: "auto",
+      },
     ]);
   }
 
@@ -63,65 +72,110 @@ export default function BlocoInventario({ inventario, onChangeInventario }) {
               <th>Item</th>
               <th>Qtd.</th>
               <th>Peso (kg)</th>
+              <th>Equipado</th>
+              <th>Ataca com</th>
               <th aria-label="Remover"></th>
             </tr>
           </thead>
           <tbody>
-            {inventario.map((item) => (
-              <tr key={item.id}>
-                <td>
-                  <input
-                    type="text"
-                    value={item.nome}
-                    placeholder="Nome do item"
-                    onChange={(evento) =>
-                      handleAlterarItem(item.id, "nome", evento.target.value)
-                    }
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    min="0"
-                    className="inventario-input-numero"
-                    value={item.quantidade}
-                    onChange={(evento) =>
-                      handleAlterarItem(
-                        item.id,
-                        "quantidade",
-                        Number(evento.target.value) || 0
-                      )
-                    }
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    className="inventario-input-numero"
-                    value={item.peso}
-                    onChange={(evento) =>
-                      handleAlterarItem(
-                        item.id,
-                        "peso",
-                        Number(evento.target.value) || 0
-                      )
-                    }
-                  />
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className="inventario-remover"
-                    onClick={() => handleRemoverItem(item.id)}
-                    aria-label={`Remover ${item.nome || "item"}`}
-                  >
-                    ×
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {inventario.map((item) => {
+              const podeEquipar =
+                item.tipoItem === "arma" || item.tipoItem === "armadura";
+
+              return (
+                <tr key={item.id}>
+                  <td>
+                    <input
+                      type="text"
+                      value={item.nome}
+                      placeholder="Nome do item"
+                      onChange={(evento) =>
+                        handleAlterarItem(item.id, "nome", evento.target.value)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      className="inventario-input-numero"
+                      value={item.quantidade}
+                      onChange={(evento) =>
+                        handleAlterarItem(
+                          item.id,
+                          "quantidade",
+                          Number(evento.target.value) || 0
+                        )
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      className="inventario-input-numero"
+                      value={item.peso}
+                      onChange={(evento) =>
+                        handleAlterarItem(
+                          item.id,
+                          "peso",
+                          Number(evento.target.value) || 0
+                        )
+                      }
+                    />
+                  </td>
+                  <td className="inventario-coluna-equipado">
+                    {podeEquipar ? (
+                      <input
+                        type="checkbox"
+                        checked={Boolean(item.equipado)}
+                        onChange={(evento) =>
+                          handleAlterarItem(
+                            item.id,
+                            "equipado",
+                            evento.target.checked
+                          )
+                        }
+                        aria-label={`Equipar ${item.nome || "item"}`}
+                      />
+                    ) : (
+                      <span className="inventario-nao-aplica">—</span>
+                    )}
+                  </td>
+                  <td>
+                    {item.tipoItem === "arma" ? (
+                      <select
+                        value={item.atributoAtaque ?? "auto"}
+                        onChange={(evento) =>
+                          handleAlterarItem(
+                            item.id,
+                            "atributoAtaque",
+                            evento.target.value
+                          )
+                        }
+                      >
+                        <option value="auto">Automático</option>
+                        <option value="forca">Força</option>
+                        <option value="destreza">Destreza</option>
+                      </select>
+                    ) : (
+                      <span className="inventario-nao-aplica">—</span>
+                    )}
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="inventario-remover"
+                      onClick={() => handleRemoverItem(item.id)}
+                      aria-label={`Remover ${item.nome || "item"}`}
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
