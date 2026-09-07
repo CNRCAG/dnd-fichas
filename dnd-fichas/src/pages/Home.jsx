@@ -1,12 +1,37 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useFichas } from "../context/useFichas";
 import { obterClasse } from "../data/classes";
+import { exportarFicha, lerArquivoFicha } from "../utils/backup";
 import "./Home.css";
 
 export default function Home() {
-  const { fichas, removerFicha } = useFichas();
+  const { fichas, removerFicha, criarFicha } = useFichas();
   const [busca, setBusca] = useState("");
+  const navigate = useNavigate();
+  const inputArquivoRef = useRef(null);
+
+  function handleClickImportar() {
+    inputArquivoRef.current?.click();
+  }
+
+  async function handleArquivoSelecionado(evento) {
+    const arquivo = evento.target.files[0];
+    evento.target.value = ""; // permite escolher o mesmo arquivo de novo depois
+
+    if (!arquivo) return;
+
+    try {
+      const dados = await lerArquivoFicha(arquivo);
+      const { id, ...resto } = dados;
+      const novaFicha = criarFicha(dados.nome, resto);
+      navigate(`/ficha/${novaFicha.id}`);
+    } catch {
+      window.alert(
+        "Não foi possível importar esse arquivo. Confirma que é um .json exportado daqui."
+      );
+    }
+  }
 
   const fichasFiltradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -22,12 +47,28 @@ export default function Home() {
 
   return (
     <div>
-      <div className="home-cabecalho">
-        <h2 className="home-titulo">Aventureiros: {fichas.length}</h2>
-        <Link to="/nova" className="home-nova-ficha">
-          + Nova ficha
-        </Link>
-      </div>
+            <div className="home-cabecalho">
+            <h2 className="home-titulo">Aventureiros: {fichas.length}</h2>
+            <div className="home-cabecalho-acoes">
+              <button
+                type="button"
+                className="home-importar"
+                onClick={handleClickImportar}
+              >
+                Importar ficha
+              </button>
+              <input
+                type="file"
+                accept="application/json"
+                ref={inputArquivoRef}
+                onChange={handleArquivoSelecionado}
+                className="home-input-arquivo-escondido"
+              />
+              <Link to="/nova" className="home-nova-ficha">
+                + Nova ficha
+              </Link>
+            </div>
+          </div>
 
       <input
         type="text"
@@ -49,6 +90,15 @@ export default function Home() {
             const classe = obterClasse(ficha.classeId);
             return (
               <div key={ficha.id} className="ficha-card">
+                                <button
+                  type="button"
+                  className="ficha-card-exportar"
+                  onClick={() => exportarFicha(ficha)}
+                  aria-label={`Exportar ${ficha.nome}`}
+                  title="Exportar como backup (.json)"
+                >
+                  ⬇
+                </button>
                 <button
                   type="button"
                   className="ficha-card-remover"

@@ -123,3 +123,43 @@
 .ficha-card-acessar:hover {
   background: var(--color-accent-hover);
 }
+.home-cabecalho-acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.home-importar {
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.home-importar:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.home-input-arquivo-escondido {
+  display: none;
+}
+
+.ficha-card-exportar {
+  position: absolute;
+  top: var(--space-2);
+  right: calc(var(--space-2) + 28px);
+  background: none;
+  border: none;
+  color: var(--color-ink-soft);
+  font-size: var(--text-base);
+  cursor: pointer;
+}
+
+.ficha-card-exportar:hover {
+  color: var(--color-accent);
+}

@@ -1,3 +1,6 @@
+import { formatarModificador } from "../../utils/dnd";
+import { rolarTesteD20 } from "../../utils/dados";
+import { useRolagem } from "../../context/useRolagem";
 import "./BlocoStatus.css";
 
 const CAMPOS_STATUS = [
@@ -5,11 +8,23 @@ const CAMPOS_STATUS = [
   { chave: "pvMax", label: "PV máximo" },
   { chave: "pvTemp", label: "PV temporário" },
   { chave: "ca", label: "Classe de Armadura" },
-  { chave: "iniciativa", label: "Iniciativa" },
   { chave: "deslocamento", label: "Deslocamento" },
 ];
 
-export default function BlocoStatus({ status, onChangeStatus }) {
+export default function BlocoStatus({
+  status,
+  onChangeStatus,
+  modDestreza,
+  percepcaoPassiva,
+  investigacaoPassiva,
+}) {
+  const { registrarRolagem } = useRolagem();
+  const iniciativaTotal = modDestreza + (status.iniciativa ?? 0);
+
+  function handleRolarIniciativa() {
+    const resultado = rolarTesteD20(iniciativaTotal);
+    registrarRolagem("Iniciativa", resultado, "d20");
+  }
   const pvAtual = status.pvAtual ?? 0;
   const emAgonia = pvAtual <= 0;
   const sucessos = status.testesMorteSucessos ?? 0;
@@ -40,7 +55,7 @@ export default function BlocoStatus({ status, onChangeStatus }) {
   return (
     <section>
       <h3 className="bloco-titulo">Status</h3>
-      <div className="bloco-status-grid">
+            <div className="bloco-status-grid">
         {CAMPOS_STATUS.map((campo) => (
           <label key={campo.chave} className="status-campo">
             <span className="status-label">{campo.label}</span>
@@ -52,6 +67,34 @@ export default function BlocoStatus({ status, onChangeStatus }) {
             />
           </label>
         ))}
+        
+        <div className="status-campo">
+          <span className="status-label">Iniciativa</span>
+          <button
+            type="button"
+            className="status-iniciativa-botao"
+            onClick={handleRolarIniciativa}
+            title={`Rolar iniciativa (d20${formatarModificador(iniciativaTotal)})`}
+          >
+            {formatarModificador(iniciativaTotal)}
+          </button>
+                    <input
+            type="number"
+            className="status-iniciativa-bonus"
+            value={status.iniciativa ?? 0}
+            onChange={(evento) => handleChange("iniciativa", evento)}
+            title="Bônus extra (ex: talento Alerta)"
+          />
+        </div>
+      </div>
+
+      <div className="status-passivas">
+        <span>
+          Percepção passiva: <strong>{percepcaoPassiva}</strong>
+        </span>
+        <span>
+          Investigação passiva: <strong>{investigacaoPassiva}</strong>
+        </span>
       </div>
 
       {emAgonia && (

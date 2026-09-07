@@ -11,6 +11,7 @@ export default function BlocoDescanso({
   onGastarDadoDeVida,
   onRestaurarEspacosMagia,
   onDescansoLongo,
+  onDescansoCurto,
 }) {
   const { registrarRolagem } = useRolagem();
 
@@ -44,7 +45,7 @@ export default function BlocoDescanso({
       <h3 className="bloco-titulo">Descanso</h3>
 
       <div className="descanso-bloco">
-        <h4 className="descanso-subtitulo">Descanso Curto</h4>
+                <h4 className="descanso-subtitulo">Descanso Curto</h4>
         <p className="descanso-texto">
           Dados de vida disponíveis: {dadosDisponiveis} de {dadosTotais}
         </p>
@@ -55,6 +56,13 @@ export default function BlocoDescanso({
           disabled={dadosDisponiveis <= 0}
         >
           🎲 Gastar 1 dado de vida (1d{classe.dadoVida} + CON)
+        </button>
+        <button
+          type="button"
+          className="descanso-botao descanso-botao--secundario"
+          onClick={onDescansoCurto}
+        >
+          ✅ Concluir descanso curto (restaura recursos)
         </button>
 
         {ehBruxo && (

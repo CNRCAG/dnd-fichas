@@ -43,6 +43,7 @@ export function criarFichaVazia(nome) {
       testesMorteFalhas: 0,    // NOVO
     },
     pvPorNivel: {},
+    recursos: [],
     dadosDeVidaUsados: 0,
     niveisAsiAplicados: [],
     magias: [],

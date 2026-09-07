@@ -1,0 +1,110 @@
+import { criarRecursoVazio } from "../../utils/recurso";
+import "./BlocoRecursos.css";
+
+export default function BlocoRecursos({ recursos, onChangeRecursos }) {
+  function handleAdicionar() {
+    onChangeRecursos([...recursos, criarRecursoVazio()]);
+  }
+
+  function handleRemover(id) {
+    onChangeRecursos(recursos.filter((r) => r.id !== id));
+  }
+
+  function handleAlterar(id, campo, valor) {
+    onChangeRecursos(
+      recursos.map((r) => (r.id === id ? { ...r, [campo]: valor } : r))
+    );
+  }
+
+  function handleTogglePip(recurso, indice) {
+    const novoValor =
+      recurso.usosGastos === indice + 1 ? indice : indice + 1;
+    handleAlterar(recurso.id, "usosGastos", novoValor);
+  }
+
+  return (
+    <section>
+      <h3 className="bloco-titulo">Recursos de Classe</h3>
+
+      {recursos.length === 0 ? (
+        <p className="recursos-vazio">
+          Nenhum recurso cadastrado ainda (ex: Fúria, Pontos de Ki, Segundo Fôlego).
+        </p>
+      ) : (
+        <div className="recursos-lista">
+          {recursos.map((recurso) => (
+            <div key={recurso.id} className="recurso-item">
+              <input
+                type="text"
+                className="recurso-nome"
+                placeholder="Nome do recurso"
+                value={recurso.nome}
+                onChange={(evento) =>
+                  handleAlterar(recurso.id, "nome", evento.target.value)
+                }
+              />
+
+              <div className="recurso-pips">
+                {Array.from({ length: recurso.usosMax }).map((_, indice) => (
+                  <button
+                    key={indice}
+                    type="button"
+                    className={
+                      indice < recurso.usosGastos
+                        ? "recurso-pip is-gasto"
+                        : "recurso-pip"
+                    }
+                    onClick={() => handleTogglePip(recurso, indice)}
+                    aria-label={`Uso ${indice + 1}`}
+                  />
+                ))}
+              </div>
+
+              <label className="recurso-campo-pequeno">
+                Máx.
+                <input
+                  type="number"
+                  min="1"
+                  value={recurso.usosMax}
+                  onChange={(evento) =>
+                    handleAlterar(
+                      recurso.id,
+                      "usosMax",
+                      Math.max(1, Number(evento.target.value) || 1)
+                    )
+                  }
+                />
+              </label>
+
+              <label className="recurso-campo-pequeno">
+                Restaura em
+                <select
+                  value={recurso.restauraEm}
+                  onChange={(evento) =>
+                    handleAlterar(recurso.id, "restauraEm", evento.target.value)
+                  }
+                >
+                  <option value="curto">Descanso curto</option>
+                  <option value="longo">Descanso longo</option>
+                </select>
+              </label>
+
+              <button
+                type="button"
+                className="recurso-remover"
+                onClick={() => handleRemover(recurso.id)}
+                aria-label={`Remover ${recurso.nome || "recurso"}`}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button type="button" className="recursos-adicionar" onClick={handleAdicionar}>
+        + Adicionar recurso
+      </button>
+    </section>
+  );
+}

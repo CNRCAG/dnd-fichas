@@ -41,14 +41,14 @@ export default function AtributoCard({
           {formatarModificador(bonusRacial)} racial &rarr; total {total}
         </span>
       )}
-      <button
-        type="button"
-        className="atributo-modificador"
-        onClick={handleRolar}
-        title={`Rolar teste de ${label} (d20${formatarModificador(modificador)})`}
-      >
-        🎲 {formatarModificador(modificador)}
-      </button>
+            <button
+              type="button"
+              className="atributo-modificador"
+              onClick={handleRolar}
+              title={`Rolar teste de ${label} (d20${formatarModificador(modificador)})`}
+            >
+              {formatarModificador(modificador)}
+            </button>
       <span className="atributo-abreviacao">{abreviacao}</span>
     </div>
   );

@@ -117,3 +117,52 @@
 .testes-morte-titulo.is-estabilizado {
   color: #6fc978;
 }
+
+.status-iniciativa-botao {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+}
+
+.status-iniciativa-botao:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.status-iniciativa-bonus {
+  margin-top: var(--space-1);
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  border: none;
+  background: transparent;
+  color: var(--color-ink-soft);
+}
+.status-passivas {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-ink-soft);
+}
+
+.status-passivas strong {
+  color: var(--color-ink);
+}
+.status-ca-valor {
+  display: block;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-ink);
+}

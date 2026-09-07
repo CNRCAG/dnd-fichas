@@ -127,3 +127,7 @@
   background: var(--color-primary);
   color: var(--color-bg-raised);
 }
+.inventario-peso.is-sobrecarregado {
+  color: var(--color-danger);
+  font-weight: 600;
+}

@@ -3,12 +3,14 @@ import { criarItemVazio } from "../../utils/inventario";
 import ModalCatalogoItens from "../modal/ModalCatalogoItens";
 import "./BlocoInventario.css";
 
-export default function BlocoInventario({ inventario, onChangeInventario }) {
+export default function BlocoInventario({ inventario, onChangeInventario, forcaTotal }) {
   const [modalAberto, setModalAberto] = useState(false);
   const pesoTotal = inventario.reduce(
     (soma, item) => soma + item.quantidade * item.peso,
     0
   );
+  const capacidadeCarga = forcaTotal * 7.5;
+  const sobrecarregado = pesoTotal > capacidadeCarga;
 
   function handleAdicionarItem() {
     onChangeInventario([...inventario, criarItemVazio()]);
@@ -46,7 +48,10 @@ export default function BlocoInventario({ inventario, onChangeInventario }) {
     <section>
       <div className="inventario-cabecalho">
         <h3 className="bloco-titulo">Inventário</h3>
-        <span className="inventario-peso">Peso total: {pesoTotal} kg</span>
+        <span className={sobrecarregado ? "inventario-peso is-sobrecarregado" : "inventario-peso"}>
+          Peso total: {pesoTotal} / {capacidadeCarga} kg
+          {sobrecarregado && " (sobrecarregado!)"}
+        </span>
       </div>
 
       <button

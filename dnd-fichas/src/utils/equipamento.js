@@ -10,10 +10,11 @@ function armadurasEquipadas(inventario) {
     .filter(Boolean);
 }
 
-export function calcularCaEquipada(inventario, modDestreza) {
+export function calcularCaEquipada(inventario, modificadoresAtributos, classeId) {
   const equipadas = armadurasEquipadas(inventario);
   const corpo = equipadas.find((armadura) => armadura.tipo !== "escudo");
   const escudo = equipadas.find((armadura) => armadura.tipo === "escudo");
+  const modDestreza = modificadoresAtributos.destreza;
 
   let ca;
   if (corpo) {
@@ -24,6 +25,12 @@ export function calcularCaEquipada(inventario, modDestreza) {
         ? Math.min(modDestreza, 2)
         : 0;
     ca = corpo.caBase + bonusDes;
+  } else if (classeId === "barbaro") {
+    // Defesa sem Armadura do Bárbaro: 10 + DES + CON (aceita escudo)
+    ca = 10 + modDestreza + modificadoresAtributos.constituicao;
+  } else if (classeId === "monge" && !escudo) {
+    // Defesa sem Armadura do Monge: 10 + DES + SAB (só sem escudo)
+    ca = 10 + modDestreza + modificadoresAtributos.sabedoria;
   } else {
     ca = 10 + modDestreza;
   }

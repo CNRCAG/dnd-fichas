@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useFichas } from "../context/useFichas";
 import { obterRaca } from "../data/racas";
@@ -9,6 +9,7 @@ import { calcularCaEquipada } from "../utils/equipamento";
 import { obterEspacosPorNivel, mesclarEspacosNoAtual } from "../utils/conjuracao";
 import { recalcularPv } from "../utils/progressao";
 import { restaurarTodosEspacos, calcularDadosDeVidaRecuperados } from "../utils/descanso";
+import { restaurarRecursos } from "../utils/recurso";
 import BlocoRacaClasse from "../components/ficha/BlocoRacaClasse";
 import BlocoAtributos from "../components/ficha/BlocoAtributos";
 import BlocoStatus from "../components/ficha/BlocoStatus";
@@ -20,7 +21,8 @@ import BlocoMoedas from "../components/ficha/BlocoMoedas";
 import BlocoMagias from "../components/ficha/BlocoMagias";
 import BlocoHabilidades from "../components/ficha/BlocoHabilidades";
 import ModalLevelUp from "../components/modal/ModalLevelUp";
-import BlocoDescanso from "../components/ficha/Blocodescanso";
+import BlocoDescanso from "../components/ficha/BlocoDescanso";
+import BlocoRecursos from "../components/ficha/BlocoRecursos";
 import "./Ficha.css";
 
 const ABAS = [
@@ -53,11 +55,36 @@ export default function Ficha() {
   const raca = obterRaca(ficha.racaId);
   const classe = obterClasse(ficha.classeId);
   const bonusRacial = raca?.bonusAtributos ?? {};
+  const forcaTotal = ficha.atributos.forca + (bonusRacial.forca ?? 0);
   const bonusProficiencia = calcularBonusProficiencia(ficha.nivel ?? 1);
   const modificadoresAtributos = calcularModificadoresAtributos(
     ficha.atributos,
     bonusRacial
   );
+
+  const percepcaoPassiva =
+    10 +
+    modificadoresAtributos.sabedoria +
+    (ficha.pericias?.percepcao ? bonusProficiencia : 0);
+  const investigacaoPassiva =
+    10 +
+    modificadoresAtributos.inteligencia +
+    (ficha.pericias?.investigacao ? bonusProficiencia : 0);
+
+  const caCalculada = calcularCaEquipada(
+    ficha.inventario ?? [],
+    modificadoresAtributos,
+    ficha.classeId
+  );
+
+  useEffect(() => {
+    if (ficha.status.ca !== caCalculada) {
+      atualizarFicha(id, (fichaAtual) => ({
+        status: { ...fichaAtual.status, ca: caCalculada },
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caCalculada]);
 
   function handleChangeAtributo(chave, novoValor) {
     atualizarFicha(id, (ficha) => ({
@@ -85,6 +112,10 @@ export default function Ficha() {
     });
   }
 
+  function handleChangeRecursos(novosRecursos) {
+    atualizarFicha(id, () => ({ recursos: novosRecursos }));
+  }
+
   function handleGastarDadoDeVida(cura) {
   atualizarFicha(id, (fichaAtual) => ({
     status: {
@@ -102,15 +133,22 @@ function handleRestaurarEspacosMagia() {
 }
 
 function handleDescansoLongo() {
-    atualizarFicha(id, (fichaAtual) => {
-      const recuperados = calcularDadosDeVidaRecuperados(fichaAtual.nivel ?? 1);
-      return {
-        status: { ...fichaAtual.status, pvAtual: fichaAtual.status.pvMax },
-        dadosDeVidaUsados: Math.max(0, (fichaAtual.dadosDeVidaUsados ?? 0) - recuperados),
-        espacosMagia: restaurarTodosEspacos(fichaAtual.espacosMagia ?? {}),
-      };
-    });
-  }
+  atualizarFicha(id, (fichaAtual) => {
+    const recuperados = calcularDadosDeVidaRecuperados(fichaAtual.nivel ?? 1);
+    return {
+      status: { ...fichaAtual.status, pvAtual: fichaAtual.status.pvMax },
+      dadosDeVidaUsados: Math.max(0, (fichaAtual.dadosDeVidaUsados ?? 0) - recuperados),
+      espacosMagia: restaurarTodosEspacos(fichaAtual.espacosMagia ?? {}),
+      recursos: restaurarRecursos(fichaAtual.recursos ?? [], "longo"),
+    };
+  });
+}
+
+function handleDescansoCurto() {
+  atualizarFicha(id, (fichaAtual) => ({
+    recursos: restaurarRecursos(fichaAtual.recursos ?? [], "curto"),
+  }));
+}
 
 
   function handleChangeRaca(novoRacaId) {
@@ -198,22 +236,7 @@ function handleDescansoLongo() {
   }
 
   function handleChangeInventario(novoInventario) {
-    const mudouArmadura =
-      chaveArmadurasEquipadas(ficha.inventario ?? []) !==
-      chaveArmadurasEquipadas(novoInventario);
-
-    if (mudouArmadura) {
-      const novaCa = calcularCaEquipada(
-        novoInventario,
-        modificadoresAtributos.destreza
-      );
-      atualizarFicha(id, (fichaAtual) => ({
-        inventario: novoInventario,
-        status: { ...fichaAtual.status, ca: novaCa },
-      }));
-    } else {
-      atualizarFicha(id, () => ({ inventario: novoInventario }));
-    }
+    atualizarFicha(id, () => ({ inventario: novoInventario }));
   }
 
   function handleChangeMoedas(chave, novoValor) {
@@ -336,7 +359,13 @@ function handleDescansoLongo() {
         <div className="ficha-conteudo-aba">
           {abaAtiva === "combate" && (
             <>
-              <BlocoStatus status={ficha.status} onChangeStatus={handleChangeStatus} />
+              <BlocoStatus
+                status={ficha.status}
+                onChangeStatus={handleChangeStatus}
+                modDestreza={modificadoresAtributos.destreza}
+                percepcaoPassiva={percepcaoPassiva}
+                investigacaoPassiva={investigacaoPassiva}
+              />
               <BlocoAtaques
                 modificadoresAtributos={modificadoresAtributos}
                 bonusProficiencia={bonusProficiencia}
@@ -353,6 +382,7 @@ function handleDescansoLongo() {
                 onGastarDadoDeVida={handleGastarDadoDeVida}
                 onRestaurarEspacosMagia={handleRestaurarEspacosMagia}
                 onDescansoLongo={handleDescansoLongo}
+                onDescansoCurto={handleDescansoCurto}
               />
               <BlocoSalvaguardas
                 modificadoresAtributos={modificadoresAtributos}
@@ -362,13 +392,19 @@ function handleDescansoLongo() {
             </>
           )}
 
-          {abaAtiva === "habilidades" && (
-            <BlocoHabilidades
-              classeId={ficha.classeId}
-              classeNome={classe?.nome}
-              habilidades={ficha.habilidades ?? []}
-              onChangeHabilidades={handleChangeHabilidades}
-            />
+                    {abaAtiva === "habilidades" && (
+            <>
+              <BlocoHabilidades
+                classeId={ficha.classeId}
+                classeNome={classe?.nome}
+                habilidades={ficha.habilidades ?? []}
+                onChangeHabilidades={handleChangeHabilidades}
+              />
+              <BlocoRecursos
+                recursos={ficha.recursos ?? []}
+                onChangeRecursos={handleChangeRecursos}
+              />
+            </>
           )}
 
           {abaAtiva === "pericias" && (
@@ -399,6 +435,7 @@ function handleDescansoLongo() {
               <BlocoInventario
                 inventario={ficha.inventario ?? []}
                 onChangeInventario={handleChangeInventario}
+                forcaTotal={forcaTotal}
               />
               <BlocoMoedas moedas={ficha.moedas ?? {}} onChangeMoedas={handleChangeMoedas} />
             </>
