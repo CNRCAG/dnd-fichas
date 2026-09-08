@@ -1,6 +1,7 @@
 import { Fragment, useState } from "react";
 import { criarHabilidadeVazia } from "../../utils/habilidade";
 import { obterHabilidadeClasse } from "../../data/habilidadesClasses";
+import { obterSubclasse } from "../../data/subclasses";
 import { obterTalento } from "../../data/talentos";
 import ModalCatalogoHabilidades from "../modal/ModalCatalogoHabilidades";
 import DetalheHabilidade from "../modal/DetalheHabilidade";
@@ -8,6 +9,7 @@ import "./BlocoHabilidades.css";
 
 const LABEL_TIPO = {
   classe: "Classe",
+  subclasse: "Subclasse",
   talento: "Talento",
   personalizada: "Personalizada",
 };
@@ -21,15 +23,18 @@ export default function BlocoHabilidades({
   const [modalAberto, setModalAberto] = useState(false);
   const [expandidas, setExpandidas] = useState(() => new Set());
 
-  function dadosCatalogoDe(habilidade) {
-    if (habilidade.tipo === "classe" && habilidade.origemId) {
-      return obterHabilidadeClasse(habilidade.origemId);
+    function dadosCatalogoDe(habilidade) {
+      if (habilidade.tipo === "classe" && habilidade.origemId) {
+        return obterHabilidadeClasse(habilidade.origemId);
+      }
+      if (habilidade.tipo === "subclasse" && habilidade.origemId) {
+        return obterSubclasse(habilidade.origemId);
+      }
+      if (habilidade.tipo === "talento" && habilidade.origemId) {
+        return obterTalento(habilidade.origemId);
+      }
+      return null;
     }
-    if (habilidade.tipo === "talento" && habilidade.origemId) {
-      return obterTalento(habilidade.origemId);
-    }
-    return null;
-  }
 
   function alternarExpandida(id) {
     setExpandidas((atual) => {

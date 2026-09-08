@@ -4,6 +4,7 @@ import "./BlocoDescanso.css";
 
 export default function BlocoDescanso({
   classe,
+  classesSecundarias,
   nivel,
   modConstituicao,
   status,
@@ -19,7 +20,9 @@ export default function BlocoDescanso({
 
   const dadosTotais = nivel;
   const dadosDisponiveis = Math.max(0, dadosTotais - (dadosDeVidaUsados ?? 0));
-  const ehBruxo = classe.id === "bruxo";
+  const ehBruxo =
+    classe.id === "bruxo" ||
+    (classesSecundarias ?? []).some((c) => c.classeId === "bruxo");
 
   function handleGastarDado() {
     if (dadosDisponiveis <= 0) return;

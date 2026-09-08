@@ -44,10 +44,13 @@ export function criarFichaVazia(nome) {
     },
     pvPorNivel: {},
     recursos: [],
+    subclasseId: null,
+    classesSecundarias: [], // [{ classeId, nivel }] — multiclasse
     dadosDeVidaUsados: 0,
     niveisAsiAplicados: [],
     magias: [],
     espacosMagia: criarEspacosMagiaVazios(),
+    espacosMagiaPacto: null, // { quantidade, nivel, usados } — Bruxo, sempre separado
     habilidades: [],
     ataques: [],
   };

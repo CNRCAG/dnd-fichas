@@ -1,7 +1,7 @@
 export default function DetalheHabilidade({ item, tipo }) {
   return (
     <dl className="item-catalogo-detalhes">
-      {tipo === "classe" && (
+      {(tipo === "classe" || tipo === "subclasse") && (
         <div>
           <dt>Nível</dt>
           <dd>{item.nivel}º</dd>

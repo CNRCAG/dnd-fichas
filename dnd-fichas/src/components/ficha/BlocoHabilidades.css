@@ -179,3 +179,7 @@
   background: var(--color-primary);
   color: var(--color-bg-raised);
 }
+.habilidades-etiqueta--subclasse {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}

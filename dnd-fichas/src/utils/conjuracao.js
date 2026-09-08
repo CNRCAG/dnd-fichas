@@ -129,3 +129,46 @@ export function obterEspacosPorNivel(classeId, nivel) {
 
   return espacos;
 }
+
+// Espaços de magia combinados de multiclasse: conjuradores completos
+// somam o nível inteiro, de metade somam metade (pra baixo). O Bruxo
+// NUNCA entra nessa soma — ele sempre usa a tabela de Magia de Pacto
+// separada, então devolvemos os dois resultados independentes.
+export function obterEspacosCombinadosMulticlasse(classesComNiveis) {
+  let nivelConjuradorCombinado = 0;
+  let nivelBruxo = null;
+
+  for (const { classeId, nivel } of classesComNiveis) {
+    const tipo = TIPO_CONJURADOR[classeId];
+    if (tipo === "completo") {
+      nivelConjuradorCombinado += nivel;
+    } else if (tipo === "metade") {
+      nivelConjuradorCombinado += Math.floor(nivel / 2);
+    } else if (tipo === "pacto") {
+      nivelBruxo = nivel;
+    }
+  }
+
+  let espacosRegulares = null;
+  if (nivelConjuradorCombinado > 0) {
+    const nivelValido = Math.min(Math.max(nivelConjuradorCombinado, 1), 20);
+    espacosRegulares = {};
+    TABELA_COMPLETA[nivelValido].forEach((total, indice) => {
+      espacosRegulares[indice + 1] = total;
+    });
+  }
+
+  let espacosPacto = null;
+  if (nivelBruxo != null) {
+    const nivelValido = Math.min(Math.max(nivelBruxo, 1), 20);
+    const [quantidade, nivelSlot] = TABELA_PACTO[nivelValido];
+    espacosPacto = { quantidade, nivel: nivelSlot };
+  }
+
+  return { espacosRegulares, espacosPacto };
+}
+
+export function mesclarEspacosPacto(atual, novo) {
+  if (!novo) return null;
+  return { ...novo, usados: Math.min(atual?.usados ?? 0, novo.quantidade) };
+}

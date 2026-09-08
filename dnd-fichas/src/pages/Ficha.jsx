@@ -3,10 +3,16 @@ import { useParams, Link } from "react-router-dom";
 import { useFichas } from "../context/useFichas";
 import { obterRaca } from "../data/racas";
 import { obterClasse } from "../data/classes";
+import { obterSubclasse } from "../data/subclasses";
+import { obterHabilidadeClasse } from "../data/habilidadesClasses";
 import { calcularBonusProficiencia, calcularModificadoresAtributos } from "../utils/dnd";
 import { criarEspacosMagiaVazios } from "../utils/magia";
 import { calcularCaEquipada } from "../utils/equipamento";
-import { obterEspacosPorNivel, mesclarEspacosNoAtual } from "../utils/conjuracao";
+import {
+  obterEspacosCombinadosMulticlasse,
+  mesclarEspacosNoAtual,
+  mesclarEspacosPacto,
+} from "../utils/conjuracao";
 import { recalcularPv } from "../utils/progressao";
 import { restaurarTodosEspacos, calcularDadosDeVidaRecuperados } from "../utils/descanso";
 import { restaurarRecursos } from "../utils/recurso";
@@ -34,6 +40,7 @@ const ABAS = [
   { chave: "notas", label: "Notas" },
 ];
 
+
 export default function Ficha() {
   const { id } = useParams();
   const { obterFicha, atualizarFicha } = useFichas();
@@ -54,9 +61,34 @@ export default function Ficha() {
 
   const raca = obterRaca(ficha.racaId);
   const classe = obterClasse(ficha.classeId);
+  function calcularAtualizacoesEspacosMagia(fichaHipotetica) {
+  const classesComNiveis = [
+    { classeId: fichaHipotetica.classeId, nivel: fichaHipotetica.nivel ?? 1 },
+    ...(fichaHipotetica.classesSecundarias ?? []).map((c) => ({
+      classeId: c.classeId,
+      nivel: c.nivel ?? 1,
+    })),
+  ].filter((c) => c.classeId);
+
+  const { espacosRegulares, espacosPacto } =
+    obterEspacosCombinadosMulticlasse(classesComNiveis);
+
+  return {
+    espacosMagia: espacosRegulares
+      ? mesclarEspacosNoAtual(fichaHipotetica.espacosMagia, espacosRegulares)
+      : fichaHipotetica.espacosMagia,
+    espacosMagiaPacto: mesclarEspacosPacto(
+      fichaHipotetica.espacosMagiaPacto,
+      espacosPacto
+    ),
+  };
+}
   const bonusRacial = raca?.bonusAtributos ?? {};
   const forcaTotal = ficha.atributos.forca + (bonusRacial.forca ?? 0);
-  const bonusProficiencia = calcularBonusProficiencia(ficha.nivel ?? 1);
+  const nivelTotal =
+    (ficha.nivel ?? 1) +
+    (ficha.classesSecundarias ?? []).reduce((soma, c) => soma + (c.nivel ?? 0), 0);
+  const bonusProficiencia = calcularBonusProficiencia(nivelTotal);
   const modificadoresAtributos = calcularModificadoresAtributos(
     ficha.atributos,
     bonusRacial
@@ -128,7 +160,9 @@ export default function Ficha() {
 
 function handleRestaurarEspacosMagia() {
   atualizarFicha(id, (fichaAtual) => ({
-    espacosMagia: restaurarTodosEspacos(fichaAtual.espacosMagia ?? {}),
+    espacosMagiaPacto: fichaAtual.espacosMagiaPacto
+      ? { ...fichaAtual.espacosMagiaPacto, usados: 0 }
+      : null,
   }));
 }
 
@@ -160,17 +194,30 @@ function handleDescansoCurto() {
   }
 
   function handleChangeClasse(novoClasseId) {
-    atualizarFicha(id, (fichaAtual) => {
-      const atualizacoes = { classeId: novoClasseId };
-      const novaClasse = obterClasse(novoClasseId);
+  atualizarFicha(id, (fichaAtual) => {
+        const classeAntigaId = fichaAtual.classeId;
+    const atualizacoes = {
+      classeId: novoClasseId,
+      subclasseId: null,
+      habilidades: (fichaAtual.habilidades ?? []).filter((h) => {
+        if (h.tipo === "subclasse") return false;
+        if (
+          h.tipo === "classe" &&
+          obterHabilidadeClasse(h.origemId)?.classeId === classeAntigaId
+        ) {
+          return false;
+        }
+        return true;
+      }),
+    };
+    const novaClasse = obterClasse(novoClasseId);
 
-      const novosTotaisMagia = obterEspacosPorNivel(
-        novoClasseId,
-        fichaAtual.nivel ?? 1
-      );
-      atualizacoes.espacosMagia = mesclarEspacosNoAtual(
-        fichaAtual.espacosMagia,
-        novosTotaisMagia ?? {}
+            Object.assign(
+        atualizacoes,
+        calcularAtualizacoesEspacosMagia({
+          ...fichaAtual,
+          classeId: novoClasseId,
+        })
       );
 
       if (novaClasse) {
@@ -206,17 +253,76 @@ function handleDescansoCurto() {
         atualizacoes.status = status;
       }
 
-      const novosTotaisMagia = obterEspacosPorNivel(classe?.id, novoNivel);
-      if (novosTotaisMagia) {
-        atualizacoes.espacosMagia = mesclarEspacosNoAtual(
-          fichaAtual.espacosMagia,
-          novosTotaisMagia
-        );
-      }
+            Object.assign(
+        atualizacoes,
+        calcularAtualizacoesEspacosMagia({ ...fichaAtual, nivel: novoNivel })
+      );
 
       return atualizacoes;
     });
   }
+
+  function handleChangeSubclasse(novaSubclasseId) {
+  atualizarFicha(id, (fichaAtual) => {
+    const habilidadesSemSubclasse = (fichaAtual.habilidades ?? []).filter(
+      (h) => h.tipo !== "subclasse"
+    );
+    const subclasse = obterSubclasse(novaSubclasseId);
+    const novaHabilidade = subclasse
+      ? [
+          {
+            id: crypto.randomUUID(),
+            nome: subclasse.nome,
+            tipo: "subclasse",
+            nivel: subclasse.nivel,
+            origemId: subclasse.id,
+          },
+        ]
+      : [];
+    return {
+      subclasseId: novaSubclasseId,
+      habilidades: [...habilidadesSemSubclasse, ...novaHabilidade],
+    };
+  });
+}
+
+  function handleAdicionarClasseSecundaria() {
+  atualizarFicha(id, (fichaAtual) => ({
+    classesSecundarias: [
+      ...(fichaAtual.classesSecundarias ?? []),
+      { classeId: null, nivel: 1 },
+    ],
+  }));
+}
+
+function handleAlterarClasseSecundaria(indice, campo, valor) {
+  atualizarFicha(id, (fichaAtual) => {
+    const novasClasses = [...(fichaAtual.classesSecundarias ?? [])];
+    novasClasses[indice] = { ...novasClasses[indice], [campo]: valor };
+    return {
+      classesSecundarias: novasClasses,
+      ...calcularAtualizacoesEspacosMagia({
+        ...fichaAtual,
+        classesSecundarias: novasClasses,
+      }),
+    };
+  });
+}
+
+function handleRemoverClasseSecundaria(indice) {
+  atualizarFicha(id, (fichaAtual) => {
+    const novasClasses = (fichaAtual.classesSecundarias ?? []).filter(
+      (_, i) => i !== indice
+    );
+    return {
+      classesSecundarias: novasClasses,
+      ...calcularAtualizacoesEspacosMagia({
+        ...fichaAtual,
+        classesSecundarias: novasClasses,
+      }),
+    };
+  });
+}
 
   function handleTogglePericia(chave) {
     atualizarFicha(id, (ficha) => ({
@@ -266,6 +372,12 @@ function handleDescansoCurto() {
     }));
   }
 
+  function handleChangeEspacoPacto(novoValor) {
+  atualizarFicha(id, (fichaAtual) => ({
+    espacosMagiaPacto: { ...fichaAtual.espacosMagiaPacto, usados: novoValor },
+  }));
+}
+
   function handleChangeNome(evento) {
     const valor = evento.target.value;
     atualizarFicha(id, () => ({ nome: valor || "Sem nome" }));
@@ -276,8 +388,11 @@ function handleDescansoCurto() {
   }
 
   function handleConcluirLevelUp(alteracoes) {
-    atualizarFicha(id, () => alteracoes);
-  }
+  atualizarFicha(id, (fichaAtual) => {
+    const fichaHipotetica = { ...fichaAtual, ...alteracoes };
+    return { ...alteracoes, ...calcularAtualizacoesEspacosMagia(fichaHipotetica) };
+  });
+}
 
   return (
     <div className="ficha-shell">
@@ -290,17 +405,22 @@ function handleDescansoCurto() {
           aria-label="Nome do personagem"
         />
 
-        <BlocoRacaClasse
+       <BlocoRacaClasse
           racaId={ficha.racaId}
           classeId={ficha.classeId}
           antecedenteId={ficha.antecedenteId}
           nivel={ficha.nivel ?? 1}
+          subclasseId={ficha.subclasseId}
+          classesSecundarias={ficha.classesSecundarias ?? []}
           onChangeRaca={handleChangeRaca}
           onChangeClasse={handleChangeClasse}
           onChangeAntecedente={handleChangeAntecedente}
           onChangeNivel={handleChangeNivel}
+          onChangeSubclasse={handleChangeSubclasse}
+          onAdicionarClasseSecundaria={handleAdicionarClasseSecundaria}
+          onAlterarClasseSecundaria={handleAlterarClasseSecundaria}
+          onRemoverClasseSecundaria={handleRemoverClasseSecundaria}
         />
-
         <button
           type="button"
           className="ficha-levelup-botao"
@@ -375,6 +495,7 @@ function handleDescansoCurto() {
               />
               <BlocoDescanso
                 classe={classe}
+                classesSecundarias={ficha.classesSecundarias ?? []}
                 nivel={ficha.nivel ?? 1}
                 modConstituicao={modificadoresAtributos.constituicao}
                 status={ficha.status}
@@ -425,6 +546,8 @@ function handleDescansoCurto() {
               bonusProficiencia={bonusProficiencia}
               espacosMagia={ficha.espacosMagia ?? criarEspacosMagiaVazios()}
               onChangeEspacoMagia={handleChangeEspacoMagia}
+              espacosMagiaPacto={ficha.espacosMagiaPacto}
+              onChangeEspacoPacto={handleChangeEspacoPacto}
               magias={ficha.magias ?? []}
               onChangeMagias={handleChangeMagias}
             />

@@ -3,8 +3,8 @@ import { ATRIBUTOS, formatarModificador } from "../../utils/dnd";
 import { rolarDado } from "../../utils/dados";
 import { useRolagem } from "../../context/useRolagem";
 import { obterHabilidadesPorClasse } from "../../data/habilidadesClasses";
-import { obterEspacosPorNivel, mesclarEspacosNoAtual } from "../../utils/conjuracao";
 import { recalcularPv } from "../../utils/progressao";
+import { obterClasse } from "../../data/classes";
 import DetalheHabilidade from "./DetalheHabilidade";
 import "./ModalCatalogoItens.css";
 import "./ModalLevelUp.css";
@@ -22,7 +22,44 @@ export default function ModalLevelUp({
   const { registrarRolagem } = useRolagem();
   const [etapa, setEtapa] = useState(0);
 
-  const novoNivel = (ficha.nivel ?? 1) + 1;
+  // Todas as classes que dá pra subir: a principal + cada secundária de
+  // multiclasse. Cada uma sabe seu próprio dado de vida e nível atual.
+  const opcoesClasse = [
+    {
+      id: classe?.id,
+      nome: classe?.nome,
+      dadoVida: classe?.dadoVida,
+      nivelAtual: ficha.nivel ?? 1,
+      ehSecundaria: false,
+      indiceSecundaria: null,
+    },
+    ...(ficha.classesSecundarias ?? [])
+      .map((c, indice) => {
+        const classeObj = obterClasse(c.classeId);
+        return classeObj
+          ? {
+              id: classeObj.id,
+              nome: classeObj.nome,
+              dadoVida: classeObj.dadoVida,
+              nivelAtual: c.nivel ?? 1,
+              ehSecundaria: true,
+              indiceSecundaria: indice,
+            }
+          : null;
+      })
+      .filter(Boolean),
+  ];
+
+  const [classeEscolhidaId, setClasseEscolhidaId] = useState(classe?.id);
+
+  const classeEscolhida =
+    opcoesClasse.find((o) => o.id === classeEscolhidaId) ?? opcoesClasse[0];
+  const novoNivelDaEscolhida = classeEscolhida.nivelAtual + 1;
+
+  const nivelTotalAtual =
+    (ficha.nivel ?? 1) +
+    (ficha.classesSecundarias ?? []).reduce((soma, c) => soma + (c.nivel ?? 0), 0);
+  const novoNivelTotal = nivelTotalAtual + 1;
 
   // ---- rascunho das escolhas, só vira de verdade ao "Concluir" ----
   const [metodoPv, setMetodoPv] = useState(null); // "media" | "rolado" | "banked"
@@ -35,11 +72,12 @@ export default function ModalLevelUp({
 
   const [habilidadesSelecionadas, setHabilidadesSelecionadas] = useState(() => new Set());
 
-  // Se esse nível já teve o PV definido antes (rolado ou média), não deixa
-  // escolher de novo — só reaproveita o valor banked, sem poder rerolar.
+  // Se esse nível TOTAL já teve o PV definido antes (rolado ou média), não
+  // deixa escolher de novo — só reaproveita o valor banked, sem reroll.
   useEffect(() => {
     if (!aberto) return;
-    const pvBanked = ficha.pvPorNivel?.[novoNivel];
+    setClasseEscolhidaId(classe?.id);
+    const pvBanked = ficha.pvPorNivel?.[novoNivelTotal];
     if (pvBanked != null) {
       setMetodoPv("banked");
       setGanhoPv(pvBanked);
@@ -49,14 +87,17 @@ export default function ModalLevelUp({
       setGanhoPv(null);
       setDetalheRolagemPv(null);
     }
-  }, [aberto, novoNivel, ficha.pvPorNivel]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto, novoNivelTotal, ficha.pvPorNivel, classe?.id]);
 
   if (!aberto || !classe) return null;
 
-  const temAsi = NIVEIS_ASI.includes(novoNivel);
-  const asiJaAplicado = (ficha.niveisAsiAplicados ?? []).includes(novoNivel);
-  const habilidadesDoNivel = obterHabilidadesPorClasse(classe.id).filter(
-    (h) => h.nivel === novoNivel
+  const chaveAsi = `${classeEscolhida.id}-${novoNivelDaEscolhida}`;
+  const temAsi = NIVEIS_ASI.includes(novoNivelDaEscolhida);
+  const asiJaAplicado = (ficha.niveisAsiAplicados ?? []).includes(chaveAsi);
+
+  const habilidadesDoNivel = obterHabilidadesPorClasse(classeEscolhida.id).filter(
+    (h) => h.nivel === novoNivelDaEscolhida
   );
   const origensHabilidadesJaConcedidas = new Set(
     (ficha.habilidades ?? [])
@@ -69,6 +110,7 @@ export default function ModalLevelUp({
   const temHabilidades = habilidadesNovasDoNivel.length > 0;
 
   const etapas = [
+    ...(opcoesClasse.length > 1 ? ["escolha-classe"] : []),
     "pv",
     ...(temAsi && !asiJaAplicado ? ["asi"] : []),
     ...(temHabilidades ? ["habilidades"] : []),
@@ -95,7 +137,10 @@ export default function ModalLevelUp({
 
   // ---- PV ----
   const modCon = modificadoresAtributos.constituicao;
-  const valorMedia = Math.max(1, Math.floor(classe.dadoVida / 2) + 1 + modCon);
+  const valorMedia = Math.max(
+    1,
+    Math.floor(classeEscolhida.dadoVida / 2) + 1 + modCon
+  );
 
   function handleUsarMedia() {
     setMetodoPv("media");
@@ -105,18 +150,18 @@ export default function ModalLevelUp({
 
   function handleRolarPv() {
     if (detalheRolagemPv) return; // já rolou — não dá pra rerolar
-    const dado = rolarDado(classe.dadoVida);
+    const dado = rolarDado(classeEscolhida.dadoVida);
     const total = Math.max(1, dado + modCon);
     setMetodoPv("rolado");
     setGanhoPv(total);
     setDetalheRolagemPv({ dado, modCon, total });
     registrarRolagem(
-      `Level up: PV (d${classe.dadoVida})`,
+      `Level up: PV (d${classeEscolhida.dadoVida})`,
       {
-        formula: `1d${classe.dadoVida}+${modCon}`,
+        formula: `1d${classeEscolhida.dadoVida}+${modCon}`,
         total,
         detalhes: [
-          { texto: `1d${classe.dadoVida}`, rolagens: [dado], soma: dado },
+          { texto: `1d${classeEscolhida.dadoVida}`, rolagens: [dado], soma: dado },
           { texto: "mod. CON", rolagens: [], soma: modCon },
         ],
       },
@@ -172,28 +217,38 @@ export default function ModalLevelUp({
         origemId: h.id,
       }));
 
-    const { pvPorNivel, status } = recalcularPv(ficha, classe, modCon, novoNivel, {
-      [novoNivel]: ganhoPv ?? 0,
-    });
+    const { pvPorNivel, status } = recalcularPv(
+      ficha,
+      classe,
+      modCon,
+      novoNivelTotal,
+      { [novoNivelTotal]: ganhoPv ?? 0 }
+    );
 
-    const novosTotaisMagia = obterEspacosPorNivel(classe.id, novoNivel);
-
-    const niveisAsiAplicados =
+        const niveisAsiAplicados =
       temAsi && !asiJaAplicado
-        ? [...(ficha.niveisAsiAplicados ?? []), novoNivel]
+        ? [...(ficha.niveisAsiAplicados ?? []), chaveAsi]
         : ficha.niveisAsiAplicados ?? [];
 
-    onConcluir({
-      nivel: novoNivel,
-      atributos: novosAtributos,
+    const atualizacoes = {
       pvPorNivel,
       status,
+      atributos: novosAtributos,
       niveisAsiAplicados,
-      habilidades: [...(ficha.habilidades ?? []), ...novasHabilidades],
-      ...(novosTotaisMagia && {
-        espacosMagia: mesclarEspacosNoAtual(ficha.espacosMagia, novosTotaisMagia),
-      }),
-    });
+            habilidades: [...(ficha.habilidades ?? []), ...novasHabilidades],
+    };
+    if (classeEscolhida.ehSecundaria) {
+      const novasClassesSecundarias = [...(ficha.classesSecundarias ?? [])];
+      novasClassesSecundarias[classeEscolhida.indiceSecundaria] = {
+        ...novasClassesSecundarias[classeEscolhida.indiceSecundaria],
+        nivel: novoNivelDaEscolhida,
+      };
+      atualizacoes.classesSecundarias = novasClassesSecundarias;
+    } else {
+      atualizacoes.nivel = novoNivelDaEscolhida;
+    }
+
+    onConcluir(atualizacoes);
     fecharEResetar();
   }
 
@@ -212,7 +267,7 @@ export default function ModalLevelUp({
       <div className="modal-catalogo levelup-modal" role="dialog" aria-modal="true" aria-label="Subir de nível">
         <div className="modal-catalogo-cabecalho">
           <h2>
-            Subir de Nível — {ficha.nivel ?? 1} → {novoNivel}
+            Subir de Nível — {classeEscolhida.nome} {classeEscolhida.nivelAtual} → {novoNivelDaEscolhida}
           </h2>
           <button type="button" className="modal-catalogo-fechar" onClick={fecharEResetar} aria-label="Fechar">
             ×
@@ -229,19 +284,47 @@ export default function ModalLevelUp({
         </div>
 
         <div className="levelup-corpo">
+          {etapaAtual === "escolha-classe" && (
+            <div className="levelup-etapa">
+              <h3>Qual classe está subindo?</h3>
+              <p className="levelup-texto">
+                Nível total do personagem: {nivelTotalAtual} → {novoNivelTotal}
+              </p>
+              <div className="levelup-opcoes-pv">
+                {opcoesClasse.map((opcao) => (
+                  <button
+                    key={opcao.id}
+                    type="button"
+                    className={
+                      classeEscolhidaId === opcao.id
+                        ? "levelup-opcao-botao is-selecionado"
+                        : "levelup-opcao-botao"
+                    }
+                    onClick={() => setClasseEscolhidaId(opcao.id)}
+                  >
+                    {opcao.nome}
+                    <span className="levelup-opcao-detalhe">
+                      nível {opcao.nivelAtual} → {opcao.nivelAtual + 1}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {etapaAtual === "pv" && (
             <div className="levelup-etapa">
               <h3>Pontos de vida</h3>
               <p className="levelup-texto">
-                Sua classe ({classe.nome}) usa dado de vida d{classe.dadoVida}.
+                {classeEscolhida.nome} usa dado de vida d{classeEscolhida.dadoVida}.
                 Modificador de Constituição: {formatarModificador(modCon)}.
               </p>
 
               {metodoPv === "banked" ? (
                 <p className="levelup-texto">
-                  Você já tinha chegado no nível {novoNivel} antes — o PV
-                  desse nível já foi definido como <strong>+{ganhoPv}</strong> e
-                  não muda mais (sem reroll).
+                  Você já tinha chegado nesse nível total antes — o PV já foi
+                  definido como <strong>+{ganhoPv}</strong> e não muda mais
+                  (sem reroll).
                 </p>
               ) : (
                 <div className="levelup-opcoes-pv">
@@ -271,7 +354,7 @@ export default function ModalLevelUp({
                     <span className="levelup-opcao-detalhe">
                       {detalheRolagemPv
                         ? `${detalheRolagemPv.dado} + ${detalheRolagemPv.modCon} = +${detalheRolagemPv.total} PV (definitivo)`
-                        : `1d${classe.dadoVida} + CON`}
+                        : `1d${classeEscolhida.dadoVida} + CON`}
                     </span>
                   </button>
                 </div>
@@ -283,8 +366,8 @@ export default function ModalLevelUp({
             <div className="levelup-etapa">
               <h3>Melhoria de Atributo (ASI)</h3>
               <p className="levelup-texto">
-                Nível {novoNivel}: você pode aumentar atributos ou pular pra pegar um talento
-                (cadastre o talento depois, na aba Habilidades).
+                {classeEscolhida.nome}, nível {novoNivelDaEscolhida}: você pode aumentar
+                atributos ou pular pra pegar um talento depois.
               </p>
 
               <div className="levelup-opcoes-pv">
@@ -372,10 +455,10 @@ export default function ModalLevelUp({
 
           {etapaAtual === "habilidades" && (
             <div className="levelup-etapa">
-              <h3>Novas habilidades de {classe.nome}</h3>
+              <h3>Novas habilidades de {classeEscolhida.nome}</h3>
               <p className="levelup-texto">
-                No nível {novoNivel}, sua classe ganha isso. Desmarque o que não quiser adicionar
-                agora.
+                No nível {novoNivelDaEscolhida}, essa classe ganha isso. Desmarque o que não
+                quiser adicionar agora.
               </p>
               <div className="levelup-habilidades-lista">
                 {habilidadesNovasDoNivel.map((h) => (
@@ -400,7 +483,12 @@ export default function ModalLevelUp({
               <h3>Resumo</h3>
               <ul className="levelup-resumo-lista">
                 <li>
-                  Nível {ficha.nivel ?? 1} → <strong>{novoNivel}</strong>
+                  {classeEscolhida.nome}: nível {classeEscolhida.nivelAtual} →{" "}
+                  <strong>{novoNivelDaEscolhida}</strong>
+                </li>
+                <li>
+                  Nível total do personagem: {nivelTotalAtual} →{" "}
+                  <strong>{novoNivelTotal}</strong>
                 </li>
                 <li>
                   Pontos de vida: <strong>+{ganhoPv ?? 0}</strong> ({ficha.status.pvMax} →{" "}
@@ -430,9 +518,7 @@ export default function ModalLevelUp({
                     {habilidadesNovasDoNivel.length}
                   </li>
                 )}
-                {obterEspacosPorNivel(classe.id, novoNivel) && (
-                  <li>Espaços de magia atualizados pro novo nível</li>
-                )}
+                                <li>Espaços de magia recalculados considerando todas as suas classes</li>
               </ul>
             </div>
           )}

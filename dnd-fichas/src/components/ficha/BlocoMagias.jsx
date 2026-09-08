@@ -25,6 +25,8 @@ export default function BlocoMagias({
   bonusProficiencia,
   espacosMagia,
   onChangeEspacoMagia,
+  espacosMagiaPacto,
+  onChangeEspacoPacto,
   magias,
   onChangeMagias,
 }) {
@@ -148,8 +150,33 @@ export default function BlocoMagias({
               />
             </div>
           ))}
-        </div>
+                </div>
       </section>
+
+      {espacosMagiaPacto && (
+        <section>
+          <h3 className="bloco-titulo">Espaços de Magia de Pacto (Bruxo)</h3>
+          <div className="espacos-magia-grid">
+            <div className="espaco-magia-campo">
+              <span className="espaco-magia-nivel">{espacosMagiaPacto.nivel}º</span>
+              <input
+                type="number"
+                min="0"
+                max={espacosMagiaPacto.quantidade}
+                className="espaco-magia-input"
+                value={espacosMagiaPacto.usados}
+                onChange={(evento) =>
+                  onChangeEspacoPacto(Math.max(0, Number(evento.target.value) || 0))
+                }
+                aria-label="Espaços de pacto usados"
+              />
+              <span className="espaco-magia-separador">/</span>
+              <span className="espaco-magia-input">{espacosMagiaPacto.quantidade}</span>
+            </div>
+          </div>
+          <p className="levelup-texto">Recupera no descanso curto ou longo.</p>
+        </section>
+      )}
 
       <section>
         <h3 className="bloco-titulo">Magias conhecidas</h3>

@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { RACAS } from "../../data/racas";
 import { CLASSES, obterClasse } from "../../data/classes";
+import {
+  obterSubclassesPorClasse,
+  obterNivelEscolhaSubclasse,
+} from "../../data/subclasses";
 import { ANTECEDENTES, obterAntecedente } from "../../data/antecedentes";
 import { ATRIBUTOS } from "../../utils/dnd";
 import "./BlocoRacaClasse.css";
@@ -10,11 +14,20 @@ export default function BlocoRacaClasse({
   classeId,
   antecedenteId,
   nivel,
+  subclasseId,
+  classesSecundarias,
   onChangeRaca,
   onChangeClasse,
   onChangeAntecedente,
   onChangeNivel,
+  onChangeSubclasse,
+  onAdicionarClasseSecundaria,
+  onAlterarClasseSecundaria,
+  onRemoverClasseSecundaria,
 }) {
+  const subclassesDisponiveis = obterSubclassesPorClasse(classeId);
+  const nivelEscolhaSubclasse = obterNivelEscolhaSubclasse(classeId);
+  const podeEscolherSubclasse = nivel >= (nivelEscolhaSubclasse ?? Infinity);
   const classe = obterClasse(classeId);
   const antecedente = obterAntecedente(antecedenteId);
   const labelAtributoPrincipal = classe
@@ -59,7 +72,9 @@ export default function BlocoRacaClasse({
           </select>
         </label>
 
-        <label className="raca-classe-campo">
+            
+
+                <label className="raca-classe-campo">
           <span className="raca-classe-label">Classe</span>
           <select
             value={classeId ?? ""}
@@ -74,6 +89,27 @@ export default function BlocoRacaClasse({
           </select>
         </label>
 
+        {classeId && (
+          <label className="raca-classe-campo">
+            <span className="raca-classe-label">Subclasse</span>
+            <select
+              value={subclasseId ?? ""}
+              onChange={(evento) => onChangeSubclasse(evento.target.value || null)}
+              disabled={!podeEscolherSubclasse}
+            >
+              <option value="">
+                {podeEscolherSubclasse
+                  ? "Selecione..."
+                  : `Disponível no nível ${nivelEscolhaSubclasse}`}
+              </option>
+              {subclassesDisponiveis.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="raca-classe-campo">
           <span className="raca-classe-label">Nível</span>
           <input
@@ -86,6 +122,7 @@ export default function BlocoRacaClasse({
             onKeyDown={handleKeyDownNivel}
           />
         </label>
+
 
         <label className="raca-classe-campo raca-classe-campo--largo">
           <span className="raca-classe-label">Antecedente</span>
@@ -103,7 +140,61 @@ export default function BlocoRacaClasse({
             ))}
           </select>
         </label>
-      </div>
+        
+            </div>
+
+      {classeId && (
+        <div className="multiclasse-bloco">
+          <span className="raca-classe-label">Classes secundárias (multiclasse)</span>
+          {(classesSecundarias ?? []).map((c, indice) => (
+            <div key={indice} className="multiclasse-linha">
+              <select
+                value={c.classeId ?? ""}
+                onChange={(evento) =>
+                  onAlterarClasseSecundaria(indice, "classeId", evento.target.value)
+                }
+              >
+                <option value="">Selecione...</option>
+                {CLASSES.filter((classeItem) => classeItem.id !== classeId).map(
+                  (classeItem) => (
+                    <option key={classeItem.id} value={classeItem.id}>
+                      {classeItem.nome}
+                    </option>
+                  )
+                )}
+              </select>
+              <input
+                type="number"
+                min="1"
+                max="19"
+                className="multiclasse-nivel"
+                value={c.nivel}
+                onChange={(evento) =>
+                  onAlterarClasseSecundaria(
+                    indice,
+                    "nivel",
+                    Math.max(1, Number(evento.target.value) || 1)
+                  )
+                }
+              />
+              <button
+                type="button"
+                className="multiclasse-remover"
+                onClick={() => onRemoverClasseSecundaria(indice)}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            className="multiclasse-adicionar"
+            onClick={onAdicionarClasseSecundaria}
+          >
+            + Adicionar classe
+          </button>
+        </div>
+      )}
 
       {classe && (
         <p className="raca-classe-info">
@@ -115,6 +206,7 @@ export default function BlocoRacaClasse({
           {antecedente.caracteristica.nome}: {antecedente.caracteristica.descricao}
         </p>
       )}
+      
     </section>
   );
 }
