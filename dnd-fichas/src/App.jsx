@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import Topbar from "./components/layout/Topbar";
+import Footer from "./components/layout/Footer";
 import Home from "./pages/Home";
 import Ficha from "./pages/Ficha";
 import NovaFicha from "./pages/NovaFicha";
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/nova" element={<NovaFicha />} />
         </Routes>
       </main>
+      <Footer />
       <PainelRolagens />
     </div>
   );
