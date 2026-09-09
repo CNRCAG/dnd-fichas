@@ -29,6 +29,9 @@ export default function BlocoMagias({
   onChangeEspacoPacto,
   magias,
   onChangeMagias,
+  concentracaoAtual,      // NOVO
+  onIniciarConcentracao,  // NOVO
+  onPararConcentracao,    // NOVO
 }) {
   const temAtributoPrincipal = modificadorAtributoPrincipal !== null;
   const cdMagia = temAtributoPrincipal
@@ -205,6 +208,7 @@ export default function BlocoMagias({
                 <th>Magia</th>
                 <th>Nível</th>
                 <th>Preparada</th>
+                <th>Concentração</th>   {/* NOVO */}
                 <th aria-label="Remover"></th>
               </tr>
             </thead>
@@ -277,6 +281,37 @@ export default function BlocoMagias({
                           aria-label={`${magia.nome || "Magia"} preparada`}
                         />
                       </td>
+
+                      <td className="magias-coluna-concentracao">
+  {dadosCatalogo?.concentracao ? (
+    concentracaoAtual?.magiaId === magia.id ? (
+      <button
+        type="button"
+        className="magias-concentracao-botao is-ativa"
+        onClick={onPararConcentracao}
+      >
+        🎯 Concentrando
+      </button>
+    ) : (
+      <button
+        type="button"
+        className="magias-concentracao-botao"
+        onClick={() => onIniciarConcentracao(magia)}
+        title={
+          concentracaoAtual
+            ? `Substitui a concentração em ${concentracaoAtual.nome}`
+            : undefined
+        }
+      >
+        🎯 Concentrar
+      </button>
+    )
+  ) : (
+    <span className="magias-concentracao-vazio">—</span>
+  )}
+</td>
+
+
                       <td>
                         <button
                           type="button"
@@ -290,7 +325,7 @@ export default function BlocoMagias({
                     </tr>
                     {aberta && (
                       <tr>
-                        <td colSpan={5} className="magias-linha-detalhe">
+                        <td colSpan={6} className="magias-linha-detalhe">  {/* era 5 */}
                           {dadosCatalogo ? (
                             <DetalheMagia magia={dadosCatalogo} />
                           ) : (

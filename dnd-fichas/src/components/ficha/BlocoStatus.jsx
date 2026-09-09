@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { formatarModificador } from "../../utils/dnd";
 import { rolarTesteD20 } from "../../utils/dados";
 import { useRolagem } from "../../context/useRolagem";
@@ -5,8 +6,8 @@ import "./BlocoStatus.css";
 
 const CAMPOS_STATUS = [
   { chave: "pvAtual", label: "PV atual" },
-  { chave: "pvMax", label: "PV máximo" },
   { chave: "pvTemp", label: "PV temporário" },
+  { chave: "pvMax", label: "PV máximo" },
   { chave: "ca", label: "Classe de Armadura" },
   { chave: "deslocamento", label: "Deslocamento" },
 ];
@@ -15,11 +16,42 @@ export default function BlocoStatus({
   status,
   onChangeStatus,
   modDestreza,
+  modConstituicao,           // NOVO
   percepcaoPassiva,
   investigacaoPassiva,
+  concentracao,              // NOVO
+  avisoConcentracao,         // NOVO
+  onPararConcentracao,       // NOVO
+  onFecharAvisoConcentracao, // NOVO
 }) {
-  const { registrarRolagem } = useRolagem();
+    const { registrarRolagem } = useRolagem();
+  const [resultadoConcentracao, setResultadoConcentracao] = useState(null);
+  const [ultimoAvisoConcentracao, setUltimoAvisoConcentracao] = useState(avisoConcentracao);
   const iniciativaTotal = modDestreza + (status.iniciativa ?? 0);
+
+  // Zera o resultado do teste anterior sempre que chega um aviso novo
+  // (dano novo). Ajuste de estado durante o render, sem useEffect — é
+  // o padrão recomendado pra "resetar estado quando uma prop muda".
+  if (avisoConcentracao !== ultimoAvisoConcentracao) {
+    setUltimoAvisoConcentracao(avisoConcentracao);
+    setResultadoConcentracao(null);
+  }
+
+  function handleTestarConcentracao() {
+    const resultado = rolarTesteD20(modConstituicao);
+    const sucesso = resultado.total >= avisoConcentracao.cd;
+    registrarRolagem(
+      `Teste de concentração (CD ${avisoConcentracao.cd})`,
+      resultado,
+      "d20"
+    );
+    setResultadoConcentracao({ sucesso, total: resultado.total });
+    if (!sucesso) {
+      onPararConcentracao();
+    }
+  }
+
+  
 
   function handleRolarIniciativa() {
     const resultado = rolarTesteD20(iniciativaTotal);
@@ -96,6 +128,60 @@ export default function BlocoStatus({
           Investigação passiva: <strong>{investigacaoPassiva}</strong>
         </span>
       </div>
+
+            {concentracao && (
+        <div className="concentracao-bloco">
+          <span className="concentracao-texto">
+            🎯 Concentrado em <strong>{concentracao.nome}</strong>
+          </span>
+          <button
+            type="button"
+            className="concentracao-parar-botao"
+            onClick={onPararConcentracao}
+          >
+            Parar
+          </button>
+        </div>
+      )}
+
+      {avisoConcentracao && (
+        <div className="concentracao-aviso">
+          <p className="concentracao-aviso-texto">
+            ⚠ Você tomou dano — faça um teste de Constituição (CD{" "}
+            {avisoConcentracao.cd}) para manter a concentração.
+          </p>
+          {!resultadoConcentracao ? (
+            <button
+              type="button"
+              className="concentracao-testar-botao"
+              onClick={handleTestarConcentracao}
+            >
+              🎲 Rolar teste ({formatarModificador(modConstituicao)})
+            </button>
+          ) : (
+            <>
+              <p
+                className={
+                  resultadoConcentracao.sucesso
+                    ? "concentracao-resultado is-sucesso"
+                    : "concentracao-resultado is-falha"
+                }
+              >
+                {resultadoConcentracao.sucesso
+                  ? `Sucesso! (${resultadoConcentracao.total} ≥ ${avisoConcentracao.cd}) — continua concentrado.`
+                  : `Falhou (${resultadoConcentracao.total} < ${avisoConcentracao.cd}) — concentração perdida.`}
+              </p>
+              <button
+                type="button"
+                className="concentracao-testar-botao"
+                onClick={onFecharAvisoConcentracao}
+              >
+                OK
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {emAgonia && (
         <div

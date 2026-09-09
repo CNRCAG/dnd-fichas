@@ -42,7 +42,11 @@ export function criarFichaVazia(nome) {
       testesMorteSucessos: 0,  // NOVO
       testesMorteFalhas: 0,    // NOVO
     },
-    pvPorNivel: {},
+        pvPorNivel: {},
+    progressao: {
+      modo: "marco", // "marco" | "xp"
+      xpAtual: 0,
+    },
     recursos: [],
     subclasseId: null,
     bonusRacialEscolhido: [], // atributos escolhidos livremente (ex: Meio-Elfo)
@@ -53,6 +57,7 @@ export function criarFichaVazia(nome) {
     magias: [],
     espacosMagia: criarEspacosMagiaVazios(),
     espacosMagiaPacto: null, // { quantidade, nivel, usados } — Bruxo, sempre separado
+    concentracao: null, // { magiaId, nome } | null — magia de concentração ativa agora
     habilidades: [],
     ataques: [],
   };

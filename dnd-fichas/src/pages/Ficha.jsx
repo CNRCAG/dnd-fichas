@@ -17,6 +17,8 @@ import {
 } from "../utils/conjuracao";
 import { recalcularPv } from "../utils/progressao";
 import { restaurarTodosEspacos, calcularDadosDeVidaRecuperados } from "../utils/descanso";
+import { xpParaNivel } from "../utils/xp";
+import { calcularCdConcentracao } from "../utils/concentracao"; // NOVO
 import { restaurarRecursos } from "../utils/recurso";
 import { RECURSOS_CLASSES, resolverUsosMax } from "../data/recursosClasses";
 import BlocoRacaClasse from "../components/ficha/BlocoRacaClasse";
@@ -32,6 +34,7 @@ import BlocoHabilidades from "../components/ficha/BlocoHabilidades";
 import ModalLevelUp from "../components/modal/ModalLevelUp";
 import BlocoDescanso from "../components/ficha/BlocoDescanso";
 import BlocoRecursos from "../components/ficha/BlocoRecursos";
+import BlocoProgressao from "../components/ficha/BlocoProgressao"; // NOVO
 import "./Ficha.css";
 
 const ABAS = [
@@ -50,6 +53,7 @@ export default function Ficha() {
   const ficha = obterFicha(id);
   const [abaAtiva, setAbaAtiva] = useState("combate");
   const [modalLevelUpAberto, setModalLevelUpAberto] = useState(false);
+  const [avisoConcentracao, setAvisoConcentracao] = useState(null); // { cd } | null   NOVO
 
   if (!ficha) {
     return (
@@ -100,6 +104,14 @@ for (const chave of ficha.bonusRacialEscolhido ?? []) {
     bonusRacial
   );
 
+  const modoProgressao = ficha.progressao?.modo ?? "marco";
+const xpAtualPersonagem = ficha.progressao?.xpAtual ?? 0;
+const xpNecessariaProximoNivel = xpParaNivel(nivelTotal + 1);
+const podeSubirPorXp =
+  modoProgressao !== "xp" ||
+  nivelTotal >= 20 ||
+  xpAtualPersonagem >= xpNecessariaProximoNivel;
+
   const atributosTotais = { ...ficha.atributos };
 for (const chave of Object.keys(bonusRacial)) {
   atributosTotais[chave] = (atributosTotais[chave] ?? 0) + bonusRacial[chave];
@@ -139,8 +151,43 @@ const ehConjurador =
     }));
   }
 
+  function handleChangeProgressaoModo(novoModo) {
+  atualizarFicha(id, (ficha) => ({
+    progressao: { ...ficha.progressao, modo: novoModo },
+  }));
+}
+
+function handleChangeProgressaoXp(novoXp) {
+  atualizarFicha(id, (ficha) => ({
+    progressao: { ...ficha.progressao, xpAtual: novoXp },
+  }));
+}
+
+function handleIniciarConcentracao(magia) {
+  atualizarFicha(id, () => ({
+    concentracao: { magiaId: magia.id, nome: magia.nome },
+  }));
+  setAvisoConcentracao(null);
+}
+
+function handlePararConcentracao() {
+  atualizarFicha(id, () => ({ concentracao: null }));
+}
+
+function handleFecharAvisoConcentracao() {
+  setAvisoConcentracao(null);
+}
+
   function handleChangeStatus(chave, novoValor) {
-    atualizarFicha(id, (ficha) => {
+  if (chave === "pvAtual" && ficha.concentracao) {
+    const danoRecebido = (ficha.status.pvAtual ?? 0) - novoValor;
+    if (danoRecebido > 0) {
+      setAvisoConcentracao({ cd: calcularCdConcentracao(danoRecebido) });
+    }
+  }
+
+  atualizarFicha(id, (ficha) => {
+    // ...resto continua igual...
       const novoStatus = { ...ficha.status, [chave]: novoValor };
 
       if (chave === "pvAtual") {
@@ -508,15 +555,30 @@ function handleRemoverClasseSecundaria(indice) {
   onRemoverClasseSecundaria={handleRemoverClasseSecundaria}
   onChangeBonusRacialEscolhido={handleChangeBonusRacialEscolhido}
 />
-        <button
-          type="button"
-          className="ficha-levelup-botao"
-          onClick={() => setModalLevelUpAberto(true)}
-          disabled={!classe}
-          title={!classe ? "Escolha uma classe primeiro" : undefined}
-        >
-          ⬆ Subir de Nível
-        </button>
+
+<BlocoProgressao
+  progressao={ficha.progressao ?? { modo: "marco", xpAtual: 0 }}
+  nivelTotal={nivelTotal}
+  onChangeModo={handleChangeProgressaoModo}
+  onChangeXp={handleChangeProgressaoXp}
+/>
+
+<button
+  type="button"
+  className="ficha-levelup-botao"
+  onClick={() => setModalLevelUpAberto(true)}
+  disabled={!classe || !podeSubirPorXp}
+  title={
+    !classe
+      ? "Escolha uma classe primeiro"
+      : !podeSubirPorXp
+      ? `Faltam ${xpNecessariaProximoNivel - xpAtualPersonagem} XP para o próximo nível`
+      : undefined
+  }
+>
+  ⬆ Subir de Nível
+</button>
+
 
         <ModalLevelUp
           aberto={modalLevelUpAberto}
@@ -570,8 +632,13 @@ function handleRemoverClasseSecundaria(indice) {
                 status={ficha.status}
                 onChangeStatus={handleChangeStatus}
                 modDestreza={modificadoresAtributos.destreza}
+                modConstituicao={modificadoresAtributos.constituicao}
                 percepcaoPassiva={percepcaoPassiva}
                 investigacaoPassiva={investigacaoPassiva}
+                concentracao={ficha.concentracao}
+                avisoConcentracao={avisoConcentracao}
+                onPararConcentracao={handlePararConcentracao}
+                onFecharAvisoConcentracao={handleFecharAvisoConcentracao}
               />
               <BlocoAtaques
                 modificadoresAtributos={modificadoresAtributos}
@@ -640,7 +707,10 @@ function handleRemoverClasseSecundaria(indice) {
               espacosMagiaPacto={ficha.espacosMagiaPacto}
               onChangeEspacoPacto={handleChangeEspacoPacto}
               magias={ficha.magias ?? []}
-              onChangeMagias={handleChangeMagias}
+              onChangeMagias={handleChangeMagias}   
+              concentracaoAtual={ficha.concentracao}
+              onIniciarConcentracao={handleIniciarConcentracao}
+              onPararConcentracao={handlePararConcentracao}
             />
           )}
 
