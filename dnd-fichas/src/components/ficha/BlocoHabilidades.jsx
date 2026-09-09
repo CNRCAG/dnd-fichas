@@ -19,6 +19,8 @@ export default function BlocoHabilidades({
   classeNome,
   habilidades,
   onChangeHabilidades,
+  atributosTotais,
+  ehConjurador,
 }) {
   const [modalAberto, setModalAberto] = useState(false);
   const [expandidas, setExpandidas] = useState(() => new Set());
@@ -95,6 +97,8 @@ export default function BlocoHabilidades({
         onAdicionarHabilidade={handleAdicionarDoCatalogo}
         classeId={classeId}
         classeNome={classeNome}
+        atributosTotais={atributosTotais}
+        ehConjurador={ehConjurador}
       />
 
       {habilidades.length === 0 ? (

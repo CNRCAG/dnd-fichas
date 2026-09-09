@@ -1,7 +1,12 @@
 import { criarRecursoVazio } from "../../utils/recurso";
 import "./BlocoRecursos.css";
 
-export default function BlocoRecursos({ recursos, onChangeRecursos }) {
+export default function BlocoRecursos({
+  recursos,
+  onChangeRecursos,
+  sugestoes,
+  onAdicionarSugestao,
+}) {
   function handleAdicionar() {
     onChangeRecursos([...recursos, criarRecursoVazio()]);
   }
@@ -25,6 +30,21 @@ export default function BlocoRecursos({ recursos, onChangeRecursos }) {
   return (
     <section>
       <h3 className="bloco-titulo">Recursos de Classe</h3>
+
+      {sugestoes && sugestoes.length > 0 && (
+        <div className="recursos-sugestoes">
+          {sugestoes.map((sugestao) => (
+            <button
+              key={sugestao.id}
+              type="button"
+              className="recursos-sugestao-botao"
+              onClick={() => onAdicionarSugestao(sugestao)}
+            >
+              + {sugestao.nome} ({sugestao.usosMaxSugerido})
+            </button>
+          ))}
+        </div>
+      )}
 
       {recursos.length === 0 ? (
         <p className="recursos-vazio">

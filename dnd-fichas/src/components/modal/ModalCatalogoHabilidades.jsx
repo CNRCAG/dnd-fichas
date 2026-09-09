@@ -10,6 +10,8 @@ export default function ModalCatalogoHabilidades({
   onAdicionarHabilidade,
   classeId,
   classeNome,
+  atributosTotais,
+  ehConjurador,
 }) {
   const [abaAtiva, setAbaAtiva] = useState("classe");
   const [busca, setBusca] = useState("");
@@ -45,6 +47,28 @@ export default function ModalCatalogoHabilidades({
   function handleBackdropClick(evento) {
     if (evento.target === evento.currentTarget) onFechar();
   }
+
+  function verificarPreRequisito(item) {
+  const preRequisito = item.preRequisito;
+  if (!preRequisito) return { atendido: true, texto: null };
+
+  if (preRequisito.conjurador) {
+    return {
+      atendido: Boolean(ehConjurador),
+      texto: "Precisa conseguir conjurar pelo menos uma magia",
+    };
+  }
+
+  if (preRequisito.atributo) {
+    const valorAtual = atributosTotais?.[preRequisito.atributo] ?? 0;
+    return {
+      atendido: valorAtual >= preRequisito.valorMinimo,
+      texto: `Requer ${preRequisito.atributo} ${preRequisito.valorMinimo}+ (você tem ${valorAtual})`,
+    };
+  }
+
+  return { atendido: true, texto: null };
+}
 
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick}>
@@ -108,10 +132,20 @@ export default function ModalCatalogoHabilidades({
           ) : listaFiltrada.length === 0 ? (
             <p className="modal-catalogo-vazio">Nada encontrado.</p>
           ) : (
-            listaFiltrada.map((item) => {
+                        listaFiltrada.map((item) => {
               const expandido = expandidos.has(item.id);
+              const { atendido, texto: textoPreRequisito } =
+                abaAtiva === "talento"
+                  ? verificarPreRequisito(item)
+                  : { atendido: true, texto: null };
+
               return (
-                <div key={item.id} className="item-catalogo">
+                <div
+                  key={item.id}
+                  className={
+                    atendido ? "item-catalogo" : "item-catalogo is-bloqueado"
+                  }
+                >
                   <button
                     type="button"
                     className="item-catalogo-cabecalho"
@@ -130,7 +164,9 @@ export default function ModalCatalogoHabilidades({
                     </span>
                     <span className="item-catalogo-nome">{item.nome}</span>
                     <span className="item-catalogo-resumo">
-                      {abaAtiva === "classe" ? `Nível ${item.nivel}` : "Talento"}
+                      {abaAtiva === "classe"
+                        ? `Nível ${item.nivel}`
+                        : textoPreRequisito ?? "Talento"}
                     </span>
                   </button>
 
@@ -139,6 +175,8 @@ export default function ModalCatalogoHabilidades({
                     className="item-catalogo-adicionar"
                     onClick={() => onAdicionarHabilidade(item, abaAtiva)}
                     aria-label={`Adicionar ${item.nome}`}
+                    disabled={!atendido}
+                    title={!atendido ? textoPreRequisito : undefined}
                   >
                     +
                   </button>

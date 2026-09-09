@@ -53,12 +53,12 @@ export const RACAS = [
     deslocamento: 7,
   },
   {
-    id: "meio-elfo",
-    nome: "Meio-Elfo",
-    descricao: "Misturam a graça élfica com a versatilidade humana, sem se encaixar totalmente em nenhum dos dois mundos.",
-    bonusAtributos: { carisma: 2, destreza: 1, sabedoria: 1 },
-    deslocamento: 9,
-  },
+  id: "meio-elfo",
+  nome: "Meio-Elfo",
+  bonusAtributos: { carisma: 2 },
+  atributosEscolhaLivre: 2,
+  deslocamento: 9,
+},
   {
     id: "meio-orc",
     nome: "Meio-Orc",

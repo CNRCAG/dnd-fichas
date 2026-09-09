@@ -16,6 +16,7 @@ export default function BlocoRacaClasse({
   nivel,
   subclasseId,
   classesSecundarias,
+  bonusRacialEscolhido,
   onChangeRaca,
   onChangeClasse,
   onChangeAntecedente,
@@ -24,7 +25,9 @@ export default function BlocoRacaClasse({
   onAdicionarClasseSecundaria,
   onAlterarClasseSecundaria,
   onRemoverClasseSecundaria,
+  onChangeBonusRacialEscolhido,
 }) {
+  const racaSelecionada = RACAS.find((r) => r.id === racaId);
   const subclassesDisponiveis = obterSubclassesPorClasse(classeId);
   const nivelEscolhaSubclasse = obterNivelEscolhaSubclasse(classeId);
   const podeEscolherSubclasse = nivel >= (nivelEscolhaSubclasse ?? Infinity);
@@ -57,7 +60,7 @@ export default function BlocoRacaClasse({
     <section>
       <h3 className="bloco-titulo">Raça e classe</h3>
       <div className="raca-classe-grid">
-        <label className="raca-classe-campo">
+                <label className="raca-classe-campo">
           <span className="raca-classe-label">Raça</span>
           <select
             value={racaId ?? ""}
@@ -71,6 +74,43 @@ export default function BlocoRacaClasse({
             ))}
           </select>
         </label>
+
+        {racaSelecionada?.atributosEscolhaLivre && (
+          <div className="raca-classe-campo raca-classe-campo--largo">
+            <span className="raca-classe-label">
+              Escolha {racaSelecionada.atributosEscolhaLivre} atributos pra +1 cada
+            </span>
+            <div className="raca-escolha-livre-selects">
+              {Array.from({ length: racaSelecionada.atributosEscolhaLivre }).map(
+                (_, indice) => {
+                  const outrosEscolhidos = (bonusRacialEscolhido ?? []).filter(
+                    (_, i) => i !== indice
+                  );
+                  return (
+                    <select
+                      key={indice}
+                      value={bonusRacialEscolhido?.[indice] ?? ""}
+                      onChange={(evento) =>
+                        onChangeBonusRacialEscolhido(indice, evento.target.value)
+                      }
+                    >
+                      <option value="">Selecione...</option>
+                      {ATRIBUTOS.filter(
+                        (a) =>
+                          !racaSelecionada.bonusAtributos?.[a.chave] &&
+                          !outrosEscolhidos.includes(a.chave)
+                      ).map((a) => (
+                        <option key={a.chave} value={a.chave}>
+                          {a.label}
+                        </option>
+                      ))}
+                    </select>
+                  );
+                }
+              )}
+            </div>
+          </div>
+        )}
 
             
 

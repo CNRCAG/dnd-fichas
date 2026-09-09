@@ -3,9 +3,11 @@ import { useParams, Link } from "react-router-dom";
 import { useFichas } from "../context/useFichas";
 import { obterRaca } from "../data/racas";
 import { obterClasse } from "../data/classes";
+import { obterAntecedente } from "../data/antecedentes";
 import { obterSubclasse } from "../data/subclasses";
 import { obterHabilidadeClasse } from "../data/habilidadesClasses";
 import { calcularBonusProficiencia, calcularModificadoresAtributos } from "../utils/dnd";
+import { TIPO_CONJURADOR } from "../utils/conjuracao";
 import { criarEspacosMagiaVazios } from "../utils/magia";
 import { calcularCaEquipada } from "../utils/equipamento";
 import {
@@ -16,6 +18,7 @@ import {
 import { recalcularPv } from "../utils/progressao";
 import { restaurarTodosEspacos, calcularDadosDeVidaRecuperados } from "../utils/descanso";
 import { restaurarRecursos } from "../utils/recurso";
+import { RECURSOS_CLASSES, resolverUsosMax } from "../data/recursosClasses";
 import BlocoRacaClasse from "../components/ficha/BlocoRacaClasse";
 import BlocoAtributos from "../components/ficha/BlocoAtributos";
 import BlocoStatus from "../components/ficha/BlocoStatus";
@@ -83,7 +86,10 @@ export default function Ficha() {
     ),
   };
 }
-  const bonusRacial = raca?.bonusAtributos ?? {};
+const bonusRacial = { ...(raca?.bonusAtributos ?? {}) };
+for (const chave of ficha.bonusRacialEscolhido ?? []) {
+  if (chave) bonusRacial[chave] = (bonusRacial[chave] ?? 0) + 1;
+}
   const forcaTotal = ficha.atributos.forca + (bonusRacial.forca ?? 0);
   const nivelTotal =
     (ficha.nivel ?? 1) +
@@ -93,6 +99,15 @@ export default function Ficha() {
     ficha.atributos,
     bonusRacial
   );
+
+  const atributosTotais = { ...ficha.atributos };
+for (const chave of Object.keys(bonusRacial)) {
+  atributosTotais[chave] = (atributosTotais[chave] ?? 0) + bonusRacial[chave];
+}
+
+const ehConjurador =
+  Boolean(TIPO_CONJURADOR[ficha.classeId]) ||
+  (ficha.classesSecundarias ?? []).some((c) => TIPO_CONJURADOR[c.classeId]);
 
   const percepcaoPassiva =
     10 +
@@ -145,8 +160,49 @@ export default function Ficha() {
   }
 
   function handleChangeRecursos(novosRecursos) {
-    atualizarFicha(id, () => ({ recursos: novosRecursos }));
-  }
+  atualizarFicha(id, () => ({ recursos: novosRecursos }));
+}
+
+function nivelDaClasse(classeIdAlvo) {
+  if (classeIdAlvo === ficha.classeId) return ficha.nivel ?? 1;
+  return (
+    (ficha.classesSecundarias ?? []).find((c) => c.classeId === classeIdAlvo)
+      ?.nivel ?? 1
+  );
+}
+
+const sugestoesRecursos = RECURSOS_CLASSES.filter(
+  (r) =>
+    r.classeId === ficha.classeId ||
+    (ficha.classesSecundarias ?? []).some((c) => c.classeId === r.classeId)
+)
+    .filter(
+    (r) => !(ficha.recursos ?? []).some((existente) => existente.origemId === r.id)
+  )
+  .map((r) => ({
+    ...r,
+    usosMaxSugerido: resolverUsosMax(r, {
+      nivel: nivelDaClasse(r.classeId),
+      modCarisma: modificadoresAtributos.carisma,
+    }),
+  }));
+
+function handleAdicionarSugestaoRecurso(sugestao) {
+  atualizarFicha(id, (fichaAtual) => ({
+    recursos: [
+      ...(fichaAtual.recursos ?? []),
+      {
+        id: crypto.randomUUID(),
+        nome: sugestao.nome,
+        usosMax: sugestao.usosMaxSugerido,
+        usosGastos: 0,
+        restauraEm: sugestao.restauraEm,
+        origemId: sugestao.id,
+        origemClasseId: sugestao.classeId,
+      },
+    ],
+  }));
+}
 
   function handleGastarDadoDeVida(cura) {
   atualizarFicha(id, (fichaAtual) => ({
@@ -185,17 +241,35 @@ function handleDescansoCurto() {
 }
 
 
-  function handleChangeRaca(novoRacaId) {
-    atualizarFicha(id, () => ({ racaId: novoRacaId }));
-  }
+function handleChangeRaca(novoRacaId) {
+  atualizarFicha(id, () => ({ racaId: novoRacaId, bonusRacialEscolhido: [] }));
+}
 
   function handleChangeAntecedente(novoAntecedenteId) {
-    atualizarFicha(id, () => ({ antecedenteId: novoAntecedenteId }));
-  }
+  atualizarFicha(id, (fichaAtual) => {
+    const periciasAntigas = fichaAtual.periciasDoAntecedente ?? [];
+    const novoAntecedente = obterAntecedente(novoAntecedenteId);
+    const novasPericiasConcedidas = novoAntecedente?.periciasConcedidas ?? [];
+
+    const periciasAtualizadas = { ...fichaAtual.pericias };
+    for (const chave of periciasAntigas) {
+      periciasAtualizadas[chave] = false;
+    }
+    for (const chave of novasPericiasConcedidas) {
+      periciasAtualizadas[chave] = true;
+    }
+
+    return {
+      antecedenteId: novoAntecedenteId,
+      pericias: periciasAtualizadas,
+      periciasDoAntecedente: novasPericiasConcedidas,
+    };
+  });
+}
 
   function handleChangeClasse(novoClasseId) {
   atualizarFicha(id, (fichaAtual) => {
-        const classeAntigaId = fichaAtual.classeId;
+            const classeAntigaId = fichaAtual.classeId;
     const atualizacoes = {
       classeId: novoClasseId,
       subclasseId: null,
@@ -209,6 +283,9 @@ function handleDescansoCurto() {
         }
         return true;
       }),
+      recursos: (fichaAtual.recursos ?? []).filter(
+        (r) => r.origemClasseId !== classeAntigaId
+      ),
     };
     const novaClasse = obterClasse(novoClasseId);
 
@@ -283,6 +360,14 @@ function handleDescansoCurto() {
       subclasseId: novaSubclasseId,
       habilidades: [...habilidadesSemSubclasse, ...novaHabilidade],
     };
+  });
+}
+
+function handleChangeBonusRacialEscolhido(indice, valor) {
+  atualizarFicha(id, (fichaAtual) => {
+    const atual = [...(fichaAtual.bonusRacialEscolhido ?? [])];
+    atual[indice] = valor;
+    return { bonusRacialEscolhido: atual };
   });
 }
 
@@ -406,21 +491,23 @@ function handleRemoverClasseSecundaria(indice) {
         />
 
        <BlocoRacaClasse
-          racaId={ficha.racaId}
-          classeId={ficha.classeId}
-          antecedenteId={ficha.antecedenteId}
-          nivel={ficha.nivel ?? 1}
-          subclasseId={ficha.subclasseId}
-          classesSecundarias={ficha.classesSecundarias ?? []}
-          onChangeRaca={handleChangeRaca}
-          onChangeClasse={handleChangeClasse}
-          onChangeAntecedente={handleChangeAntecedente}
-          onChangeNivel={handleChangeNivel}
-          onChangeSubclasse={handleChangeSubclasse}
-          onAdicionarClasseSecundaria={handleAdicionarClasseSecundaria}
-          onAlterarClasseSecundaria={handleAlterarClasseSecundaria}
-          onRemoverClasseSecundaria={handleRemoverClasseSecundaria}
-        />
+  racaId={ficha.racaId}
+  classeId={ficha.classeId}
+  antecedenteId={ficha.antecedenteId}
+  nivel={ficha.nivel ?? 1}
+  subclasseId={ficha.subclasseId}
+  classesSecundarias={ficha.classesSecundarias ?? []}
+  bonusRacialEscolhido={ficha.bonusRacialEscolhido ?? []}
+  onChangeRaca={handleChangeRaca}
+  onChangeClasse={handleChangeClasse}
+  onChangeAntecedente={handleChangeAntecedente}
+  onChangeNivel={handleChangeNivel}
+  onChangeSubclasse={handleChangeSubclasse}
+  onAdicionarClasseSecundaria={handleAdicionarClasseSecundaria}
+  onAlterarClasseSecundaria={handleAlterarClasseSecundaria}
+  onRemoverClasseSecundaria={handleRemoverClasseSecundaria}
+  onChangeBonusRacialEscolhido={handleChangeBonusRacialEscolhido}
+/>
         <button
           type="button"
           className="ficha-levelup-botao"
@@ -520,11 +607,15 @@ function handleRemoverClasseSecundaria(indice) {
                 classeNome={classe?.nome}
                 habilidades={ficha.habilidades ?? []}
                 onChangeHabilidades={handleChangeHabilidades}
+                atributosTotais={atributosTotais}
+                ehConjurador={ehConjurador}
               />
               <BlocoRecursos
-                recursos={ficha.recursos ?? []}
-                onChangeRecursos={handleChangeRecursos}
-              />
+  recursos={ficha.recursos ?? []}
+  onChangeRecursos={handleChangeRecursos}
+  sugestoes={sugestoesRecursos}
+  onAdicionarSugestao={handleAdicionarSugestaoRecurso}
+/>
             </>
           )}
 

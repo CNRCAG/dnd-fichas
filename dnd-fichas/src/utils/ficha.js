@@ -45,6 +45,8 @@ export function criarFichaVazia(nome) {
     pvPorNivel: {},
     recursos: [],
     subclasseId: null,
+    bonusRacialEscolhido: [], // atributos escolhidos livremente (ex: Meio-Elfo)
+    periciasDoAntecedente: [], // rastreia quais perícias vieram do antecedente atual
     classesSecundarias: [], // [{ classeId, nivel }] — multiclasse
     dadosDeVidaUsados: 0,
     niveisAsiAplicados: [],

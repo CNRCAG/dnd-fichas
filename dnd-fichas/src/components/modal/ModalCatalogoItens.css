@@ -218,3 +218,10 @@
 .magia-rolar-dano-botao:hover {
   border-color: var(--color-accent);
 }
+.item-catalogo.is-bloqueado {
+  opacity: 0.5;
+}
+
+.item-catalogo.is-bloqueado .item-catalogo-resumo {
+  color: var(--color-danger);
+}
