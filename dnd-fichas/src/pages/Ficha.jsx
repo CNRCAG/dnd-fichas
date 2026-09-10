@@ -27,6 +27,7 @@ import BlocoStatus from "../components/ficha/BlocoStatus";
 import BlocoAtaques from "../components/ficha/BlocoAtaques";
 import BlocoSalvaguardas from "../components/ficha/BlocoSalvaguardas";
 import BlocoPericias from "../components/ficha/BlocoPericias";
+import BlocoProficiencias from "../components/ficha/BlocoProficiencias"; // NOVO
 import BlocoInventario from "../components/ficha/BlocoInventario";
 import BlocoMoedas from "../components/ficha/BlocoMoedas";
 import BlocoMagias from "../components/ficha/BlocoMagias";
@@ -465,6 +466,36 @@ function handleRemoverClasseSecundaria(indice) {
     }));
   }
 
+  function handleToggleIdioma(idiomaId) {
+  atualizarFicha(id, (ficha) => {
+    const atuais = ficha.idiomas ?? ["comum"];
+    const jaTem = atuais.includes(idiomaId);
+    return {
+      idiomas: jaTem
+        ? atuais.filter((i) => i !== idiomaId)
+        : [...atuais, idiomaId],
+    };
+  });
+}
+
+function handleToggleFerramenta(ferramentaId) {
+  atualizarFicha(id, (ficha) => {
+    const atuais = ficha.proficienciasFerramentas ?? [];
+    const jaTem = atuais.includes(ferramentaId);
+    return {
+      proficienciasFerramentas: jaTem
+        ? atuais.filter((f) => f !== ferramentaId)
+        : [...atuais, ferramentaId],
+    };
+  });
+}
+
+function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
+  atualizarFicha(id, (ficha) => ({
+    atributoFerramentas: { ...ficha.atributoFerramentas, [ferramentaId]: atributoChave },
+  }));
+}
+
   function chaveArmadurasEquipadas(inventario) {
     return inventario
       .filter((item) => item.tipoItem === "armadura" && item.equipado)
@@ -687,13 +718,25 @@ function handleRemoverClasseSecundaria(indice) {
           )}
 
           {abaAtiva === "pericias" && (
-            <BlocoPericias
-              modificadoresAtributos={modificadoresAtributos}
-              pericias={ficha.pericias ?? {}}
-              bonusProficiencia={bonusProficiencia}
-              onTogglePericia={handleTogglePericia}
-            />
-          )}
+  <>
+    <BlocoPericias
+      modificadoresAtributos={modificadoresAtributos}
+      pericias={ficha.pericias ?? {}}
+      bonusProficiencia={bonusProficiencia}
+      onTogglePericia={handleTogglePericia}
+    />
+    <BlocoProficiencias
+      idiomas={ficha.idiomas ?? ["comum"]}
+      onToggleIdioma={handleToggleIdioma}
+      proficienciasFerramentas={ficha.proficienciasFerramentas ?? []}
+      onToggleFerramenta={handleToggleFerramenta}
+      atributoFerramentas={ficha.atributoFerramentas ?? {}}
+      onChangeAtributoFerramenta={handleChangeAtributoFerramenta}
+      modificadoresAtributos={modificadoresAtributos}
+      bonusProficiencia={bonusProficiencia}
+    />
+  </>
+)}
 
           {abaAtiva === "magias" && (
             <BlocoMagias

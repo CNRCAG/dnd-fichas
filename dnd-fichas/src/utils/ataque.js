@@ -6,6 +6,8 @@ export function criarAtaqueApartirDeItemEquipado(itemInventario) {
   const arma = catalogo?.original;
   if (!arma) return null;
 
+  
+
   const usaDestrezaAuto =
     arma.tipo === "distancia" || arma.propriedades.includes("acuidade");
   const override = itemInventario.atributoAtaque;
@@ -16,6 +18,8 @@ export function criarAtaqueApartirDeItemEquipado(itemInventario) {
       ? "destreza"
       : "forca";
 
+    const bonusMagico = itemInventario.magico ? itemInventario.bonusMagico ?? 0 : 0;
+
   return {
     id: itemInventario.id,
     nome: itemInventario.nome || arma.nome,
@@ -23,6 +27,7 @@ export function criarAtaqueApartirDeItemEquipado(itemInventario) {
     dano: arma.dano,
     tipoDano: arma.tipoDano ?? "",
     bonusManual: 0,
+    bonusMagico,          // NOVO
     origemId: arma.id,
   };
 }
@@ -41,7 +46,11 @@ export function criarAtaqueVazio() {
 
 export function calcularBonusAcerto(ataque, modificadoresAtributos, bonusProficiencia) {
   if (ataque.atributo === "manual") return ataque.bonusManual ?? 0;
-  return (modificadoresAtributos[ataque.atributo] ?? 0) + bonusProficiencia;
+  return (
+    (modificadoresAtributos[ataque.atributo] ?? 0) +
+    bonusProficiencia +
+    (ataque.bonusMagico ?? 0)
+  );
 }
 
 export function formatarDano(ataque, modificadoresAtributos) {
@@ -49,7 +58,8 @@ export function formatarDano(ataque, modificadoresAtributos) {
   if (ataque.atributo === "manual") {
     return `${ataque.dano}${ataque.tipoDano ? ` ${ataque.tipoDano}` : ""}`;
   }
-  const mod = modificadoresAtributos[ataque.atributo] ?? 0;
+  const mod =
+    (modificadoresAtributos[ataque.atributo] ?? 0) + (ataque.bonusMagico ?? 0);
   const sufixoMod = mod !== 0 ? formatarModificador(mod) : "";
   return `${ataque.dano}${sufixoMod}${ataque.tipoDano ? ` ${ataque.tipoDano}` : ""}`;
 }

@@ -6,7 +6,11 @@ import { obterItemCatalogo } from "../data/catalogoItens";
 function armadurasEquipadas(inventario) {
   return inventario
     .filter((item) => item.tipoItem === "armadura" && item.equipado && item.origemId)
-    .map((item) => obterItemCatalogo(item.origemId)?.original)
+    .map((item) => {
+      const original = obterItemCatalogo(item.origemId)?.original;
+      if (!original) return null;
+      return { ...original, bonusMagico: item.magico ? item.bonusMagico ?? 0 : 0 };
+    })
     .filter(Boolean);
 }
 
@@ -16,7 +20,7 @@ export function calcularCaEquipada(inventario, modificadoresAtributos, classeId)
   const escudo = equipadas.find((armadura) => armadura.tipo === "escudo");
   const modDestreza = modificadoresAtributos.destreza;
 
-  let ca;
+    let ca;
   if (corpo) {
     const bonusDes =
       corpo.caModDes === "total"
@@ -24,19 +28,17 @@ export function calcularCaEquipada(inventario, modificadoresAtributos, classeId)
         : corpo.caModDes === "max2"
         ? Math.min(modDestreza, 2)
         : 0;
-    ca = corpo.caBase + bonusDes;
+    ca = corpo.caBase + bonusDes + (corpo.bonusMagico ?? 0);   // era só corpo.caBase + bonusDes
   } else if (classeId === "barbaro") {
-    // Defesa sem Armadura do Bárbaro: 10 + DES + CON (aceita escudo)
     ca = 10 + modDestreza + modificadoresAtributos.constituicao;
   } else if (classeId === "monge" && !escudo) {
-    // Defesa sem Armadura do Monge: 10 + DES + SAB (só sem escudo)
     ca = 10 + modDestreza + modificadoresAtributos.sabedoria;
   } else {
     ca = 10 + modDestreza;
   }
 
   if (escudo) {
-    ca += escudo.caBase;
+    ca += escudo.caBase + (escudo.bonusMagico ?? 0);   // era só escudo.caBase
   }
 
   return ca;

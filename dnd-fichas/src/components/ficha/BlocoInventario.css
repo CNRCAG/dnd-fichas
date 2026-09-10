@@ -131,3 +131,41 @@
   color: var(--color-danger);
   font-weight: 600;
 }
+.inventario-coluna-magico {
+  min-width: 7rem;
+}
+
+.inventario-magico-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.inventario-magico-checkbox input {
+  accent-color: var(--color-accent);
+  width: 14px;
+  height: 14px;
+}
+
+.inventario-magico-detalhes {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.inventario-magico-detalhes select {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink-soft);
+  padding: var(--space-1);
+}
+
+.inventario-bonus-magico {
+  width: 3.5rem !important;
+}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { criarItemVazio } from "../../utils/inventario";
+import { RARIDADES } from "../../data/raridades";   // NOVO
 import ModalCatalogoItens from "../modal/ModalCatalogoItens";
 import "./BlocoInventario.css";
 
@@ -16,7 +17,7 @@ export default function BlocoInventario({ inventario, onChangeInventario, forcaT
     onChangeInventario([...inventario, criarItemVazio()]);
   }
 
-  function handleAdicionarDoCatalogo(item) {
+   function handleAdicionarDoCatalogo(item) {
     onChangeInventario([
       ...inventario,
       {
@@ -28,6 +29,9 @@ export default function BlocoInventario({ inventario, onChangeInventario, forcaT
         origemId: item.id,
         equipado: false,
         atributoAtaque: "auto",
+        magico: false,       // NOVO
+        raridade: null,      // NOVO
+        bonusMagico: 0,      // NOVO
       },
     ]);
   }
@@ -168,6 +172,60 @@ export default function BlocoInventario({ inventario, onChangeInventario, forcaT
                       <span className="inventario-nao-aplica">—</span>
                     )}
                   </td>
+
+
+                    <td className="inventario-coluna-magico">
+  <label className="inventario-magico-checkbox">
+    <input
+      type="checkbox"
+      checked={Boolean(item.magico)}
+      onChange={(evento) =>
+        handleAlterarItem(item.id, "magico", evento.target.checked)
+      }
+      aria-label={`${item.nome || "Item"} é mágico`}
+    />
+    ✨
+  </label>
+
+  {item.magico && (
+    <div className="inventario-magico-detalhes">
+      <select
+        value={item.raridade ?? "comum"}
+        onChange={(evento) =>
+          handleAlterarItem(item.id, "raridade", evento.target.value)
+        }
+        aria-label={`Raridade de ${item.nome || "item"}`}
+      >
+        {RARIDADES.map((raridade) => (
+          <option key={raridade.id} value={raridade.id}>
+            {raridade.label}
+          </option>
+        ))}
+      </select>
+      <input
+        type="number"
+        className="inventario-input-numero inventario-bonus-magico"
+        value={item.bonusMagico ?? 0}
+        onChange={(evento) =>
+          handleAlterarItem(
+            item.id,
+            "bonusMagico",
+            Number(evento.target.value) || 0
+          )
+        }
+        title={
+          item.tipoItem === "arma"
+            ? "Bônus mágico: soma no acerto e no dano quando equipada"
+            : item.tipoItem === "armadura"
+            ? "Bônus mágico: soma na CA quando equipada"
+            : "Bônus mágico: só informativo pra esse tipo de item — aplique manualmente onde fizer sentido"
+        }
+        aria-label={`Bônus mágico de ${item.nome || "item"}`}
+      />
+    </div>
+  )}
+</td>
+
                   <td>
                     <button
                       type="button"

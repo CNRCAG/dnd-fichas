@@ -51,6 +51,9 @@ export function criarFichaVazia(nome) {
     subclasseId: null,
     bonusRacialEscolhido: [], // atributos escolhidos livremente (ex: Meio-Elfo)
     periciasDoAntecedente: [], // rastreia quais perícias vieram do antecedente atual
+    idiomas: ["comum"],
+    proficienciasFerramentas: [], // ids de FERRAMENTAS (data/equipamentos.js) em que é proficiente
+    atributoFerramentas: {}, // { [ferramentaId]: chaveDoAtributo } — atributo usado em cada rolagem
     classesSecundarias: [], // [{ classeId, nivel }] — multiclasse
     dadosDeVidaUsados: 0,
     niveisAsiAplicados: [],

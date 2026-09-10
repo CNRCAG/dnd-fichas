@@ -49,13 +49,14 @@ export default function BlocoAtaques({
     registrarRolagem(`${ataque.nome || "Ataque"} (acerto)`, resultado, "d20");
   }
 
-  function handleRolarDano(ataque) {
+    function handleRolarDano(ataque) {
     if (!podeRolarDano(ataque.dano)) return;
     const base = rolarFormula(ataque.dano);
     const mod =
       ataque.atributo !== "manual"
-        ? modificadoresAtributos[ataque.atributo] ?? 0
+        ? (modificadoresAtributos[ataque.atributo] ?? 0) + (ataque.bonusMagico ?? 0)   // era só o mod do atributo
         : 0;
+    // ...resto continua igual
     const resultado =
       mod !== 0
         ? {
