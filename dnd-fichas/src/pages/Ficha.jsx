@@ -36,6 +36,7 @@ import ModalLevelUp from "../components/modal/ModalLevelUp";
 import BlocoDescanso from "../components/ficha/BlocoDescanso";
 import BlocoRecursos from "../components/ficha/BlocoRecursos";
 import BlocoProgressao from "../components/ficha/BlocoProgressao"; // NOVO
+import BlocoValidacao from "../components/ficha/BlocoValidacao";
 import "./Ficha.css";
 
 const ABAS = [
@@ -47,6 +48,21 @@ const ABAS = [
   { chave: "notas", label: "Notas" },
 ];
 
+const NIVEL_MAXIMO_PERSONAGEM = 20;
+
+function normalizarNivel(nivel) {
+  return Math.min(NIVEL_MAXIMO_PERSONAGEM, Math.max(1, Number(nivel) || 1));
+}
+
+function calcularNivelTotal(ficha) {
+  return (
+    normalizarNivel(ficha.nivel) +
+    (ficha.classesSecundarias ?? []).reduce(
+      (soma, classeSecundaria) => soma + normalizarNivel(classeSecundaria.nivel),
+      0
+    )
+  );
+}
 
 export default function Ficha() {
   const { id } = useParams();
@@ -55,6 +71,29 @@ export default function Ficha() {
   const [abaAtiva, setAbaAtiva] = useState("combate");
   const [modalLevelUpAberto, setModalLevelUpAberto] = useState(false);
   const [avisoConcentracao, setAvisoConcentracao] = useState(null); // { cd } | null   NOVO
+
+  const raca = ficha ? obterRaca(ficha.racaId) : null;
+  const bonusRacial = { ...(raca?.bonusAtributos ?? {}) };
+  for (const chave of ficha?.bonusRacialEscolhido ?? []) {
+    if (chave) bonusRacial[chave] = (bonusRacial[chave] ?? 0) + 1;
+  }
+  const modificadoresAtributos = ficha
+    ? calcularModificadoresAtributos(ficha.atributos, bonusRacial)
+    : null;
+  const caCalculada = ficha
+    ? calcularCaEquipada(
+        ficha.inventario ?? [],
+        modificadoresAtributos,
+        ficha.classeId
+      )
+    : null;
+
+  useEffect(() => {
+    if (!ficha || caCalculada === null || ficha.status.ca === caCalculada) return;
+    atualizarFicha(id, (fichaAtual) => ({
+      status: { ...fichaAtual.status, ca: caCalculada },
+    }));
+  }, [caCalculada, ficha, id, atualizarFicha]);
 
   if (!ficha) {
     return (
@@ -67,7 +106,6 @@ export default function Ficha() {
     );
   }
 
-  const raca = obterRaca(ficha.racaId);
   const classe = obterClasse(ficha.classeId);
   function calcularAtualizacoesEspacosMagia(fichaHipotetica) {
   const classesComNiveis = [
@@ -91,27 +129,24 @@ export default function Ficha() {
     ),
   };
 }
-const bonusRacial = { ...(raca?.bonusAtributos ?? {}) };
-for (const chave of ficha.bonusRacialEscolhido ?? []) {
-  if (chave) bonusRacial[chave] = (bonusRacial[chave] ?? 0) + 1;
-}
   const forcaTotal = ficha.atributos.forca + (bonusRacial.forca ?? 0);
-  const nivelTotal =
-    (ficha.nivel ?? 1) +
-    (ficha.classesSecundarias ?? []).reduce((soma, c) => soma + (c.nivel ?? 0), 0);
-  const bonusProficiencia = calcularBonusProficiencia(nivelTotal);
-  const modificadoresAtributos = calcularModificadoresAtributos(
-    ficha.atributos,
-    bonusRacial
+  const nivelTotal = calcularNivelTotal(ficha);
+  const nivelSecundarioTotal = (ficha.classesSecundarias ?? []).reduce(
+    (soma, classeSecundaria) => soma + normalizarNivel(classeSecundaria.nivel),
+    0
   );
+  const nivelMaximoPrincipal = Math.max(
+    1,
+    NIVEL_MAXIMO_PERSONAGEM - nivelSecundarioTotal
+  );
+  const bonusProficiencia = calcularBonusProficiencia(nivelTotal);
 
   const modoProgressao = ficha.progressao?.modo ?? "marco";
 const xpAtualPersonagem = ficha.progressao?.xpAtual ?? 0;
 const xpNecessariaProximoNivel = xpParaNivel(nivelTotal + 1);
-const podeSubirPorXp =
-  modoProgressao !== "xp" ||
-  nivelTotal >= 20 ||
-  xpAtualPersonagem >= xpNecessariaProximoNivel;
+  const podeSubirPorXp =
+    nivelTotal < NIVEL_MAXIMO_PERSONAGEM &&
+    (modoProgressao !== "xp" || xpAtualPersonagem >= xpNecessariaProximoNivel);
 
   const atributosTotais = { ...ficha.atributos };
 for (const chave of Object.keys(bonusRacial)) {
@@ -130,21 +165,6 @@ const ehConjurador =
     10 +
     modificadoresAtributos.inteligencia +
     (ficha.pericias?.investigacao ? bonusProficiencia : 0);
-
-  const caCalculada = calcularCaEquipada(
-    ficha.inventario ?? [],
-    modificadoresAtributos,
-    ficha.classeId
-  );
-
-  useEffect(() => {
-    if (ficha.status.ca !== caCalculada) {
-      atualizarFicha(id, (fichaAtual) => ({
-        status: { ...fichaAtual.status, ca: caCalculada },
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caCalculada]);
 
   function handleChangeAtributo(chave, novoValor) {
     atualizarFicha(id, (ficha) => ({
@@ -364,7 +384,13 @@ function handleChangeRaca(novoRacaId) {
 
   function handleChangeNivel(novoNivel) {
     atualizarFicha(id, (fichaAtual) => {
-      const atualizacoes = { nivel: novoNivel };
+      const totalSecundario = (fichaAtual.classesSecundarias ?? []).reduce(
+        (soma, classeSecundaria) => soma + normalizarNivel(classeSecundaria.nivel),
+        0
+      );
+      const limite = Math.max(1, NIVEL_MAXIMO_PERSONAGEM - totalSecundario);
+      const nivelAjustado = Math.min(normalizarNivel(novoNivel), limite);
+      const atualizacoes = { nivel: nivelAjustado };
 
       if (classe) {
         const modCon = modificadoresAtributos.constituicao;
@@ -372,7 +398,7 @@ function handleChangeRaca(novoRacaId) {
           fichaAtual,
           classe,
           modCon,
-          novoNivel
+          nivelAjustado
         );
         atualizacoes.pvPorNivel = pvPorNivel;
         atualizacoes.status = status;
@@ -380,7 +406,7 @@ function handleChangeRaca(novoRacaId) {
 
             Object.assign(
         atualizacoes,
-        calcularAtualizacoesEspacosMagia({ ...fichaAtual, nivel: novoNivel })
+          calcularAtualizacoesEspacosMagia({ ...fichaAtual, nivel: nivelAjustado })
       );
 
       return atualizacoes;
@@ -420,18 +446,39 @@ function handleChangeBonusRacialEscolhido(indice, valor) {
 }
 
   function handleAdicionarClasseSecundaria() {
-  atualizarFicha(id, (fichaAtual) => ({
-    classesSecundarias: [
-      ...(fichaAtual.classesSecundarias ?? []),
-      { classeId: null, nivel: 1 },
-    ],
-  }));
+  atualizarFicha(id, (fichaAtual) => {
+    if (calcularNivelTotal(fichaAtual) >= NIVEL_MAXIMO_PERSONAGEM) return {};
+    return {
+      classesSecundarias: [
+        ...(fichaAtual.classesSecundarias ?? []),
+        { classeId: null, nivel: 1 },
+      ],
+    };
+  });
 }
 
 function handleAlterarClasseSecundaria(indice, campo, valor) {
   atualizarFicha(id, (fichaAtual) => {
     const novasClasses = [...(fichaAtual.classesSecundarias ?? [])];
-    novasClasses[indice] = { ...novasClasses[indice], [campo]: valor };
+    if (!novasClasses[indice]) return {};
+
+    let valorAjustado = valor;
+    if (campo === "nivel") {
+      const niveisDasOutrasClasses = novasClasses.reduce(
+        (soma, classeSecundaria, indiceClasse) =>
+          indiceClasse === indice
+            ? soma
+            : soma + normalizarNivel(classeSecundaria.nivel),
+        normalizarNivel(fichaAtual.nivel)
+      );
+      const limite = Math.max(1, NIVEL_MAXIMO_PERSONAGEM - niveisDasOutrasClasses);
+      valorAjustado = Math.min(normalizarNivel(valor), limite);
+    }
+
+    novasClasses[indice] = {
+      ...novasClasses[indice],
+      [campo]: valorAjustado,
+    };
     return {
       classesSecundarias: novasClasses,
       ...calcularAtualizacoesEspacosMagia({
@@ -496,14 +543,6 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
   }));
 }
 
-  function chaveArmadurasEquipadas(inventario) {
-    return inventario
-      .filter((item) => item.tipoItem === "armadura" && item.equipado)
-      .map((item) => item.id)
-      .sort()
-      .join(",");
-  }
-
   function handleChangeInventario(novoInventario) {
     atualizarFicha(id, () => ({ inventario: novoInventario }));
   }
@@ -553,6 +592,9 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
   function handleConcluirLevelUp(alteracoes) {
   atualizarFicha(id, (fichaAtual) => {
     const fichaHipotetica = { ...fichaAtual, ...alteracoes };
+    if (calcularNivelTotal(fichaHipotetica) > NIVEL_MAXIMO_PERSONAGEM) {
+      return {};
+    }
     return { ...alteracoes, ...calcularAtualizacoesEspacosMagia(fichaHipotetica) };
   });
 }
@@ -573,6 +615,8 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
   classeId={ficha.classeId}
   antecedenteId={ficha.antecedenteId}
   nivel={ficha.nivel ?? 1}
+  nivelTotal={nivelTotal}
+  nivelMaximoPrincipal={nivelMaximoPrincipal}
   subclasseId={ficha.subclasseId}
   classesSecundarias={ficha.classesSecundarias ?? []}
   bonusRacialEscolhido={ficha.bonusRacialEscolhido ?? []}
@@ -594,6 +638,8 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
   onChangeXp={handleChangeProgressaoXp}
 />
 
+<BlocoValidacao ficha={ficha} atributosTotais={atributosTotais} />
+
 <button
   type="button"
   className="ficha-levelup-botao"
@@ -603,7 +649,9 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
     !classe
       ? "Escolha uma classe primeiro"
       : !podeSubirPorXp
-      ? `Faltam ${xpNecessariaProximoNivel - xpAtualPersonagem} XP para o próximo nível`
+       ? nivelTotal >= NIVEL_MAXIMO_PERSONAGEM
+         ? "O personagem já atingiu o nível máximo (20)"
+         : `Faltam ${xpNecessariaProximoNivel - xpAtualPersonagem} XP para o próximo nível`
       : undefined
   }
 >
@@ -612,6 +660,7 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
 
 
         <ModalLevelUp
+          key={`${ficha.id}-${modalLevelUpAberto ? nivelTotal : "fechado"}`}
           aberto={modalLevelUpAberto}
           onFechar={() => setModalLevelUpAberto(false)}
           ficha={ficha}

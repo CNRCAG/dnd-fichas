@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { RACAS } from "../../data/racas";
 import { CLASSES, obterClasse } from "../../data/classes";
 import {
@@ -9,11 +9,42 @@ import { ANTECEDENTES, obterAntecedente } from "../../data/antecedentes";
 import { ATRIBUTOS } from "../../utils/dnd";
 import "./BlocoRacaClasse.css";
 
+function CampoNivel({ nivel, nivelMaximo, onChangeNivel }) {
+  const [nivelRascunho, setNivelRascunho] = useState(String(nivel));
+
+  function confirmarNivel() {
+    const numero = Math.min(
+      nivelMaximo,
+      Math.max(1, Number(nivelRascunho) || 1)
+    );
+    setNivelRascunho(String(numero));
+    if (numero !== nivel) onChangeNivel(numero);
+  }
+
+  function handleKeyDown(evento) {
+    if (evento.key === "Enter") evento.currentTarget.blur();
+  }
+
+  return (
+    <input
+      type="number"
+      min="1"
+      max={nivelMaximo}
+      value={nivelRascunho}
+      onChange={(evento) => setNivelRascunho(evento.target.value)}
+      onBlur={confirmarNivel}
+      onKeyDown={handleKeyDown}
+    />
+  );
+}
+
 export default function BlocoRacaClasse({
   racaId,
   classeId,
   antecedenteId,
   nivel,
+  nivelTotal,
+  nivelMaximoPrincipal,
   subclasseId,
   classesSecundarias,
   bonusRacialEscolhido,
@@ -36,25 +67,6 @@ export default function BlocoRacaClasse({
   const labelAtributoPrincipal = classe
     ? ATRIBUTOS.find((a) => a.chave === classe.atributoPrincipal)?.label
     : null;
-
-  // Rascunho local do nível: só confirma (e dispara PV/slots automáticos)
-  // ao sair do campo — digitar "15" por cima de "3" não deve passar por
-  // um "1" intermediário e conceder PV de nível perdido no caminho.
-  const [nivelRascunho, setNivelRascunho] = useState(String(nivel));
-
-  useEffect(() => {
-    setNivelRascunho(String(nivel));
-  }, [nivel]);
-
-  function confirmarNivel() {
-    const numero = Math.min(20, Math.max(1, Number(nivelRascunho) || 1));
-    setNivelRascunho(String(numero));
-    if (numero !== nivel) onChangeNivel(numero);
-  }
-
-  function handleKeyDownNivel(evento) {
-    if (evento.key === "Enter") evento.currentTarget.blur();
-  }
 
   return (
     <section>
@@ -152,14 +164,11 @@ export default function BlocoRacaClasse({
         )}
         <label className="raca-classe-campo">
           <span className="raca-classe-label">Nível</span>
-          <input
-            type="number"
-            min="1"
-            max="20"
-            value={nivelRascunho}
-            onChange={(evento) => setNivelRascunho(evento.target.value)}
-            onBlur={confirmarNivel}
-            onKeyDown={handleKeyDownNivel}
+          <CampoNivel
+            key={nivel}
+            nivel={nivel}
+            nivelMaximo={nivelMaximoPrincipal}
+            onChangeNivel={onChangeNivel}
           />
         </label>
 
@@ -186,6 +195,7 @@ export default function BlocoRacaClasse({
       {classeId && (
         <div className="multiclasse-bloco">
           <span className="raca-classe-label">Classes secundárias (multiclasse)</span>
+          <p className="multiclasse-limite">Nível total: {nivelTotal}/20</p>
           {(classesSecundarias ?? []).map((c, indice) => (
             <div key={indice} className="multiclasse-linha">
               <select
@@ -206,7 +216,7 @@ export default function BlocoRacaClasse({
               <input
                 type="number"
                 min="1"
-                max="19"
+                max={Math.max(1, 20 - (nivelTotal - (Number(c.nivel) || 1)))}
                 className="multiclasse-nivel"
                 value={c.nivel}
                 onChange={(evento) =>
@@ -230,6 +240,8 @@ export default function BlocoRacaClasse({
             type="button"
             className="multiclasse-adicionar"
             onClick={onAdicionarClasseSecundaria}
+            disabled={nivelTotal >= 20}
+            title={nivelTotal >= 20 ? "O personagem já atingiu o nível máximo (20)" : undefined}
           >
             + Adicionar classe
           </button>

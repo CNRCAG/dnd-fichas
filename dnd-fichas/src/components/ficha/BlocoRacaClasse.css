@@ -55,6 +55,12 @@
   margin-top: var(--space-2);
 }
 
+.multiclasse-limite {
+  margin: var(--space-1) 0 0;
+  color: var(--color-ink-soft);
+  font-size: var(--text-sm);
+}
+
 .multiclasse-linha select {
   flex: 1;
   padding: var(--space-2);
@@ -94,6 +100,11 @@
 .multiclasse-adicionar:hover {
   background: var(--color-primary);
   color: var(--color-bg-raised);
+}
+
+.multiclasse-adicionar:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 .raca-escolha-livre-selects {
   display: flex;

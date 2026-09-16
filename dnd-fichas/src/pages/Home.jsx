@@ -23,8 +23,8 @@ export default function Home() {
 
     try {
       const dados = await lerArquivoFicha(arquivo);
-      const { id, ...resto } = dados;
-      const novaFicha = criarFicha(dados.nome, resto);
+      delete dados.id;
+      const novaFicha = criarFicha(dados.nome, dados);
       navigate(`/ficha/${novaFicha.id}`);
     } catch {
       window.alert(

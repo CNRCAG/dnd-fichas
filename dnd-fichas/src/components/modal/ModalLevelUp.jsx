@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ATRIBUTOS, formatarModificador } from "../../utils/dnd";
 import { rolarDado } from "../../utils/dados";
 import { useRolagem } from "../../context/useRolagem";
@@ -10,6 +10,7 @@ import "./ModalCatalogoItens.css";
 import "./ModalLevelUp.css";
 
 const NIVEIS_ASI = [4, 8, 12, 16, 19];
+const NIVEL_MAXIMO_PERSONAGEM = 20;
 
 export default function ModalLevelUp({
   aberto,
@@ -62,8 +63,11 @@ export default function ModalLevelUp({
   const novoNivelTotal = nivelTotalAtual + 1;
 
   // ---- rascunho das escolhas, só vira de verdade ao "Concluir" ----
-  const [metodoPv, setMetodoPv] = useState(null); // "media" | "rolado" | "banked"
-  const [ganhoPv, setGanhoPv] = useState(null);
+  const pvBanked = ficha.pvPorNivel?.[novoNivelTotal];
+  const [metodoPv, setMetodoPv] = useState(
+    pvBanked != null ? "banked" : null
+  ); // "media" | "rolado" | "banked"
+  const [ganhoPv, setGanhoPv] = useState(pvBanked ?? null);
   const [detalheRolagemPv, setDetalheRolagemPv] = useState(null);
 
   const [modoAsi, setModoAsi] = useState(null); // "duplo" | "unico" | "pular"
@@ -72,25 +76,7 @@ export default function ModalLevelUp({
 
   const [habilidadesSelecionadas, setHabilidadesSelecionadas] = useState(() => new Set());
 
-  // Se esse nível TOTAL já teve o PV definido antes (rolado ou média), não
-  // deixa escolher de novo — só reaproveita o valor banked, sem reroll.
-  useEffect(() => {
-    if (!aberto) return;
-    setClasseEscolhidaId(classe?.id);
-    const pvBanked = ficha.pvPorNivel?.[novoNivelTotal];
-    if (pvBanked != null) {
-      setMetodoPv("banked");
-      setGanhoPv(pvBanked);
-      setDetalheRolagemPv(null);
-    } else {
-      setMetodoPv(null);
-      setGanhoPv(null);
-      setDetalheRolagemPv(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aberto, novoNivelTotal, ficha.pvPorNivel, classe?.id]);
-
-  if (!aberto || !classe) return null;
+  if (!aberto || !classe || nivelTotalAtual >= NIVEL_MAXIMO_PERSONAGEM) return null;
 
   const chaveAsi = `${classeEscolhida.id}-${novoNivelDaEscolhida}`;
   const temAsi = NIVEIS_ASI.includes(novoNivelDaEscolhida);
@@ -193,6 +179,8 @@ export default function ModalLevelUp({
 
   // ---- Concluir ----
   function handleConcluir() {
+    if (novoNivelTotal > NIVEL_MAXIMO_PERSONAGEM) return;
+
     const novosAtributos = { ...ficha.atributos };
     if (!asiJaAplicado) {
       if (modoAsi === "unico") {
