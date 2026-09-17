@@ -37,9 +37,11 @@ export const SUBCLASSES = [
   { id: "magia-selvagem", classeId: "feiticeiro", nome: "Magia Selvagem", nivel: 1, descricao: "Ao conjurar magias, pode disparar um Surto Selvagem: um efeito mágico aleatório e imprevisível." },
 
   { id: "campeao", classeId: "guerreiro", nome: "Campeão", nivel: 3, descricao: "Aumenta a faixa de acerto crítico dos seus ataques com armas." },
+  { id: "cavaleiro-arcano", classeId: "guerreiro", nome: "Cavaleiro Arcano", nivel: 3, descricao: "Guerreiro que combina combate e magias arcanas." },
   { id: "mestre-de-batalha", classeId: "guerreiro", nome: "Mestre de Batalha", nivel: 3, descricao: "Aprende manobras de combate especiais (Superioridade em Combate) usando dados de superioridade." },
 
   { id: "ladrao", classeId: "ladino", nome: "Ladrão", nivel: 3, descricao: "Fica mais ágil com objetos e escalada, e pode usar itens mágicos rapidamente como ação bônus." },
+  { id: "trapaceiro-arcano", classeId: "ladino", nome: "Trapaceiro Arcano", nivel: 3, descricao: "Ladino que usa magias arcanas para enganar e se infiltrar." },
   { id: "assassino", classeId: "ladino", nome: "Assassino", nivel: 3, descricao: "Ataques contra alvos surpreendidos viram acerto automático e crítico." },
 
   { id: "escola-evocacao", classeId: "mago", nome: "Escola de Evocação", nivel: 2, descricao: "Pode moldar magias de área pra não atingir aliados, e causa dano extra com magias de evocação." },

@@ -1,49 +1,89 @@
 import { useMemo, useState } from "react";
 import { MAGIAS, ESCOLAS } from "../../data/magiasSistema";
 import { CLASSES } from "../../data/classes";
+import { classesElegiveisParaMagia } from "../../utils/acessoMagias";
 import DetalheMagia from "./DetalheMagia";
-import { classesQueAcessamNivel, classesElegiveisParaMagia } from "../../utils/acessoMagias";
 import "./ModalCatalogoItens.css";
 
 const NIVEIS_ABA = [
   { valor: 0, label: "Truque" },
-  { valor: 1, label: "1º" },
-  { valor: 2, label: "2º" },
-  { valor: 3, label: "3º" },
-  { valor: 4, label: "4º" },
-  { valor: 5, label: "5º" },
-  { valor: 6, label: "6º" },
-  { valor: 7, label: "7º" },
-  { valor: 8, label: "8º" },
-  { valor: 9, label: "9º" },
+  ...Array.from({ length: 9 }, (_, indice) => ({
+    valor: indice + 1,
+    label: `${indice + 1}º`,
+  })),
 ];
 
-export default function ModalCatalogoMagias({ aberto, onFechar, onAdicionarMagia, ficha }) {
-  const [abaAtiva, setAbaAtiva] = useState(0);
+export default function ModalCatalogoMagias({
+  aberto,
+  onFechar,
+  onAdicionarMagia,
+  ficha,
+}) {
+  const [classeAtiva, setClasseAtiva] = useState(ficha.classeId ?? "");
+  const [nivelAtivo, setNivelAtivo] = useState(0);
   const [busca, setBusca] = useState("");
   const [expandidos, setExpandidos] = useState(() => new Set());
-  const [origens, setOrigens] = useState({});
-  const podeAdicionarNivel = (nivel) => classesQueAcessamNivel(ficha, nivel).length > 0;
+
+  const classesDaFicha = useMemo(() => {
+    const ids = [
+      ficha.classeId,
+      ...(ficha.classesSecundarias ?? []).map((item) => item.classeId),
+    ];
+
+    return [...new Set(ids.filter(Boolean))].map((id) => ({
+      id,
+      nome: CLASSES.find((classe) => classe.id === id)?.nome ?? id,
+    }));
+  }, [ficha.classeId, ficha.classesSecundarias]);
+
+  // Se a classe ativa foi removida da ficha, volta à primeira disponível.
+  const classeSelecionada = classesDaFicha.some(
+    (classe) => classe.id === classeAtiva
+  )
+    ? classeAtiva
+    : (classesDaFicha[0]?.id ?? null);
+
+  const niveisDisponiveis = useMemo(
+    () =>
+      NIVEIS_ABA.filter(({ valor }) =>
+        MAGIAS.some(
+          (magia) =>
+            magia.nivel === valor &&
+            classesElegiveisParaMagia(ficha, magia).some(
+              ({ classeId }) => classeId === classeSelecionada
+            )
+        )
+      ),
+    [ficha, classeSelecionada]
+  );
+
+  // Ao mudar de classe, evita permanecer num círculo que ela não possui.
+  const nivelSelecionado = niveisDisponiveis.some(
+    ({ valor }) => valor === nivelAtivo
+  )
+    ? nivelAtivo
+    : (niveisDisponiveis[0]?.valor ?? 0);
 
   const magiasFiltradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    return MAGIAS.filter((magia) => {
-      const bateNivel = magia.nivel === abaAtiva;
-      const bateBusca = !termo || magia.nome.toLowerCase().includes(termo);
-      return bateNivel && bateBusca;
-    });
-  }, [abaAtiva, busca]);
+
+    return MAGIAS.filter(
+      (magia) =>
+        magia.nivel === nivelSelecionado &&
+        (!termo || magia.nome.toLowerCase().includes(termo)) &&
+        classesElegiveisParaMagia(ficha, magia).some(
+          ({ classeId }) => classeId === classeSelecionada
+        )
+    );
+  }, [ficha, classeSelecionada, nivelSelecionado, busca]);
 
   if (!aberto) return null;
 
   function alternarExpandido(id) {
     setExpandidos((atual) => {
       const novo = new Set(atual);
-      if (novo.has(id)) {
-        novo.delete(id);
-      } else {
-        novo.add(id);
-      }
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
       return novo;
     });
   }
@@ -54,7 +94,12 @@ export default function ModalCatalogoMagias({ aberto, onFechar, onAdicionarMagia
 
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick}>
-      <div className="modal-catalogo" role="dialog" aria-modal="true" aria-label="Adicionar magias">
+      <div
+        className="modal-catalogo"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Adicionar magias"
+      >
         <div className="modal-catalogo-cabecalho">
           <h2>Adicionar Magias</h2>
           <button
@@ -67,47 +112,74 @@ export default function ModalCatalogoMagias({ aberto, onFechar, onAdicionarMagia
           </button>
         </div>
 
-        <div className="modal-catalogo-abas">
-          {NIVEIS_ABA.map((nivel) => (
+        <p className="modal-catalogo-grupo-label">Classe</p>
+        <div className="modal-catalogo-abas" aria-label="Classes da ficha">
+          {classesDaFicha.map((classe) => (
             <button
-              key={nivel.valor}
+              key={classe.id}
               type="button"
               className={
-                abaAtiva === nivel.valor
+                classeSelecionada === classe.id
                   ? "modal-catalogo-aba is-ativa"
                   : "modal-catalogo-aba"
               }
-              onClick={() => setAbaAtiva(nivel.valor)}
+              aria-pressed={classeSelecionada === classe.id}
+              onClick={() => {
+                setClasseAtiva(classe.id);
+                setNivelAtivo(0);
+              }}
             >
-              {nivel.label}
+              {classe.nome}
             </button>
           ))}
         </div>
 
+        {niveisDisponiveis.length > 0 && (
+          <>
+            <p className="modal-catalogo-grupo-label">Círculo</p>
+            <div className="modal-catalogo-abas" aria-label="Círculos disponíveis">
+              {niveisDisponiveis.map((nivel) => (
+                <button
+                  key={nivel.valor}
+                  type="button"
+                  className={
+                    nivelSelecionado === nivel.valor
+                      ? "modal-catalogo-aba is-ativa"
+                      : "modal-catalogo-aba"
+                  }
+                  aria-pressed={nivelSelecionado === nivel.valor}
+                  onClick={() => setNivelAtivo(nivel.valor)}
+                >
+                  {nivel.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
         <input
           type="text"
           className="modal-catalogo-busca"
-          placeholder="Buscar..."
+          placeholder="Buscar nesta classe e círculo..."
           value={busca}
           onChange={(evento) => setBusca(evento.target.value)}
         />
 
         <div className="modal-catalogo-lista">
-          {!podeAdicionarNivel(abaAtiva) && (
+          {niveisDisponiveis.length === 0 ? (
             <p className="modal-catalogo-vazio">
-              Nenhuma classe da ficha pode aprender ou preparar magias deste nível ainda.
-              Para exceções de talento, item ou regra da mesa, use “Magia personalizada”.
+              Esta classe não possui magias disponíveis no catálogo no nível
+              atual. Para talento, item ou regra da mesa, use “Magia
+              personalizada” na ficha.
             </p>
-          )}
-          {magiasFiltradas.length === 0 ? (
-            <p className="modal-catalogo-vazio">Nenhuma magia encontrada.</p>
+          ) : magiasFiltradas.length === 0 ? (
+            <p className="modal-catalogo-vazio">
+              Nenhuma magia corresponde à busca neste círculo.
+            </p>
           ) : (
             magiasFiltradas.map((magia) => {
               const expandido = expandidos.has(magia.id);
-              const classesElegiveis = classesElegiveisParaMagia(ficha, magia);
-              const classeSelecionada = classesElegiveis.some(({ classeId }) => classeId === origens[magia.id])
-                ? origens[magia.id]
-                : classesElegiveis[0]?.classeId;
+
               return (
                 <div key={magia.id} className="item-catalogo">
                   <button
@@ -134,26 +206,13 @@ export default function ModalCatalogoMagias({ aberto, onFechar, onAdicionarMagia
                     </span>
                   </button>
 
-                  {classesElegiveis.length > 1 && (
-                    <select
-                      value={classeSelecionada}
-                      onChange={(evento) => setOrigens((atual) => ({ ...atual, [magia.id]: evento.target.value }))}
-                      aria-label={`Classe de origem de ${magia.nome}`}
-                    >
-                      {classesElegiveis.map(({ classeId }) => (
-                        <option key={classeId} value={classeId}>
-                          {CLASSES.find((classe) => classe.id === classeId)?.nome ?? classeId}
-                        </option>
-                      ))}
-                    </select>
-                  )}
                   <button
                     type="button"
                     className="item-catalogo-adicionar"
-                    onClick={() => onAdicionarMagia(magia, classeSelecionada)}
-                    aria-label={`Adicionar ${magia.nome}`}
-                    disabled={classesElegiveis.length === 0}
-                    title={classesElegiveis.length === 0 ? "Magia fora da lista ou do nível das classes da ficha" : undefined}
+                    onClick={() =>
+                      onAdicionarMagia(magia, classeSelecionada)
+                    }
+                    aria-label={`Adicionar ${magia.nome} como ${classeSelecionada}`}
                   >
                     +
                   </button>

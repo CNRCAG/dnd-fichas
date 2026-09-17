@@ -1,3 +1,4 @@
+import { obterExcecaoMagia } from "../../data/magiasExcecoesSubclasse";
 import { Fragment, useState } from "react";
 import { criarMagiaVazia } from "../../utils/magia";
 import { formatarModificador } from "../../utils/dnd";
@@ -71,7 +72,9 @@ export default function BlocoMagias({
         id: crypto.randomUUID(),
         nome: magiaCatalogo.nome,
         nivel: magiaCatalogo.nivel,
-        preparada: false,
+        preparada:
+          obterExcecaoMagia(ficha, magiaCatalogo.id, classeId)?.tipo ===
+          "sempre-preparada",
         origemId: magiaCatalogo.id,
         classeId,
       },
@@ -225,6 +228,10 @@ export default function BlocoMagias({
             <tbody>
               {magias.map((magia) => {
                 const dadosCatalogo = encontrarMagiaCatalogo(magia.nome);
+                const semprePreparada =
+                  dadosCatalogo &&
+                  obterExcecaoMagia(ficha, dadosCatalogo.id, magia.classeId)?.tipo ===
+                    "sempre-preparada";
                 const aberta = expandidas.has(magia.id);
 
                 return (
@@ -297,7 +304,9 @@ export default function BlocoMagias({
                       <td className="magias-coluna-preparada">
                         <input
                           type="checkbox"
-                          checked={magia.preparada}
+                          checked={Boolean(magia.preparada || semprePreparada)}
+                          disabled={Boolean(semprePreparada)}
+                          title={semprePreparada ? "Sempre preparada pela subclasse" : undefined}
                           onChange={(evento) =>
                             handleAlterarMagia(
                               magia.id,
@@ -350,6 +359,27 @@ export default function BlocoMagias({
                         </button>
                       </td>
                     </tr>
+                    {magia.classeId === "especial" && (
+                      <tr>
+                        <td colSpan={7} className="magias-linha-detalhe">
+                          <label>
+                            Origem desta magia (talento, item ou regra da mesa)
+                            <input
+                              type="text"
+                              value={magia.fonteEspecial ?? ""}
+                              placeholder="Ex.: talento Iniciado em Magia"
+                              onChange={(evento) =>
+                                handleAlterarMagia(
+                                  magia.id,
+                                  "fonteEspecial",
+                                  evento.target.value
+                                )
+                              }
+                            />
+                          </label>
+                        </td>
+                      </tr>
+                    )}
                     {aberta && (
                       <tr>
                         <td colSpan={7} className="magias-linha-detalhe">

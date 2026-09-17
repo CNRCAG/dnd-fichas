@@ -34,7 +34,7 @@ O produto já é utilizável como ficha digital de mesa. Ainda não é um constr
 - 9 raças, 12 classes e 8 antecedentes na base atual.
 - Perícias e salvaguardas com bônus de proficiência calculado pelo nível total.
 - As duas perícias de cada antecedente são aplicadas automaticamente na criação e na troca de antecedente.
-- 24 subclasses: duas opções para cada uma das 12 classes, liberadas no nível definido para a classe principal.
+- 26 subclasses no catálogo, incluindo Cavaleiro Arcano e Trapaceiro Arcano, liberadas no nível definido para a classe principal.
 - 105 habilidades de classe e 27 talentos no catálogo, além de habilidades personalizadas.
 
 ### 2.3 Nível, progressão e multiclasse
@@ -45,6 +45,7 @@ O produto já é utilizável como ficha digital de mesa. Ainda não é um constr
 - Progressão por marco ou XP, com tabela, barra de andamento e trava de XP insuficiente.
 - Multiclasse com classes secundárias e escolha da classe a subir no assistente.
 - Cálculo de espaços de magia combinados para conjuradores completos, conjuradores de metade e Magia de Pacto do Bruxo em separado.
+- Cálculo inicial da conjuração de um terço para Cavaleiro Arcano e Trapaceiro Arcano, inclusive sua contribuição para os espaços combinados de multiclasse. A ficha recalcula os espaços ao trocar classe, subclasse ou nível e reconhece essas subclasses como conjuradoras na interface.
 - **Nível total máximo de 20 aplicado em três camadas:** botão de level up, modal de level up e persistência da ficha. A interface de multiclasse também limita cada classe ao saldo de níveis disponível e bloqueia novas classes no nível 20.
 - Painel de validação que separa pendências de avisos e confere dados obrigatórios, atributos, níveis, multiclasse, PV, recursos, espaços de magia, nível das magias e pré-requisitos de talentos já adicionados.
 
@@ -65,8 +66,10 @@ O produto já é utilizável como ficha digital de mesa. Ainda não é um constr
 - Inclusão de magias de catálogo ou personalizadas; marcação de magia preparada.
 - CD e bônus de ataque mágico calculados para a classe principal.
 - Espaços de magia regulares e de Pacto, com contador de usos e atualização automática por nível.
-- Catálogo bloqueia a adição de magias de círculos ainda inacessíveis às classes da ficha; a validação avisa sobre magias existentes acima do círculo acessível pelo nível individual da classe. Espaços combinados de multiclasse não aumentam esse limite.
-- O catálogo de 76 magias agora consulta a lista básica de cada classe; ao adicionar uma magia, a classe de origem é registrada e pode ser alterada na ficha. A validação avisa sobre lista incompatível e excesso de truques, magias conhecidas ou preparadas por classe. Arcano Místico do Bruxo usa progressão própria. Exceções de subclasse, talento, item e regra da mesa permanecem editáveis.
+- O catálogo mostra somente as magias disponíveis para a classe selecionada na ficha e somente os círculos que têm opções acessíveis. Espaços combinados de multiclasse não liberam magias acima do nível individual da classe.
+- Ao adicionar uma magia, a classe de origem é registrada e pode ser alterada na ficha. A validação avisa sobre lista incompatível e excesso de truques, magias conhecidas ou preparadas por classe. Arcano Místico do Bruxo usa progressão própria.
+- Exceções iniciais de subclasse: Domínio da Vida mantém magias cadastradas sempre preparadas sem ocupar o limite diário; Patrono Corruptor amplia as opções que o Bruxo pode aprender, sem aprendê-las automaticamente. A cobertura se limita às magias dessas regras que já constam no catálogo local.
+- Magias de talento, item ou regra da mesa podem ser marcadas como origem especial, com descrição da fonte e aviso quando ela não é informada. A existência do talento ou item na ficha ainda não é conferida automaticamente.
 - Rastreador de concentração: iniciar, substituir, encerrar e testar concentração ao reduzir manualmente o PV atual.
 - 10 recursos de classe sugeridos com usos, gasto e restauração em descanso curto ou longo.
 
@@ -87,8 +90,8 @@ O produto já é utilizável como ficha digital de mesa. Ainda não é um constr
 1. **Validação de ficha antes de usar na mesa.** A checagem consolidada básica já existe, mas ainda não há um fluxo de bloqueio/confirmação nem validação de todas as escolhas de criação e regras específicas por classe.
 2. **Multiclasse completa.** O teto total de 20 e os pré-requisitos de atributo já são validados, mas ainda faltam proficiências concedidas na primeira classe secundária, subclasses de classes secundárias e todos os casos especiais das regras.
 3. **Dados de vida em multiclasse.** O descanso curto usa o dado de vida e a quantidade de níveis da classe principal; ele não mantém pools separados por classe, como a regra pede.
-4. **Magias por classe.** Listas básicas, círculo acessível e limites de truques/conhecidas/preparadas já são verificados com avisos. Ainda faltam exceções automáticas de subclasse (domínio, círculo, juramento, patrono), Segredos Mágicos, talentos, itens e outras regras específicas. O grimório do Mago continua sem limite artificial de magias registradas.
-5. **Subclasses com conjuração parcial.** Arquétipos como Cavaleiro Arcano não entram no cálculo de espaços de magia.
+4. **Magias por classe.** Listas básicas, círculo acessível, limites e duas exceções iniciais de subclasse já são tratados. Ainda faltam os demais domínios, círculos, juramentos e patronos, Segredos Mágicos, inclusão automática das magias sempre preparadas e validação da posse de talentos/itens usados como origem especial. O grimório do Mago continua sem limite artificial de magias registradas.
+5. **Concluir a conjuração parcial das subclasses.** Cavaleiro Arcano e Trapaceiro Arcano já constam no catálogo e entram no cálculo de espaços. Ainda falta considerar a subclasse no filtro de magias acessíveis, nos limites de truques e magias conhecidas e nos avisos de validação; depois, cobrir esses casos com testes de acesso e de interface.
 6. **Proficiências de criação.** Antecedentes aplicam perícias, mas a escolha de perícias da classe, idiomas concedidos por raça/antecedente e proficiências iniciais de ferramentas não é automatizada.
 
 ### Prioridade 1 — conteúdo e automações de mesa
@@ -118,16 +121,17 @@ O produto já é utilizável como ficha digital de mesa. Ainda não é um constr
 
 ## 4. Recomendação de próxima etapa
 
-A próxima entrega deve automatizar **exceções de conjuração por subclasse e origem especial**, seguida dos detalhes restantes de multiclasse. Hoje as exceções são registradas manualmente e geram avisos para conferência.
+A próxima entrega deve **concluir a conjuração parcial por subclasse**. O catálogo, a tabela de espaços e a integração inicial da ficha estão feitos. Falta passar a subclasse às regras de acesso a magias, limitar o círculo pelo nível da própria classe, ajustar os avisos de validação e testar a seleção e a remoção dessas subclasses. Depois, avançar para os detalhes restantes de multiclasse e ampliar as exceções de magias.
 
 Critérios de aceite sugeridos:
 
 - uma ficha não pode ser considerada pronta sem raça, classe, antecedente e atributos válidos;
 - a multiclasse exige os pré-requisitos de atributo e mantém o total em 20;
 - cada classe secundária pode ter subclasse e seus dados de vida são controlados separadamente;
-- o catálogo de magia oferece opções da lista e do nível de cada classe; excessos de magias conhecidas/preparadas são avisados, sem bloquear exceções legítimas;
+- o catálogo de magia exibe apenas opções da classe e do círculo disponíveis; excessos de magias conhecidas/preparadas são avisados, sem bloquear exceções legítimas;
+- Cavaleiro Arcano e Trapaceiro Arcano recebem espaços de magia de conjurador de um terço sem usar o nível total para liberar magias;
 - as regras críticas acima têm testes automatizados.
 
 ## 5. Estado de qualidade verificado
 
-Na versão auditada, os comandos `npm test`, `npm run lint` e `npm run build` foram executados com sucesso. A suíte inicial cobre regras de magias; outras regras críticas ainda precisam de testes.
+O usuário confirmou que os testes passaram após as alterações de `conjuracao.js` e `Ficha.jsx`. A suíte contém agora 7 testes, incluindo um para os espaços da conjuração parcial e sua contribuição em multiclasse. `npm run lint` e `npm run build` haviam passado na etapa anterior, mas não foram novamente confirmados após estas últimas alterações. O catálogo por classe e o registro de origem especial foram testados na interface pelo usuário. Outras regras críticas ainda precisam de testes.

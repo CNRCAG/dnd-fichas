@@ -81,3 +81,60 @@ test("Arcano Místico usa progressão própria e não conta como magia de Pacto 
   assert.equal(acesso.classesQueAcessamNivel(ficha("bruxo", 10), 6).length, 0);
   assert.equal(validacao.validarFicha(bruxo, atributos).avisos.some((aviso) => aviso.includes("espaço disponível")), false);
 });
+
+test("subclasses liberam magias no nível correto", () => {
+  const vida = {
+    ...ficha("clerigo", 1),
+    subclasseId: "dominio-vida",
+  };
+
+  const corruptor4 = {
+    ...ficha("bruxo", 4),
+    subclasseId: "patrono-corruptor",
+  };
+  const corruptor5 = { ...corruptor4, nivel: 5 };
+
+  assert.deepEqual(
+    acesso.classesElegiveisParaMagia(vida, {
+      id: "bencao",
+      nivel: 1,
+    }).map(({ classeId }) => classeId),
+    ["clerigo"]
+  );
+
+  assert.equal(
+    acesso.classesElegiveisParaMagia(corruptor4, {
+      id: "bola-de-fogo",
+      nivel: 3,
+    }).length,
+    0
+  );
+
+  assert.deepEqual(
+    acesso.classesElegiveisParaMagia(corruptor5, {
+      id: "bola-de-fogo",
+      nivel: 3,
+    }).map(({ classeId }) => classeId),
+    ["bruxo"]
+  );
+});
+test("conjuração parcial usa tabela própria e contribuição multiclasse", async () => {
+  const conjuracao = await servidor.ssrLoadModule("/src/utils/conjuracao.js");
+
+  assert.equal(
+    conjuracao.obterEspacosPorNivel("guerreiro", 3, "cavaleiro-arcano")[1],
+    2
+  );
+  assert.equal(
+    conjuracao.obterEspacosPorNivel("guerreiro", 7, "cavaleiro-arcano")[2],
+    2
+  );
+
+  const combinado = conjuracao.obterEspacosCombinadosMulticlasse([
+    { classeId: "guerreiro", nivel: 3, subclasseId: "cavaleiro-arcano" },
+    { classeId: "mago", nivel: 2 },
+  ]);
+
+  assert.equal(combinado.espacosRegulares[1], 4);
+  assert.equal(combinado.espacosRegulares[2], 2);
+});

@@ -14,8 +14,19 @@ export const TIPO_CONJURADOR = {
   mago: "completo",
   paladino: "metade",
   patrulheiro: "metade",
-  bruxo: "pacto",
+    bruxo: "pacto",
 };
+
+export function tipoConjurador(classeId, subclasseId) {
+  if (
+    (classeId === "guerreiro" && subclasseId === "cavaleiro-arcano") ||
+    (classeId === "ladino" && subclasseId === "trapaceiro-arcano")
+  ) {
+    return "terco";
+  }
+
+  return TIPO_CONJURADOR[classeId] ?? null;
+}
 
 // Índice = nível (1-20). Cada linha tem os espaços de nível 1 a 9.
 const TABELA_COMPLETA = [
@@ -106,11 +117,11 @@ export function mesclarEspacosNoAtual(espacosAtuais, novosTotais) {
 
 // Devolve um mapa { "1": total, "2": total, ..., "9": total } pronto pra
 // mesclar no espacosMagia da ficha, ou null se a classe não conjura.
-export function obterEspacosPorNivel(classeId, nivel) {
-  const tipo = TIPO_CONJURADOR[classeId];
+export function obterEspacosPorNivel(classeId, nivel, subclasseId = null) {
+  const tipo = tipoConjurador(classeId, subclasseId);
   if (!tipo) return null;
 
-  const nivelValido = Math.min(Math.max(nivel, 1), 20);
+  const nivelValido = Math.min(Math.max(Number(nivel), 1), 20);
   const espacos = {};
   for (let n = 1; n <= 9; n += 1) espacos[n] = 0;
 
@@ -120,6 +131,10 @@ export function obterEspacosPorNivel(classeId, nivel) {
     });
   } else if (tipo === "metade") {
     TABELA_METADE[nivelValido].forEach((total, indice) => {
+      espacos[indice + 1] = total;
+    });
+  } else if (tipo === "terco" && nivelValido >= 3) {
+    TABELA_COMPLETA[Math.ceil(nivelValido / 3)].forEach((total, indice) => {
       espacos[indice + 1] = total;
     });
   } else if (tipo === "pacto") {
@@ -135,34 +150,53 @@ export function obterEspacosPorNivel(classeId, nivel) {
 // NUNCA entra nessa soma — ele sempre usa a tabela de Magia de Pacto
 // separada, então devolvemos os dois resultados independentes.
 export function obterEspacosCombinadosMulticlasse(classesComNiveis) {
-  let nivelConjuradorCombinado = 0;
+  const conjuradoresRegulares = [];
   let nivelBruxo = null;
 
-  for (const { classeId, nivel } of classesComNiveis) {
-    const tipo = TIPO_CONJURADOR[classeId];
-    if (tipo === "completo") {
-      nivelConjuradorCombinado += nivel;
-    } else if (tipo === "metade") {
-      nivelConjuradorCombinado += Math.floor(nivel / 2);
-    } else if (tipo === "pacto") {
+  for (const classe of classesComNiveis) {
+    const nivel = Number(classe.nivel);
+    const tipo = tipoConjurador(classe.classeId, classe.subclasseId);
+
+    if (tipo === "pacto") {
       nivelBruxo = nivel;
+    } else if (tipo && !(tipo === "terco" && nivel < 3)) {
+      conjuradoresRegulares.push({ ...classe, nivel, tipo });
     }
   }
 
   let espacosRegulares = null;
-  if (nivelConjuradorCombinado > 0) {
-    const nivelValido = Math.min(Math.max(nivelConjuradorCombinado, 1), 20);
-    espacosRegulares = {};
-    TABELA_COMPLETA[nivelValido].forEach((total, indice) => {
-      espacosRegulares[indice + 1] = total;
-    });
+
+  if (conjuradoresRegulares.length === 1) {
+    const classe = conjuradoresRegulares[0];
+    espacosRegulares = obterEspacosPorNivel(
+      classe.classeId,
+      classe.nivel,
+      classe.subclasseId
+    );
+  } else if (conjuradoresRegulares.length > 1) {
+    const nivelCombinado = conjuradoresRegulares.reduce((total, classe) => {
+      if (classe.tipo === "completo") return total + classe.nivel;
+      if (classe.tipo === "metade") {
+        return total + Math.floor(classe.nivel / 2);
+      }
+      return total + Math.floor(classe.nivel / 3);
+    }, 0);
+
+    if (nivelCombinado > 0) {
+      espacosRegulares = {};
+      TABELA_COMPLETA[Math.min(nivelCombinado, 20)].forEach(
+        (quantidade, indice) => {
+          espacosRegulares[indice + 1] = quantidade;
+        }
+      );
+    }
   }
 
   let espacosPacto = null;
-  if (nivelBruxo != null) {
-    const nivelValido = Math.min(Math.max(nivelBruxo, 1), 20);
-    const [quantidade, nivelSlot] = TABELA_PACTO[nivelValido];
-    espacosPacto = { quantidade, nivel: nivelSlot };
+  if (nivelBruxo !== null) {
+    const [quantidade, nivel] =
+      TABELA_PACTO[Math.min(Math.max(nivelBruxo, 1), 20)];
+    espacosPacto = { quantidade, nivel };
   }
 
   return { espacosRegulares, espacosPacto };

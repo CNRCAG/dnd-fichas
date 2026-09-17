@@ -1,3 +1,4 @@
+import { obterExcecaoMagia } from "../data/magiasExcecoesSubclasse";
 import { obterEspacosPorNivel } from "./conjuracao";
 import { classesDaMagia } from "../data/magiasClasses";
 
@@ -39,9 +40,16 @@ export function classesQueAcessamNivel(ficha, nivelMagia) {
   });
 }
 
+export function magiaPermitidaParaClasse(ficha, magiaCatalogo, classeId) {
+  return (
+    classesDaMagia(magiaCatalogo.id).includes(classeId) ||
+    Boolean(obterExcecaoMagia(ficha, magiaCatalogo.id, classeId))
+  );
+}
+
 export function classesElegiveisParaMagia(ficha, magiaCatalogo) {
-  const classesPermitidas = classesDaMagia(magiaCatalogo.id);
   return classesQueAcessamNivel(ficha, magiaCatalogo.nivel).filter(
-    ({ classeId }) => classesPermitidas.includes(classeId)
+    ({ classeId }) =>
+      magiaPermitidaParaClasse(ficha, magiaCatalogo, classeId)
   );
 }

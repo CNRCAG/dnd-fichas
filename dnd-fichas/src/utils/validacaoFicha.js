@@ -1,9 +1,12 @@
 import { CLASSES } from "../data/classes";
 import { TALENTOS } from "../data/talentos";
 import { TIPO_CONJURADOR } from "./conjuracao";
-import { classesQueAcessamNivel } from "./acessoMagias";
 import { MAGIAS } from "../data/magiasSistema";
-import { classesDaMagia } from "../data/magiasClasses";
+import {
+  classesQueAcessamNivel,
+  magiaPermitidaParaClasse,
+} from "./acessoMagias";
+import { obterExcecaoMagia } from "../data/magiasExcecoesSubclasse";
 import { limitesMagiasDaClasse } from "../data/limitesMagias";
 
 const NIVEL_MAXIMO_PERSONAGEM = 20;
@@ -190,24 +193,47 @@ export function validarFicha(ficha, atributosTotais) {
     const catalogo = MAGIAS.find((item) => item.id === magia.origemId && item.nome === magia.nome)
       ?? MAGIAS.find((item) => item.nome.toLowerCase() === magia.nome?.trim().toLowerCase());
     const classesAcessiveis = classesQueAcessamNivel(ficha, Number(magia.nivel));
-    const classeId = magia.classeId || (
-      catalogo && classesAcessiveis.filter(({ classeId: id }) => classesDaMagia(catalogo.id).includes(id)).length === 1
-        ? classesAcessiveis.find(({ classeId: id }) => classesDaMagia(catalogo.id).includes(id))?.classeId
-        : null
-    );
+    const classesValidas = catalogo
+  ? classesAcessiveis.filter(({ classeId: id }) =>
+      magiaPermitidaParaClasse(ficha, catalogo, id)
+    )
+  : [];
+
+const classeId =
+  magia.classeId ||
+  (classesValidas.length === 1 ? classesValidas[0].classeId : null);
+
+const excecao =
+  catalogo && classeId && classeId !== "especial"
+    ? obterExcecaoMagia(ficha, catalogo.id, classeId)
+    : null;
     if (!numeroInteiroNoIntervalo(magia.nivel, 0, 9)) {
       adicionar(erros, `${magia.nome || "Magia sem nome"}: informe um nível de magia entre 0 e 9.`);
       continue;
     }
-    if (classeId === "especial") continue;
+    if (classeId === "especial") {
+      if (!magia.fonteEspecial?.trim()) {
+        adicionar(
+          avisos,
+          `${magia.nome || "Magia sem nome"}: informe qual talento, item ou regra concede esta magia.`
+        );
+      }
+      if (catalogo && Number(magia.nivel) !== catalogo.nivel) {
+        adicionar(
+          avisos,
+          `${magia.nome}: o nível informado difere do catálogo (${catalogo.nivel}).`
+        );
+      }
+      continue;
+    }
     if (catalogo && Number(magia.nivel) !== catalogo.nivel) {
       adicionar(avisos, `${magia.nome}: o nível informado difere do catálogo (${catalogo.nivel}).`);
     }
     if (classeId && !classesComNivel.some((item) => item.classeId === classeId)) {
       adicionar(avisos, `${magia.nome}: a classe de origem não está mais na ficha.`);
-    } else if (catalogo && classeId && !classesDaMagia(catalogo.id).includes(classeId)) {
+    } else if (catalogo && classeId && !magiaPermitidaParaClasse(ficha, catalogo, classeId)) {
       adicionar(avisos, `${magia.nome} não pertence à lista de ${nomeClasse(classeId)}; confirme subclasse, Segredos Mágicos ou outra exceção.`);
-    } else if (catalogo && !classeId && !classesAcessiveis.some(({ classeId: id }) => classesDaMagia(catalogo.id).includes(id))) {
+    } else if (catalogo && !classeId && !classesAcessiveis.some(({ classeId: id }) => magiaPermitidaParaClasse(ficha, catalogo, id))) {
       adicionar(avisos, `${magia.nome} não pertence à lista acessível de nenhuma classe da ficha; confirme subclasse, talento ou outra exceção.`);
     } else if (catalogo && !classeId && classesAcessiveis.length > 1) {
       adicionar(avisos, `${magia.nome}: defina a classe de origem para validar a multiclasse.`);
@@ -234,7 +260,9 @@ export function validarFicha(ficha, atributosTotais) {
       }
       else {
         contagemMagias[classeId].conhecidas += 1;
-        if (magia.preparada) contagemMagias[classeId].preparadas += 1;
+        if (magia.preparada && excecao?.tipo !== "sempre-preparada") {
+          contagemMagias[classeId].preparadas += 1;
+        }
       }
     }
   }

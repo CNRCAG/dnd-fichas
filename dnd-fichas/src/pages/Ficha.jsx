@@ -7,10 +7,10 @@ import { obterAntecedente } from "../data/antecedentes";
 import { obterSubclasse } from "../data/subclasses";
 import { obterHabilidadeClasse } from "../data/habilidadesClasses";
 import { calcularBonusProficiencia, calcularModificadoresAtributos } from "../utils/dnd";
-import { TIPO_CONJURADOR } from "../utils/conjuracao";
 import { criarEspacosMagiaVazios } from "../utils/magia";
 import { calcularCaEquipada } from "../utils/equipamento";
 import {
+  tipoConjurador,
   obterEspacosCombinadosMulticlasse,
   mesclarEspacosNoAtual,
   mesclarEspacosPacto,
@@ -108,27 +108,33 @@ export default function Ficha() {
 
   const classe = obterClasse(ficha.classeId);
   function calcularAtualizacoesEspacosMagia(fichaHipotetica) {
-  const classesComNiveis = [
-    { classeId: fichaHipotetica.classeId, nivel: fichaHipotetica.nivel ?? 1 },
-    ...(fichaHipotetica.classesSecundarias ?? []).map((c) => ({
-      classeId: c.classeId,
-      nivel: c.nivel ?? 1,
-    })),
-  ].filter((c) => c.classeId);
+    const classesComNiveis = [
+      {
+        classeId: fichaHipotetica.classeId,
+        nivel: fichaHipotetica.nivel ?? 1,
+        subclasseId: fichaHipotetica.subclasseId,
+      },
+      ...(fichaHipotetica.classesSecundarias ?? []).map((c) => ({
+        classeId: c.classeId,
+        nivel: c.nivel ?? 1,
+        subclasseId: c.subclasseId,
+      })),
+    ].filter((c) => c.classeId);
 
-  const { espacosRegulares, espacosPacto } =
-    obterEspacosCombinadosMulticlasse(classesComNiveis);
+    const { espacosRegulares, espacosPacto } =
+      obterEspacosCombinadosMulticlasse(classesComNiveis);
 
-  return {
-    espacosMagia: espacosRegulares
-      ? mesclarEspacosNoAtual(fichaHipotetica.espacosMagia, espacosRegulares)
-      : fichaHipotetica.espacosMagia,
-    espacosMagiaPacto: mesclarEspacosPacto(
-      fichaHipotetica.espacosMagiaPacto,
-      espacosPacto
-    ),
-  };
-}
+    return {
+      espacosMagia: mesclarEspacosNoAtual(
+        espacosRegulares ? fichaHipotetica.espacosMagia : {},
+        espacosRegulares ?? {}
+      ),
+      espacosMagiaPacto: mesclarEspacosPacto(
+        fichaHipotetica.espacosMagiaPacto,
+        espacosPacto
+      ),
+    };
+  }
   const forcaTotal = ficha.atributos.forca + (bonusRacial.forca ?? 0);
   const nivelTotal = calcularNivelTotal(ficha);
   const nivelSecundarioTotal = (ficha.classesSecundarias ?? []).reduce(
@@ -154,9 +160,10 @@ for (const chave of Object.keys(bonusRacial)) {
 }
 
 const ehConjurador =
-  Boolean(TIPO_CONJURADOR[ficha.classeId]) ||
-  (ficha.classesSecundarias ?? []).some((c) => TIPO_CONJURADOR[c.classeId]);
-
+  Boolean(tipoConjurador(ficha.classeId, ficha.subclasseId)) ||
+  (ficha.classesSecundarias ?? []).some((c) =>
+    Boolean(tipoConjurador(c.classeId, c.subclasseId))
+  );
   const percepcaoPassiva =
     10 +
     modificadoresAtributos.sabedoria +
@@ -357,13 +364,14 @@ function handleChangeRaca(novoRacaId) {
     };
     const novaClasse = obterClasse(novoClasseId);
 
-            Object.assign(
-        atualizacoes,
-        calcularAtualizacoesEspacosMagia({
-          ...fichaAtual,
-          classeId: novoClasseId,
-        })
-      );
+                Object.assign(
+      atualizacoes,
+      calcularAtualizacoesEspacosMagia({
+        ...fichaAtual,
+        classeId: novoClasseId,
+        subclasseId: null,
+      })
+    );
 
       if (novaClasse) {
         const modCon = modificadoresAtributos.constituicao;
@@ -413,29 +421,34 @@ function handleChangeRaca(novoRacaId) {
     });
   }
 
-  function handleChangeSubclasse(novaSubclasseId) {
-  atualizarFicha(id, (fichaAtual) => {
-    const habilidadesSemSubclasse = (fichaAtual.habilidades ?? []).filter(
-      (h) => h.tipo !== "subclasse"
-    );
-    const subclasse = obterSubclasse(novaSubclasseId);
-    const novaHabilidade = subclasse
-      ? [
-          {
-            id: crypto.randomUUID(),
-            nome: subclasse.nome,
-            tipo: "subclasse",
-            nivel: subclasse.nivel,
-            origemId: subclasse.id,
-          },
-        ]
-      : [];
-    return {
-      subclasseId: novaSubclasseId,
-      habilidades: [...habilidadesSemSubclasse, ...novaHabilidade],
-    };
-  });
-}
+    function handleChangeSubclasse(novaSubclasseId) {
+    atualizarFicha(id, (fichaAtual) => {
+      const habilidadesSemSubclasse = (fichaAtual.habilidades ?? []).filter(
+        (h) => h.tipo !== "subclasse"
+      );
+      const subclasse = obterSubclasse(novaSubclasseId);
+      const novaHabilidade = subclasse
+        ? [
+            {
+              id: crypto.randomUUID(),
+              nome: subclasse.nome,
+              tipo: "subclasse",
+              nivel: subclasse.nivel,
+              origemId: subclasse.id,
+            },
+          ]
+        : [];
+
+      return {
+        subclasseId: novaSubclasseId,
+        habilidades: [...habilidadesSemSubclasse, ...novaHabilidade],
+        ...calcularAtualizacoesEspacosMagia({
+          ...fichaAtual,
+          subclasseId: novaSubclasseId,
+        }),
+      };
+    });
+  }
 
 function handleChangeBonusRacialEscolhido(indice, valor) {
   atualizarFicha(id, (fichaAtual) => {

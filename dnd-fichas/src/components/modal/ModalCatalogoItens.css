@@ -240,3 +240,10 @@
 .item-catalogo.is-bloqueado .item-catalogo-resumo {
   color: var(--color-danger);
 }
+.modal-catalogo-grupo-label {
+  margin: 0;
+  padding: var(--space-2) var(--space-4) var(--space-1);
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
