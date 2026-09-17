@@ -88,6 +88,7 @@ export const MAGIAS = [
   { id: "tempestade-de-granizo", nome: "Tempestade de Granizo", nivel: 4, escola: "evocacao", tempo: "1 ação", alcance: "90m", componentes: "V, S, M", duracao: "Instantânea", descricao: "Bolas de gelo caem numa área cilíndrica, causando dano concussão e frio.", resistencia: "destreza", dano: "2d8 concussão + 4d6 frio (metade se resistir)" },
 
   // ---- 5º nível ----
+  { id: "contagio", nome: "Contágio", nivel: 5, escola: "necromancia", tempo: "1 ação", alcance: "Toque", componentes: "V, S", duracao: "7 dias", descricao: "Infecta o alvo com uma doença mágica debilitante se ele falhar na resistência.", resistencia: "constituicao", condicao: "Contrai uma doença mágica debilitante à escolha, se falhar" },
   { id: "muralha-de-pedra", nome: "Muralha de Pedra", nivel: 5, escola: "evocacao", tempo: "1 ação", alcance: "36m", componentes: "V, S, M", duracao: "Concentração, 10 minutos", concentracao: true, descricao: "Cria uma parede sólida de pedra com formato à sua escolha." },
   { id: "cura-em-massa", nome: "Cura em Massa", nivel: 5, escola: "evocacao", tempo: "1 ação", alcance: "18m", componentes: "V, S", duracao: "Instantânea", descricao: "Cura até 6 criaturas numa área, 3d8 + mod. de atributo cada." },
   { id: "cone-de-frio", nome: "Cone de Frio", nivel: 5, escola: "evocacao", tempo: "1 ação", alcance: "Pessoal (cone de 18m)", componentes: "V, S, M", duracao: "Instantânea", descricao: "Rajada de frio intenso num cone, dano de frio em área.", resistencia: "constituicao", dano: "8d8 frio (metade se resistir)" },
@@ -98,7 +99,6 @@ export const MAGIAS = [
   // ---- 6º nível ----
   { id: "verdadeira-visao", nome: "Verdadeira Visão", nivel: 6, escola: "adivinhacao", tempo: "1 ação", alcance: "Toque", componentes: "V, S, M", duracao: "1 hora", descricao: "Alvo enxerga através de ilusões, disfarces mágicos e a até o plano etéreo." },
   { id: "muralha-de-gelo", nome: "Muralha de Gelo", nivel: 6, escola: "evocacao", tempo: "1 ação", alcance: "36m", componentes: "V, S, M", duracao: "Concentração, 10 minutos", concentracao: true, descricao: "Cria uma parede de gelo que pode bloquear passagem e causar dano ao se formar.", resistencia: "destreza", dano: "10d6 frio (metade se resistir, ao romper a parede)" },
-  { id: "contagio", nome: "Contágio", nivel: 6, escola: "necromancia", tempo: "1 ação", alcance: "Toque", componentes: "V, S", duracao: "7 dias", descricao: "Infecta o alvo com uma doença mágica debilitante se ele falhar na resistência.", resistencia: "constituicao", condicao: "Contrai uma doença mágica debilitante à escolha, se falhar" },
   { id: "globo-de-invulnerabilidade", nome: "Globo de Invulnerabilidade", nivel: 6, escola: "abjuracao", tempo: "1 ação", alcance: "Pessoal (raio 3m)", componentes: "V, S, M", duracao: "Concentração, 1 minuto", concentracao: true, descricao: "Cria uma barreira que bloqueia magias de nível 5 ou menor vindas de fora." },
   { id: "curar", nome: "Curar", nivel: 6, escola: "evocacao", tempo: "1 ação", alcance: "18m", componentes: "V, S", duracao: "Instantânea", descricao: "Cura 70 pontos de vida e remove cegueira, surdez e doenças do alvo." },
 

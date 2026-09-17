@@ -1,6 +1,10 @@
 import { CLASSES } from "../data/classes";
 import { TALENTOS } from "../data/talentos";
 import { TIPO_CONJURADOR } from "./conjuracao";
+import { classesQueAcessamNivel } from "./acessoMagias";
+import { MAGIAS } from "../data/magiasSistema";
+import { classesDaMagia } from "../data/magiasClasses";
+import { limitesMagiasDaClasse } from "../data/limitesMagias";
 
 const NIVEL_MAXIMO_PERSONAGEM = 20;
 
@@ -172,6 +176,7 @@ export function validarFicha(ficha, atributosTotais) {
   }
 
   const nivelMaximoEspaco = nivelMaximoDeEspaco(ficha);
+  const contagemMagias = {};
   const possuiClasseConjuradora = classesComNivel.some(
     (classe) => TIPO_CONJURADOR[classe.classeId]
   );
@@ -182,13 +187,74 @@ export function validarFicha(ficha, atributosTotais) {
     );
   }
   for (const magia of ficha.magias ?? []) {
+    const catalogo = MAGIAS.find((item) => item.id === magia.origemId && item.nome === magia.nome)
+      ?? MAGIAS.find((item) => item.nome.toLowerCase() === magia.nome?.trim().toLowerCase());
+    const classesAcessiveis = classesQueAcessamNivel(ficha, Number(magia.nivel));
+    const classeId = magia.classeId || (
+      catalogo && classesAcessiveis.filter(({ classeId: id }) => classesDaMagia(catalogo.id).includes(id)).length === 1
+        ? classesAcessiveis.find(({ classeId: id }) => classesDaMagia(catalogo.id).includes(id))?.classeId
+        : null
+    );
     if (!numeroInteiroNoIntervalo(magia.nivel, 0, 9)) {
       adicionar(erros, `${magia.nome || "Magia sem nome"}: informe um nível de magia entre 0 e 9.`);
-    } else if (magia.nivel > 0 && magia.nivel > nivelMaximoEspaco) {
+      continue;
+    }
+    if (classeId === "especial") continue;
+    if (catalogo && Number(magia.nivel) !== catalogo.nivel) {
+      adicionar(avisos, `${magia.nome}: o nível informado difere do catálogo (${catalogo.nivel}).`);
+    }
+    if (classeId && !classesComNivel.some((item) => item.classeId === classeId)) {
+      adicionar(avisos, `${magia.nome}: a classe de origem não está mais na ficha.`);
+    } else if (catalogo && classeId && !classesDaMagia(catalogo.id).includes(classeId)) {
+      adicionar(avisos, `${magia.nome} não pertence à lista de ${nomeClasse(classeId)}; confirme subclasse, Segredos Mágicos ou outra exceção.`);
+    } else if (catalogo && !classeId && !classesAcessiveis.some(({ classeId: id }) => classesDaMagia(catalogo.id).includes(id))) {
+      adicionar(avisos, `${magia.nome} não pertence à lista acessível de nenhuma classe da ficha; confirme subclasse, talento ou outra exceção.`);
+    } else if (catalogo && !classeId && classesAcessiveis.length > 1) {
+      adicionar(avisos, `${magia.nome}: defina a classe de origem para validar a multiclasse.`);
+    }
+    const origemAcessivel = classeId
+      ? classesAcessiveis.some((item) => item.classeId === classeId)
+      : classesAcessiveis.length > 0;
+    if (!origemAcessivel) {
+      adicionar(
+        avisos,
+        `${magia.nome || "Magia sem nome"} (nível ${magia.nivel}) não é acessível pelo nível atual da classe de origem; confirme talento, item ou outra regra.`
+      );
+    } else if (magia.nivel > 0 && magia.nivel > nivelMaximoEspaco && !(classeId === "bruxo" && magia.nivel >= 6)) {
       adicionar(
         avisos,
         `${magia.nome || "Magia sem nome"} é de nível ${magia.nivel}, mas não há espaço disponível desse nível ou maior.`
       );
+    }
+    if (classeId && classesComNivel.some((item) => item.classeId === classeId)) {
+      contagemMagias[classeId] ??= { truques: 0, conhecidas: 0, preparadas: 0, arcanos: {} };
+      if (Number(magia.nivel) === 0) contagemMagias[classeId].truques += 1;
+      else if (classeId === "bruxo" && Number(magia.nivel) >= 6) {
+        contagemMagias[classeId].arcanos[magia.nivel] = (contagemMagias[classeId].arcanos[magia.nivel] ?? 0) + 1;
+      }
+      else {
+        contagemMagias[classeId].conhecidas += 1;
+        if (magia.preparada) contagemMagias[classeId].preparadas += 1;
+      }
+    }
+  }
+
+  for (const classe of classesComNivel) {
+    const limites = limitesMagiasDaClasse(classe.classeId, classe.nivel, atributos);
+    const contagem = contagemMagias[classe.classeId];
+    if (!limites || !contagem) continue;
+    const nome = nomeClasse(classe.classeId);
+    if (contagem.truques > limites.truques) {
+      adicionar(avisos, `${nome}: ${contagem.truques} truques cadastrados; limite básico no nível ${classe.nivel}: ${limites.truques}.`);
+    }
+    if (limites.conhecidas !== null && contagem.conhecidas > limites.conhecidas) {
+      adicionar(avisos, `${nome}: ${contagem.conhecidas} magias conhecidas cadastradas; limite básico no nível ${classe.nivel}: ${limites.conhecidas}.`);
+    }
+    if (limites.preparadas !== null && contagem.preparadas > limites.preparadas) {
+      adicionar(avisos, `${nome}: ${contagem.preparadas} magias preparadas; limite básico no nível ${classe.nivel}: ${limites.preparadas} (magias de domínio, círculo ou juramento podem ser extras).`);
+    }
+    for (const [nivel, quantidade] of Object.entries(contagem.arcanos)) {
+      if (quantidade > 1) adicionar(avisos, `${nome}: Arcano Místico permite apenas uma magia do ${nivel}º círculo.`);
     }
   }
 

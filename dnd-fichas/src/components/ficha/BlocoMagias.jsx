@@ -2,6 +2,7 @@ import { Fragment, useState } from "react";
 import { criarMagiaVazia } from "../../utils/magia";
 import { formatarModificador } from "../../utils/dnd";
 import { MAGIAS } from "../../data/magiasSistema";
+import { CLASSES } from "../../data/classes";
 import ModalCatalogoMagias from "../modal/ModalCatalogoMagias";
 import DetalheMagia from "../modal/DetalheMagia";
 import "./BlocoMagias.css";
@@ -21,6 +22,7 @@ const NIVEIS_MAGIA = [
 
 export default function BlocoMagias({
   classe,
+  ficha,
   modificadorAtributoPrincipal,
   bonusProficiencia,
   espacosMagia,
@@ -62,7 +64,7 @@ export default function BlocoMagias({
     });
   }
 
-  function handleAdicionarDoCatalogo(magiaCatalogo) {
+  function handleAdicionarDoCatalogo(magiaCatalogo, classeId) {
     onChangeMagias([
       ...magias,
       {
@@ -70,6 +72,8 @@ export default function BlocoMagias({
         nome: magiaCatalogo.nome,
         nivel: magiaCatalogo.nivel,
         preparada: false,
+        origemId: magiaCatalogo.id,
+        classeId,
       },
     ]);
   }
@@ -85,7 +89,11 @@ export default function BlocoMagias({
   function handleAlterarMagia(id, campo, valor) {
     onChangeMagias(
       magias.map((magia) =>
-        magia.id === id ? { ...magia, [campo]: valor } : magia
+        magia.id === id ? {
+          ...magia,
+          [campo]: valor,
+          ...(campo === "nome" ? { origemId: null } : {}),
+        } : magia
       )
     );
   }
@@ -196,6 +204,7 @@ export default function BlocoMagias({
           aberto={modalAberto}
           onFechar={() => setModalAberto(false)}
           onAdicionarMagia={handleAdicionarDoCatalogo}
+          ficha={ficha}
         />
 
         {magias.length === 0 ? (
@@ -207,6 +216,7 @@ export default function BlocoMagias({
                 <th aria-label="Expandir"></th>
                 <th>Magia</th>
                 <th>Nível</th>
+                <th>Origem</th>
                 <th>Preparada</th>
                 <th>Concentração</th>   {/* NOVO */}
                 <th aria-label="Remover"></th>
@@ -267,6 +277,23 @@ export default function BlocoMagias({
                           ))}
                         </select>
                       </td>
+                      <td>
+                        <select
+                          value={magia.classeId ?? ""}
+                          onChange={(evento) => handleAlterarMagia(magia.id, "classeId", evento.target.value)}
+                          aria-label={`Origem de ${magia.nome || "magia"}`}
+                        >
+                          <option value="">Não definida</option>
+                          {[{ classeId: ficha.classeId }, ...(ficha.classesSecundarias ?? [])]
+                            .filter(({ classeId }) => classeId)
+                            .map(({ classeId }) => (
+                              <option key={classeId} value={classeId}>
+                                {CLASSES.find((item) => item.id === classeId)?.nome ?? classeId}
+                              </option>
+                            ))}
+                          <option value="especial">Talento, item ou regra especial</option>
+                        </select>
+                      </td>
                       <td className="magias-coluna-preparada">
                         <input
                           type="checkbox"
@@ -325,7 +352,7 @@ export default function BlocoMagias({
                     </tr>
                     {aberta && (
                       <tr>
-                        <td colSpan={6} className="magias-linha-detalhe">  {/* era 5 */}
+                        <td colSpan={7} className="magias-linha-detalhe">
                           {dadosCatalogo ? (
                             <DetalheMagia magia={dadosCatalogo} />
                           ) : (

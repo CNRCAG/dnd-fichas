@@ -790,6 +790,7 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
           {abaAtiva === "magias" && (
             <BlocoMagias
               classe={classe}
+              ficha={ficha}
               modificadorAtributoPrincipal={
                 classe ? modificadoresAtributos[classe.atributoPrincipal] : null
               }

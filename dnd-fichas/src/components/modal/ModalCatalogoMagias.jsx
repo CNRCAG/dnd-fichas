@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { MAGIAS, ESCOLAS } from "../../data/magiasSistema";
+import { CLASSES } from "../../data/classes";
 import DetalheMagia from "./DetalheMagia";
+import { classesQueAcessamNivel, classesElegiveisParaMagia } from "../../utils/acessoMagias";
 import "./ModalCatalogoItens.css";
 
 const NIVEIS_ABA = [
@@ -16,10 +18,12 @@ const NIVEIS_ABA = [
   { valor: 9, label: "9º" },
 ];
 
-export default function ModalCatalogoMagias({ aberto, onFechar, onAdicionarMagia }) {
+export default function ModalCatalogoMagias({ aberto, onFechar, onAdicionarMagia, ficha }) {
   const [abaAtiva, setAbaAtiva] = useState(0);
   const [busca, setBusca] = useState("");
   const [expandidos, setExpandidos] = useState(() => new Set());
+  const [origens, setOrigens] = useState({});
+  const podeAdicionarNivel = (nivel) => classesQueAcessamNivel(ficha, nivel).length > 0;
 
   const magiasFiltradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -89,11 +93,21 @@ export default function ModalCatalogoMagias({ aberto, onFechar, onAdicionarMagia
         />
 
         <div className="modal-catalogo-lista">
+          {!podeAdicionarNivel(abaAtiva) && (
+            <p className="modal-catalogo-vazio">
+              Nenhuma classe da ficha pode aprender ou preparar magias deste nível ainda.
+              Para exceções de talento, item ou regra da mesa, use “Magia personalizada”.
+            </p>
+          )}
           {magiasFiltradas.length === 0 ? (
             <p className="modal-catalogo-vazio">Nenhuma magia encontrada.</p>
           ) : (
             magiasFiltradas.map((magia) => {
               const expandido = expandidos.has(magia.id);
+              const classesElegiveis = classesElegiveisParaMagia(ficha, magia);
+              const classeSelecionada = classesElegiveis.some(({ classeId }) => classeId === origens[magia.id])
+                ? origens[magia.id]
+                : classesElegiveis[0]?.classeId;
               return (
                 <div key={magia.id} className="item-catalogo">
                   <button
@@ -120,11 +134,26 @@ export default function ModalCatalogoMagias({ aberto, onFechar, onAdicionarMagia
                     </span>
                   </button>
 
+                  {classesElegiveis.length > 1 && (
+                    <select
+                      value={classeSelecionada}
+                      onChange={(evento) => setOrigens((atual) => ({ ...atual, [magia.id]: evento.target.value }))}
+                      aria-label={`Classe de origem de ${magia.nome}`}
+                    >
+                      {classesElegiveis.map(({ classeId }) => (
+                        <option key={classeId} value={classeId}>
+                          {CLASSES.find((classe) => classe.id === classeId)?.nome ?? classeId}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <button
                     type="button"
                     className="item-catalogo-adicionar"
-                    onClick={() => onAdicionarMagia(magia)}
+                    onClick={() => onAdicionarMagia(magia, classeSelecionada)}
                     aria-label={`Adicionar ${magia.nome}`}
+                    disabled={classesElegiveis.length === 0}
+                    title={classesElegiveis.length === 0 ? "Magia fora da lista ou do nível das classes da ficha" : undefined}
                   >
                     +
                   </button>
