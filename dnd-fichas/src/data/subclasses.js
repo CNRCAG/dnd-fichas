@@ -1,6 +1,6 @@
-// Duas subclasses conhecidas por classe, com a característica de
-// assinatura (a que define a subclasse). Dá pra expandir com mais
-// níveis de característica depois, do mesmo jeito que as outras bases.
+// Duas subclasses disponíveis por classe. As características por nível ficam
+// em habilidadesSubclasses.js, enquanto as regras especiais de magia e de
+// recursos ficam em seus módulos próprios.
 
 export const NIVEL_ESCOLHA_SUBCLASSE = {
   barbaro: 3,

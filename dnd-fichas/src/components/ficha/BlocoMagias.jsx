@@ -4,6 +4,7 @@ import { criarMagiaVazia } from "../../utils/magia";
 import { formatarModificador } from "../../utils/dnd";
 import { MAGIAS } from "../../data/magiasSistema";
 import { CLASSES } from "../../data/classes";
+import { obterAtributoConjuracao } from "../../utils/conjuracao";
 import ModalCatalogoMagias from "../modal/ModalCatalogoMagias";
 import DetalheMagia from "../modal/DetalheMagia";
 import "./BlocoMagias.css";
@@ -22,9 +23,8 @@ const NIVEIS_MAGIA = [
 ];
 
 export default function BlocoMagias({
-  classe,
   ficha,
-  modificadorAtributoPrincipal,
+  modificadoresAtributos,
   bonusProficiencia,
   espacosMagia,
   onChangeEspacoMagia,
@@ -36,13 +36,28 @@ export default function BlocoMagias({
   onIniciarConcentracao,  // NOVO
   onPararConcentracao,    // NOVO
 }) {
-  const temAtributoPrincipal = modificadorAtributoPrincipal !== null;
-  const cdMagia = temAtributoPrincipal
-    ? 8 + bonusProficiencia + modificadorAtributoPrincipal
-    : null;
-  const ataqueMagico = temAtributoPrincipal
-    ? bonusProficiencia + modificadorAtributoPrincipal
-    : null;
+  const conjuracoes = [
+    {
+      classeId: ficha.classeId,
+      nivel: ficha.nivel,
+      subclasseId: ficha.subclasseId,
+    },
+    ...(ficha.classesSecundarias ?? []),
+  ]
+    .map(({ classeId, nivel, subclasseId }) => {
+      const atributo = obterAtributoConjuracao(classeId, subclasseId, nivel);
+      const modificador = modificadoresAtributos?.[atributo];
+      if (!atributo || !Number.isFinite(modificador)) return null;
+
+      return {
+        classeId,
+        nome: CLASSES.find((item) => item.id === classeId)?.nome ?? classeId,
+        atributo,
+        cd: 8 + bonusProficiencia + modificador,
+        ataque: bonusProficiencia + modificador,
+      };
+    })
+    .filter(Boolean);
 
   const [modalAberto, setModalAberto] = useState(false);
   const [expandidas, setExpandidas] = useState(() => new Set());
@@ -96,6 +111,9 @@ export default function BlocoMagias({
           ...magia,
           [campo]: valor,
           ...(campo === "nome" ? { origemId: null } : {}),
+          ...(["nome", "nivel", "classeId"].includes(campo)
+            ? { origemSubclasseId: null }
+            : {}),
         } : magia
       )
     );
@@ -110,31 +128,35 @@ export default function BlocoMagias({
     <>
       <section>
         <h3 className="bloco-titulo">Conjuração</h3>
-        {!classe ? (
+        {conjuracoes.length === 0 ? (
           <p className="magias-aviso">
-            Escolha uma classe para calcular a CD e o bônus de ataque mágico.
+            Nenhuma classe da ficha possui conjuração no nível atual.
           </p>
         ) : (
-          <div className="magias-resumo">
-            <div className="magias-resumo-item">
-              <span className="magias-resumo-label">Atributo de conjuração</span>
-              <span className="magias-resumo-valor">
-                {classe.atributoPrincipal
-                  ? classe.atributoPrincipal.charAt(0).toUpperCase() +
-                    classe.atributoPrincipal.slice(1)
-                  : "—"}
-              </span>
-            </div>
-            <div className="magias-resumo-item">
-              <span className="magias-resumo-label">CD de magia</span>
-              <span className="magias-resumo-valor">{cdMagia}</span>
-            </div>
-            <div className="magias-resumo-item">
-              <span className="magias-resumo-label">Bônus de ataque</span>
-              <span className="magias-resumo-valor">
-                {formatarModificador(ataqueMagico)}
-              </span>
-            </div>
+          <div className="magias-resumo-grupos">
+            {conjuracoes.map(({ classeId, nome, atributo, cd, ataque }) => (
+              <div key={classeId} className="magias-resumo-grupo">
+                <h4 className="magias-resumo-classe">{nome}</h4>
+                <div className="magias-resumo">
+                  <div className="magias-resumo-item">
+                    <span className="magias-resumo-label">Atributo de conjuração</span>
+                    <span className="magias-resumo-valor">
+                      {atributo.charAt(0).toUpperCase() + atributo.slice(1)}
+                    </span>
+                  </div>
+                  <div className="magias-resumo-item">
+                    <span className="magias-resumo-label">CD de magia</span>
+                    <span className="magias-resumo-valor">{cd}</span>
+                  </div>
+                  <div className="magias-resumo-item">
+                    <span className="magias-resumo-label">Bônus de ataque</span>
+                    <span className="magias-resumo-valor">
+                      {formatarModificador(ataque)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>
@@ -261,6 +283,7 @@ export default function BlocoMagias({
                           type="text"
                           value={magia.nome}
                           placeholder="Nome da magia"
+                          disabled={Boolean(magia.origemSubclasseAutomatica)}
                           onChange={(evento) =>
                             handleAlterarMagia(magia.id, "nome", evento.target.value)
                           }
@@ -269,6 +292,7 @@ export default function BlocoMagias({
                       <td>
                         <select
                           value={magia.nivel}
+                          disabled={Boolean(magia.origemSubclasseAutomatica)}
                           onChange={(evento) =>
                             handleAlterarMagia(
                               magia.id,
@@ -287,6 +311,7 @@ export default function BlocoMagias({
                       <td>
                         <select
                           value={magia.classeId ?? ""}
+                          disabled={Boolean(magia.origemSubclasseAutomatica)}
                           onChange={(evento) => handleAlterarMagia(magia.id, "classeId", evento.target.value)}
                           aria-label={`Origem de ${magia.nome || "magia"}`}
                         >
@@ -300,13 +325,26 @@ export default function BlocoMagias({
                             ))}
                           <option value="especial">Talento, item ou regra especial</option>
                         </select>
+                        {magia.origemSubclasseAutomatica && (
+                          <small className="magias-origem-subclasse">
+                            {magia.origemSubclasseTipo === "sempre-preparada"
+                              ? "Sempre preparada pela subclasse"
+                              : "Concedida pela subclasse"}
+                          </small>
+                        )}
                       </td>
                       <td className="magias-coluna-preparada">
                         <input
                           type="checkbox"
                           checked={Boolean(magia.preparada || semprePreparada)}
-                          disabled={Boolean(semprePreparada)}
-                          title={semprePreparada ? "Sempre preparada pela subclasse" : undefined}
+                          disabled={Boolean(semprePreparada || magia.origemSubclasseAutomatica)}
+                          title={
+                            semprePreparada
+                              ? "Sempre preparada pela subclasse"
+                              : magia.origemSubclasseAutomatica
+                              ? "Magia concedida pela subclasse"
+                              : undefined
+                          }
                           onChange={(evento) =>
                             handleAlterarMagia(
                               magia.id,
@@ -353,6 +391,8 @@ export default function BlocoMagias({
                           type="button"
                           className="magias-remover"
                           onClick={() => handleRemoverMagia(magia.id)}
+                          disabled={Boolean(magia.origemSubclasseAutomatica)}
+                          title={magia.origemSubclasseAutomatica ? "Remova ou altere a subclasse para retirar esta magia" : undefined}
                           aria-label={`Remover ${magia.nome || "magia"}`}
                         >
                           ×

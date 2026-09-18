@@ -2,6 +2,7 @@ import { Fragment, useState } from "react";
 import { criarHabilidadeVazia } from "../../utils/habilidade";
 import { obterHabilidadeClasse } from "../../data/habilidadesClasses";
 import { obterSubclasse } from "../../data/subclasses";
+import { obterHabilidadeSubclasse } from "../../data/habilidadesSubclasses";
 import { obterTalento } from "../../data/talentos";
 import ModalCatalogoHabilidades from "../modal/ModalCatalogoHabilidades";
 import DetalheHabilidade from "../modal/DetalheHabilidade";
@@ -30,6 +31,9 @@ export default function BlocoHabilidades({
         return obterHabilidadeClasse(habilidade.origemId);
       }
       if (habilidade.tipo === "subclasse" && habilidade.origemId) {
+        if (habilidade.origemSubclasseId) {
+          return obterHabilidadeSubclasse(habilidade.origemId);
+        }
         return obterSubclasse(habilidade.origemId);
       }
       if (habilidade.tipo === "talento" && habilidade.origemId) {

@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
 import { MAGIAS, ESCOLAS } from "../../data/magiasSistema";
 import { CLASSES } from "../../data/classes";
-import { classesElegiveisParaMagia } from "../../utils/acessoMagias";
+import {
+  classesElegiveisParaMagia,
+  contarMagiasDeQualquerEscola,
+  limiteMagiasDeQualquerEscola,
+} from "../../utils/acessoMagias";
 import DetalheMagia from "./DetalheMagia";
 import "./ModalCatalogoItens.css";
 
@@ -42,6 +46,13 @@ export default function ModalCatalogoMagias({
   )
     ? classeAtiva
     : (classesDaFicha[0]?.id ?? null);
+  const dadosClasseSelecionada = [
+    { classeId: ficha.classeId, nivel: ficha.nivel, subclasseId: ficha.subclasseId },
+    ...(ficha.classesSecundarias ?? []),
+  ].find((classe) => classe.classeId === classeSelecionada);
+  const conjuracaoParcial = ["cavaleiro-arcano", "trapaceiro-arcano"].includes(
+    dadosClasseSelecionada?.subclasseId
+  );
 
   const niveisDisponiveis = useMemo(
     () =>
@@ -49,7 +60,7 @@ export default function ModalCatalogoMagias({
         MAGIAS.some(
           (magia) =>
             magia.nivel === valor &&
-            classesElegiveisParaMagia(ficha, magia).some(
+            classesElegiveisParaMagia(ficha, magia, true).some(
               ({ classeId }) => classeId === classeSelecionada
             )
         )
@@ -71,7 +82,7 @@ export default function ModalCatalogoMagias({
       (magia) =>
         magia.nivel === nivelSelecionado &&
         (!termo || magia.nome.toLowerCase().includes(termo)) &&
-        classesElegiveisParaMagia(ficha, magia).some(
+        classesElegiveisParaMagia(ficha, magia, true).some(
           ({ classeId }) => classeId === classeSelecionada
         )
     );
@@ -133,6 +144,15 @@ export default function ModalCatalogoMagias({
             </button>
           ))}
         </div>
+
+        {conjuracaoParcial && Number(dadosClasseSelecionada.nivel) >= 3 && (
+          <p className="modal-catalogo-grupo-label">
+            {dadosClasseSelecionada.subclasseId === "cavaleiro-arcano"
+              ? "Magias de Abjuração e Evocação"
+              : "Magias de Encantamento e Ilusão"}
+            {` · escolhas de outras escolas: ${contarMagiasDeQualquerEscola(ficha, classeSelecionada)}/${limiteMagiasDeQualquerEscola(dadosClasseSelecionada.nivel)}`}
+          </p>
+        )}
 
         {niveisDisponiveis.length > 0 && (
           <>

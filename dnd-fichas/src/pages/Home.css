@@ -1,3 +1,15 @@
+.home-marca {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto var(--space-4);
+}
+
+.home-logo {
+  display: block;
+  width: min(100%, 360px);
+  height: auto;
+}
+
 .home-cabecalho {
   display: flex;
   align-items: center;

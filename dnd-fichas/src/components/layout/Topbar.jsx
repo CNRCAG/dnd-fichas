@@ -10,7 +10,7 @@ export default function Topbar() {
   return (
     <header className="topbar">
       <NavLink to="/" className="topbar-brand">
-        <span className="topbar-titulo">D&amp;D Fichas</span>
+        <img src="/logo-dd-fichas.png" alt="D&D Fichas" className="topbar-logo" />
       </NavLink>
 
       <nav className="topbar-nav">

@@ -227,6 +227,36 @@ export default function BlocoRacaClasse({
                   )
                 }
               />
+              <select
+                value={c.subclasseId ?? ""}
+                disabled={
+                  !c.classeId ||
+                  Number(c.nivel) < (obterNivelEscolhaSubclasse(c.classeId) ?? Infinity)
+                }
+                onChange={(evento) =>
+                  onAlterarClasseSecundaria(
+                    indice,
+                    "subclasseId",
+                    evento.target.value || null
+                  )
+                }
+                aria-label={`Subclasse de ${
+                  CLASSES.find((classeItem) => classeItem.id === c.classeId)?.nome ?? "classe secundária"
+                }`}
+              >
+                <option value="">
+                  {!c.classeId
+                    ? "Escolha a classe"
+                    : Number(c.nivel) < (obterNivelEscolhaSubclasse(c.classeId) ?? Infinity)
+                    ? `Disponível no nível ${obterNivelEscolhaSubclasse(c.classeId)}`
+                    : "Selecione a subclasse"}
+                </option>
+                {obterSubclassesPorClasse(c.classeId).map((subclasse) => (
+                  <option key={subclasse.id} value={subclasse.id}>
+                    {subclasse.nome}
+                  </option>
+                ))}
+              </select>
               <button
                 type="button"
                 className="multiclasse-remover"

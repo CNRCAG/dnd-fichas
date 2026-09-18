@@ -47,6 +47,9 @@ export default function Home() {
 
   return (
     <div>
+      <div className="home-marca">
+        <img src="/logo-dd-fichas.png" alt="D&D Fichas" className="home-logo" />
+      </div>
             <div className="home-cabecalho">
             <h2 className="home-titulo">Aventureiros: {fichas.length}</h2>
             <div className="home-cabecalho-acoes">

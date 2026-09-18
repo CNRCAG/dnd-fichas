@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { carregarFichas, salvarFichas } from "../utils/storage";
-import { criarFichaVazia } from "../utils/ficha";
+import { criarFichaVazia, normalizarFicha } from "../utils/ficha";
+import { sincronizarFichaComSubclasses } from "../utils/subclassesFicha";
 import { FichasContext } from "./fichasContext";
 
 export function FichasProvider({ children }) {
-  const [fichas, setFichas] = useState(() => carregarFichas() ?? []);
+  const [fichas, setFichas] = useState(() =>
+    (carregarFichas() ?? []).map((ficha) => sincronizarFichaComSubclasses(ficha))
+  );
 
   // Toda mudança na lista de fichas é persistida automaticamente.
   useEffect(() => {
@@ -12,7 +15,9 @@ export function FichasProvider({ children }) {
   }, [fichas]);
 
   function criarFicha(nome, overrides = {}) {
-    const novaFicha = { ...criarFichaVazia(nome), ...overrides };
+    const novaFicha = sincronizarFichaComSubclasses(
+      normalizarFicha({ ...criarFichaVazia(nome), ...overrides })
+    );
     setFichas((atual) => [...atual, novaFicha]);
     return novaFicha;
   }

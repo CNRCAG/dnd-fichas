@@ -1,13 +1,21 @@
 import { CLASSES } from "../data/classes";
+import { obterNivelEscolhaSubclasse, obterSubclasse } from "../data/subclasses";
+import { obterHabilidadesPorSubclasse } from "../data/habilidadesSubclasses";
 import { TALENTOS } from "../data/talentos";
-import { TIPO_CONJURADOR } from "./conjuracao";
+import { tipoConjurador } from "./conjuracao";
 import { MAGIAS } from "../data/magiasSistema";
 import {
   classesQueAcessamNivel,
   magiaPermitidaParaClasse,
+  contarMagiasDeQualquerEscola,
+  limiteMagiasDeQualquerEscola,
 } from "./acessoMagias";
-import { obterExcecaoMagia } from "../data/magiasExcecoesSubclasse";
+import {
+  obterExcecaoMagia,
+  obterMagiasSemprePreparadas,
+} from "../data/magiasExcecoesSubclasse";
 import { limitesMagiasDaClasse } from "../data/limitesMagias";
+import { subclasseCompativel } from "./subclassesFicha";
 
 const NIVEL_MAXIMO_PERSONAGEM = 20;
 
@@ -109,7 +117,12 @@ export function validarFicha(ficha, atributosTotais) {
   }
 
   const classesComNivel = [
-    { classeId: ficha.classeId, nivel: ficha.nivel, rotulo: "classe principal" },
+    {
+      classeId: ficha.classeId,
+      nivel: ficha.nivel,
+      subclasseId: ficha.subclasseId,
+      rotulo: "classe principal",
+    },
     ...classesSecundarias.map((classe, indice) => ({
       ...classe,
       rotulo: `classe secundária ${indice + 1}`,
@@ -148,6 +161,39 @@ export function validarFicha(ficha, atributosTotais) {
     adicionar(erros, `O nível total é ${nivelTotal}; o máximo permitido é ${NIVEL_MAXIMO_PERSONAGEM}.`);
   }
 
+  for (const classe of classesComNivel) {
+    if (!classe.classeId || !Number.isInteger(Number(classe.nivel))) continue;
+    const nivelEscolha = obterNivelEscolhaSubclasse(classe.classeId);
+    const subclasse = obterSubclasse(classe.subclasseId);
+    if (classe.subclasseId && !subclasse) {
+      adicionar(avisos, `${nomeClasse(classe.classeId)}: subclasse desconhecida.`);
+    } else if (classe.subclasseId && subclasse.classeId !== classe.classeId) {
+      adicionar(avisos, `${nomeClasse(classe.classeId)}: a subclasse escolhida pertence a outra classe.`);
+    } else if (classe.subclasseId && Number(classe.nivel) < subclasse.nivel) {
+      adicionar(avisos, `${nomeClasse(classe.classeId)}: ${subclasse.nome} exige nível ${subclasse.nivel} nesta classe.`);
+    } else if (!classe.subclasseId && Number(classe.nivel) >= nivelEscolha) {
+      adicionar(avisos, `${nomeClasse(classe.classeId)}: escolha uma subclasse (disponível no nível ${nivelEscolha}).`);
+    }
+
+    if (!subclasseCompativel(classe.classeId, classe.subclasseId, classe.nivel)) continue;
+    const esperadas = obterHabilidadesPorSubclasse(classe.subclasseId).filter(
+      (habilidade) => habilidade.nivel <= Number(classe.nivel)
+    );
+    for (const habilidade of esperadas) {
+      const automaticas = (ficha.habilidades ?? []).filter(
+        (item) =>
+          item.origemId === habilidade.id &&
+          item.origemSubclasseId === classe.subclasseId &&
+          item.origemClasseId === classe.classeId
+      );
+      if (automaticas.length === 0) {
+        adicionar(avisos, `${nomeClasse(classe.classeId)}: habilidade automática de subclasse ausente: ${habilidade.nome}.`);
+      } else if (automaticas.length > 1) {
+        adicionar(avisos, `${nomeClasse(classe.classeId)}: habilidade automática de subclasse duplicada: ${habilidade.nome}.`);
+      }
+    }
+  }
+
   const temMulticlasse = classesSecundarias.some((classe) => classe.classeId);
   if (temMulticlasse && ficha.classeId) {
     for (const classe of classesComNivel.filter((item) => item.classeId)) {
@@ -181,7 +227,7 @@ export function validarFicha(ficha, atributosTotais) {
   const nivelMaximoEspaco = nivelMaximoDeEspaco(ficha);
   const contagemMagias = {};
   const possuiClasseConjuradora = classesComNivel.some(
-    (classe) => TIPO_CONJURADOR[classe.classeId]
+    (classe) => Boolean(tipoConjurador(classe.classeId, classe.subclasseId))
   );
   if ((ficha.magias ?? []).length > 0 && !possuiClasseConjuradora) {
     adicionar(
@@ -267,9 +313,45 @@ const excecao =
     }
   }
 
+  for (const magiaObrigatoria of obterMagiasSemprePreparadas(ficha)) {
+    const encontrada = (ficha.magias ?? []).some(
+      (magia) =>
+        magia.origemId === magiaObrigatoria.magiaId &&
+        magia.classeId === magiaObrigatoria.classeId
+    );
+    if (!encontrada) {
+      adicionar(
+        avisos,
+        `${nomeClasse(magiaObrigatoria.classeId)}: magia sempre preparada da subclasse ausente.`
+      );
+    }
+  }
+
   for (const classe of classesComNivel) {
-    const limites = limitesMagiasDaClasse(classe.classeId, classe.nivel, atributos);
+    const limites = limitesMagiasDaClasse(
+      classe.classeId,
+      classe.nivel,
+      atributos,
+      classe.subclasseId
+    );
     const contagem = contagemMagias[classe.classeId];
+    if (tipoConjurador(classe.classeId, classe.subclasseId) === "terco") {
+      const foraDaEscola = contarMagiasDeQualquerEscola(ficha, classe.classeId);
+      const limiteLivre = limiteMagiasDeQualquerEscola(classe.nivel);
+      if (foraDaEscola > limiteLivre) {
+        adicionar(
+          avisos,
+          `${nomeClasse(classe.classeId)}: ${foraDaEscola} magias de outras escolas; limite no nível ${classe.nivel}: ${limiteLivre}.`
+        );
+      }
+      if (classe.subclasseId === "trapaceiro-arcano" && Number(classe.nivel) >= 3 &&
+          !(ficha.magias ?? []).some((magia) =>
+            magia.classeId === "ladino" &&
+            (magia.origemId === "maos-magicas" || magia.nome?.trim().toLowerCase() === "mãos mágicas")
+          )) {
+        adicionar(avisos, "Trapaceiro Arcano: adicione o truque Mãos Mágicas da lista de Mago.");
+      }
+    }
     if (!limites || !contagem) continue;
     const nome = nomeClasse(classe.classeId);
     if (contagem.truques > limites.truques) {

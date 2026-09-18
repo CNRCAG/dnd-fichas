@@ -4,7 +4,11 @@ import { useFichas } from "../context/useFichas";
 import { obterRaca } from "../data/racas";
 import { obterClasse } from "../data/classes";
 import { obterAntecedente } from "../data/antecedentes";
-import { obterSubclasse } from "../data/subclasses";
+import {
+  classesDaFicha,
+  sincronizarFichaComSubclasses,
+  subclasseCompativel,
+} from "../utils/subclassesFicha";
 import { obterHabilidadeClasse } from "../data/habilidadesClasses";
 import { calcularBonusProficiencia, calcularModificadoresAtributos } from "../utils/dnd";
 import { criarEspacosMagiaVazios } from "../utils/magia";
@@ -21,6 +25,7 @@ import { xpParaNivel } from "../utils/xp";
 import { calcularCdConcentracao } from "../utils/concentracao"; // NOVO
 import { restaurarRecursos } from "../utils/recurso";
 import { RECURSOS_CLASSES, resolverUsosMax } from "../data/recursosClasses";
+import { RECURSOS_SUBCLASSES } from "../data/recursosSubclasses";
 import BlocoRacaClasse from "../components/ficha/BlocoRacaClasse";
 import BlocoAtributos from "../components/ficha/BlocoAtributos";
 import BlocoStatus from "../components/ficha/BlocoStatus";
@@ -62,6 +67,34 @@ function calcularNivelTotal(ficha) {
       0
     )
   );
+}
+
+const RECURSOS_DE_CLASSE = [...RECURSOS_CLASSES, ...RECURSOS_SUBCLASSES];
+
+function sincronizarRecursosDeClasse(ficha, modificadores) {
+  return (ficha.recursos ?? []).flatMap((recurso) => {
+    const regra = RECURSOS_DE_CLASSE.find((item) => item.id === recurso.origemId);
+    if (!regra) return [recurso];
+
+    const classe = classesDaFicha(ficha).find(
+      (item) =>
+        item.classeId === regra.classeId &&
+        (!regra.subclasseId || item.subclasseId === regra.subclasseId) &&
+        Number(item.nivel) >= Number(regra.nivelMinimo ?? 1)
+    );
+    if (!classe) return [];
+
+    const usosMax = resolverUsosMax(regra, {
+      nivel: classe.nivel,
+      modCarisma: modificadores.carisma,
+      modSabedoria: modificadores.sabedoria,
+    });
+    return [{
+      ...recurso,
+      usosMax,
+      usosGastos: Math.min(Number(recurso.usosGastos) || 0, usosMax),
+    }];
+  });
 }
 
 export default function Ficha() {
@@ -174,9 +207,14 @@ const ehConjurador =
     (ficha.pericias?.investigacao ? bonusProficiencia : 0);
 
   function handleChangeAtributo(chave, novoValor) {
-    atualizarFicha(id, (ficha) => ({
-      atributos: { ...ficha.atributos, [chave]: novoValor },
-    }));
+    atualizarFicha(id, (fichaAtual) => {
+      const atributos = { ...fichaAtual.atributos, [chave]: novoValor };
+      const modificadores = calcularModificadoresAtributos(atributos, bonusRacial);
+      return {
+        atributos,
+        recursos: sincronizarRecursosDeClasse(fichaAtual, modificadores),
+      };
+    });
   }
 
   function handleChangeProgressaoModo(novoModo) {
@@ -246,10 +284,26 @@ function nivelDaClasse(classeIdAlvo) {
   );
 }
 
-const sugestoesRecursos = RECURSOS_CLASSES.filter(
-  (r) =>
-    r.classeId === ficha.classeId ||
-    (ficha.classesSecundarias ?? []).some((c) => c.classeId === r.classeId)
+const sugestoesRecursos = [...RECURSOS_CLASSES, ...RECURSOS_SUBCLASSES].filter(
+  (r) => {
+    const classePresente =
+      r.classeId === ficha.classeId ||
+      (ficha.classesSecundarias ?? []).some((c) => c.classeId === r.classeId);
+    const subclasseCompativel =
+      !r.subclasseId ||
+      [
+        { classeId: ficha.classeId, subclasseId: ficha.subclasseId },
+        ...(ficha.classesSecundarias ?? []),
+      ].some(
+        (classe) =>
+          classe.classeId === r.classeId && classe.subclasseId === r.subclasseId
+      );
+    return (
+      classePresente &&
+      subclasseCompativel &&
+      nivelDaClasse(r.classeId) >= (r.nivelMinimo ?? 1)
+    );
+  }
 )
     .filter(
     (r) => !(ficha.recursos ?? []).some((existente) => existente.origemId === r.id)
@@ -259,6 +313,7 @@ const sugestoesRecursos = RECURSOS_CLASSES.filter(
     usosMaxSugerido: resolverUsosMax(r, {
       nivel: nivelDaClasse(r.classeId),
       modCarisma: modificadoresAtributos.carisma,
+      modSabedoria: modificadoresAtributos.sabedoria,
     }),
   }));
 
@@ -274,6 +329,7 @@ function handleAdicionarSugestaoRecurso(sugestao) {
         restauraEm: sugestao.restauraEm,
         origemId: sugestao.id,
         origemClasseId: sugestao.classeId,
+        origemSubclasseId: sugestao.subclasseId ?? null,
       },
     ],
   }));
@@ -361,6 +417,7 @@ function handleChangeRaca(novoRacaId) {
       recursos: (fichaAtual.recursos ?? []).filter(
         (r) => r.origemClasseId !== classeAntigaId
       ),
+      magias: fichaAtual.magias ?? [],
     };
     const novaClasse = obterClasse(novoClasseId);
 
@@ -386,7 +443,16 @@ function handleChangeRaca(novoRacaId) {
         atualizacoes.status = status;
       }
 
-      return atualizacoes;
+      const fichaSincronizada = sincronizarFichaComSubclasses({
+        ...fichaAtual,
+        ...atualizacoes,
+      });
+      return {
+        ...atualizacoes,
+        recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
+        habilidades: fichaSincronizada.habilidades,
+        magias: fichaSincronizada.magias,
+      };
     });
   }
 
@@ -417,31 +483,36 @@ function handleChangeRaca(novoRacaId) {
           calcularAtualizacoesEspacosMagia({ ...fichaAtual, nivel: nivelAjustado })
       );
 
-      return atualizacoes;
+      const fichaSincronizada = sincronizarFichaComSubclasses({
+        ...fichaAtual,
+        ...atualizacoes,
+      });
+      return {
+        ...atualizacoes,
+        recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
+        habilidades: fichaSincronizada.habilidades,
+        magias: fichaSincronizada.magias,
+      };
     });
   }
 
-    function handleChangeSubclasse(novaSubclasseId) {
+  function handleChangeSubclasse(novaSubclasseId) {
     atualizarFicha(id, (fichaAtual) => {
-      const habilidadesSemSubclasse = (fichaAtual.habilidades ?? []).filter(
-        (h) => h.tipo !== "subclasse"
-      );
-      const subclasse = obterSubclasse(novaSubclasseId);
-      const novaHabilidade = subclasse
-        ? [
-            {
-              id: crypto.randomUUID(),
-              nome: subclasse.nome,
-              tipo: "subclasse",
-              nivel: subclasse.nivel,
-              origemId: subclasse.id,
-            },
-          ]
-        : [];
-
+      if (!subclasseCompativel(fichaAtual.classeId, novaSubclasseId, fichaAtual.nivel)) return {};
+      const fichaSincronizada = sincronizarFichaComSubclasses({
+        ...fichaAtual,
+        subclasseId: novaSubclasseId,
+        recursos: (fichaAtual.recursos ?? []).filter(
+          (recurso) =>
+            !recurso.origemSubclasseId ||
+            recurso.origemClasseId !== fichaAtual.classeId
+        ),
+      });
       return {
         subclasseId: novaSubclasseId,
-        habilidades: [...habilidadesSemSubclasse, ...novaHabilidade],
+        recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
+        habilidades: fichaSincronizada.habilidades,
+        magias: fichaSincronizada.magias,
         ...calcularAtualizacoesEspacosMagia({
           ...fichaAtual,
           subclasseId: novaSubclasseId,
@@ -464,7 +535,7 @@ function handleChangeBonusRacialEscolhido(indice, valor) {
     return {
       classesSecundarias: [
         ...(fichaAtual.classesSecundarias ?? []),
-        { classeId: null, nivel: 1 },
+        { classeId: null, nivel: 1, subclasseId: null },
       ],
     };
   });
@@ -488,12 +559,36 @@ function handleAlterarClasseSecundaria(indice, campo, valor) {
       valorAjustado = Math.min(normalizarNivel(valor), limite);
     }
 
-    novasClasses[indice] = {
-      ...novasClasses[indice],
-      [campo]: valorAjustado,
+    if (campo === "classeId") {
+      valorAjustado = valor || null;
+      novasClasses[indice] = {
+        ...novasClasses[indice],
+        classeId: valorAjustado,
+        subclasseId: null,
+      };
+    } else if (campo === "subclasseId") {
+      const classeAtual = novasClasses[indice];
+      if (!subclasseCompativel(classeAtual.classeId, valor || null, classeAtual.nivel)) {
+        return {};
+      }
+      novasClasses[indice] = { ...classeAtual, subclasseId: valor || null };
+    } else {
+      novasClasses[indice] = {
+        ...novasClasses[indice],
+        [campo]: valorAjustado,
+      };
+    }
+
+    const fichaComClasses = {
+      ...fichaAtual,
+      classesSecundarias: novasClasses,
     };
+    const fichaSincronizada = sincronizarFichaComSubclasses(fichaComClasses);
     return {
       classesSecundarias: novasClasses,
+      recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
+      habilidades: fichaSincronizada.habilidades,
+      magias: fichaSincronizada.magias,
       ...calcularAtualizacoesEspacosMagia({
         ...fichaAtual,
         classesSecundarias: novasClasses,
@@ -507,8 +602,15 @@ function handleRemoverClasseSecundaria(indice) {
     const novasClasses = (fichaAtual.classesSecundarias ?? []).filter(
       (_, i) => i !== indice
     );
+    const fichaSincronizada = sincronizarFichaComSubclasses({
+      ...fichaAtual,
+      classesSecundarias: novasClasses,
+    });
     return {
       classesSecundarias: novasClasses,
+      recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
+      habilidades: fichaSincronizada.habilidades,
+      magias: fichaSincronizada.magias,
       ...calcularAtualizacoesEspacosMagia({
         ...fichaAtual,
         classesSecundarias: novasClasses,
@@ -567,11 +669,15 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
   }
 
   function handleChangeMagias(novasMagias) {
-    atualizarFicha(id, () => ({ magias: novasMagias }));
+    atualizarFicha(id, (fichaAtual) => ({
+      magias: sincronizarFichaComSubclasses({ ...fichaAtual, magias: novasMagias }).magias,
+    }));
   }
 
   function handleChangeHabilidades(novasHabilidades) {
-    atualizarFicha(id, () => ({ habilidades: novasHabilidades }));
+    atualizarFicha(id, (fichaAtual) => ({
+      habilidades: sincronizarFichaComSubclasses({ ...fichaAtual, habilidades: novasHabilidades }).habilidades,
+    }));
   }
 
   function handleChangeAtaques(novosAtaques) {
@@ -608,7 +714,14 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
     if (calcularNivelTotal(fichaHipotetica) > NIVEL_MAXIMO_PERSONAGEM) {
       return {};
     }
-    return { ...alteracoes, ...calcularAtualizacoesEspacosMagia(fichaHipotetica) };
+    const fichaSincronizada = sincronizarFichaComSubclasses(fichaHipotetica);
+    return {
+      ...alteracoes,
+      recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
+      habilidades: fichaSincronizada.habilidades,
+      magias: fichaSincronizada.magias,
+      ...calcularAtualizacoesEspacosMagia(fichaHipotetica),
+    };
   });
 }
 
@@ -802,11 +915,8 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
 
           {abaAtiva === "magias" && (
             <BlocoMagias
-              classe={classe}
               ficha={ficha}
-              modificadorAtributoPrincipal={
-                classe ? modificadoresAtributos[classe.atributoPrincipal] : null
-              }
+              modificadoresAtributos={modificadoresAtributos}
               bonusProficiencia={bonusProficiencia}
               espacosMagia={ficha.espacosMagia ?? criarEspacosMagiaVazios()}
               onChangeEspacoMagia={handleChangeEspacoMagia}

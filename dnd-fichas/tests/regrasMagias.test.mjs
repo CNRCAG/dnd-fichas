@@ -138,3 +138,165 @@ test("conjuração parcial usa tabela própria e contribuição multiclasse", as
   assert.equal(combinado.espacosRegulares[1], 4);
   assert.equal(combinado.espacosRegulares[2], 2);
 });
+
+test("conjuração parcial acessa magias pelo nível da própria classe", () => {
+  const magia = (id) => catalogo.MAGIAS.find((item) => item.id === id);
+  const classesElegiveis = (personagem, id) =>
+    acesso
+      .classesElegiveisParaMagia(personagem, magia(id))
+      .map(({ classeId }) => classeId);
+
+  const cavaleiro2 = {
+    ...ficha("guerreiro", 2),
+    subclasseId: "cavaleiro-arcano",
+  };
+  const cavaleiro3 = { ...cavaleiro2, nivel: 3 };
+  const cavaleiro7 = { ...cavaleiro2, nivel: 7 };
+
+  assert.deepEqual(classesElegiveis(cavaleiro2, "escudo"), []);
+  assert.deepEqual(classesElegiveis(cavaleiro3, "escudo"), ["guerreiro"]);
+  assert.deepEqual(classesElegiveis(cavaleiro3, "faisca"), ["guerreiro"]);
+  assert.deepEqual(classesElegiveis(cavaleiro3, "raio-ardente"), []);
+  assert.deepEqual(classesElegiveis(cavaleiro7, "raio-ardente"), ["guerreiro"]);
+
+  const trapaceiro3 = {
+    ...ficha("ladino", 3),
+    subclasseId: "trapaceiro-arcano",
+  };
+  assert.deepEqual(classesElegiveis(trapaceiro3, "maos-magicas"), ["ladino"]);
+  assert.deepEqual(classesElegiveis(trapaceiro3, "enfeiticar-pessoa"), ["ladino"]);
+  assert.deepEqual(classesElegiveis(trapaceiro3, "curar-ferimentos"), []);
+});
+
+test("limites de magias das subclasses com conjuração parcial", () => {
+  assert.equal(
+    limites.limitesMagiasDaClasse("guerreiro", 3, atributos),
+    null
+  );
+
+  assert.deepEqual(
+    limites.limitesMagiasDaClasse(
+      "guerreiro",
+      3,
+      atributos,
+      "cavaleiro-arcano"
+    ),
+    { truques: 2, conhecidas: 3, preparadas: null }
+  );
+
+  assert.deepEqual(
+    limites.limitesMagiasDaClasse(
+      "ladino",
+      10,
+      atributos,
+      "trapaceiro-arcano"
+    ),
+    { truques: 4, conhecidas: 7, preparadas: null }
+  );
+
+  assert.deepEqual(
+    limites.limitesMagiasDaClasse(
+      "guerreiro",
+      20,
+      atributos,
+      "cavaleiro-arcano"
+    ),
+    { truques: 3, conhecidas: 13, preparadas: null }
+  );
+});
+
+test("atributo de conjuração respeita classe, subclasse e nível", async () => {
+  const conjuracao = await servidor.ssrLoadModule("/src/utils/conjuracao.js");
+  const atributo = conjuracao.obterAtributoConjuracao;
+
+  assert.equal(atributo("guerreiro", "cavaleiro-arcano", 2), null);
+  assert.equal(atributo("guerreiro", "cavaleiro-arcano", 3), "inteligencia");
+  assert.equal(atributo("ladino", "trapaceiro-arcano", 3), "inteligencia");
+  assert.equal(atributo("guerreiro", null, 20), null);
+  assert.equal(atributo("paladino", null, 1), null);
+  assert.equal(atributo("paladino", null, 2), "carisma");
+  assert.equal(atributo("patrulheiro", null, 2), "sabedoria");
+  assert.equal(atributo("mago", null, 1), "inteligencia");
+});
+
+test("escolhas livres de escolas respeitam os marcos da conjuração parcial", () => {
+  assert.deepEqual(
+    [2, 3, 7, 8, 13, 14, 19, 20].map(acesso.limiteMagiasDeQualquerEscola),
+    [0, 1, 1, 2, 2, 3, 3, 4]
+  );
+  const magia = (id) => catalogo.MAGIAS.find((item) => item.id === id);
+  const cavaleiro3 = { ...ficha("guerreiro", 3), subclasseId: "cavaleiro-arcano" };
+  const detectar = magia("detectar-magia");
+
+  assert.deepEqual(
+    acesso.classesElegiveisParaMagia(cavaleiro3, detectar, true).map((item) => item.classeId),
+    ["guerreiro"]
+  );
+
+  const cavaleiroComEscolhaLivre = {
+    ...cavaleiro3,
+    magias: [{ id: "1", origemId: detectar.id, nome: detectar.nome, nivel: 1, classeId: "guerreiro" }],
+  };
+  assert.deepEqual(acesso.classesElegiveisParaMagia(cavaleiroComEscolhaLivre, magia("identificar"), true), []);
+  assert.deepEqual(
+    acesso.classesElegiveisParaMagia({ ...cavaleiroComEscolhaLivre, nivel: 8 }, magia("identificar"), true)
+      .map((item) => item.classeId),
+    ["guerreiro"]
+  );
+  assert.deepEqual(
+    acesso.classesElegiveisParaMagia(cavaleiroComEscolhaLivre, detectar)
+      .map((item) => item.classeId),
+    ["guerreiro"]
+  );
+
+  const trapaceiro3 = { ...ficha("ladino", 3), subclasseId: "trapaceiro-arcano" };
+  assert.deepEqual(
+    acesso.classesElegiveisParaMagia(trapaceiro3, magia("detectar-magia"), true)
+      .map((item) => item.classeId),
+    ["ladino"]
+  );
+  const trapaceiroComEscolhaLivre = {
+    ...trapaceiro3,
+    magias: [{ id: "2", origemId: detectar.id, nome: detectar.nome, nivel: 1, classeId: "ladino" }],
+  };
+  assert.deepEqual(acesso.classesElegiveisParaMagia(trapaceiroComEscolhaLivre, magia("identificar"), true), []);
+  assert.deepEqual(
+    acesso.classesElegiveisParaMagia(trapaceiroComEscolhaLivre, magia("maos-magicas"), true)
+      .map((item) => item.classeId),
+    ["ladino"]
+  );
+});
+
+test("validação confere limites e escolas de Cavaleiro Arcano e Trapaceiro Arcano", () => {
+  const criarMagia = (id, classeId) => {
+    const magia = catalogo.MAGIAS.find((item) => item.id === id);
+    return { id: `${classeId}-${id}`, origemId: id, nome: magia.nome, nivel: magia.nivel, classeId };
+  };
+  const cavaleiro = {
+    ...ficha("guerreiro", 3, [
+      criarMagia("detectar-magia", "guerreiro"),
+      criarMagia("identificar", "guerreiro"),
+      criarMagia("escudo", "guerreiro"),
+      criarMagia("misseis-magicos", "guerreiro"),
+    ]),
+    subclasseId: "cavaleiro-arcano",
+  };
+  const avisosCavaleiro = validacao.validarFicha(cavaleiro, atributos).avisos;
+  assert.ok(avisosCavaleiro.some((aviso) => aviso.includes("4 magias conhecidas")));
+  assert.ok(avisosCavaleiro.some((aviso) => aviso.includes("2 magias de outras escolas")));
+
+  const trapaceiro = {
+    ...ficha("ladino", 3, [criarMagia("sono", "ladino")]),
+    subclasseId: "trapaceiro-arcano",
+  };
+  assert.ok(
+    validacao.validarFicha(trapaceiro, atributos).avisos.some((aviso) => aviso.includes("Mãos Mágicas"))
+  );
+  assert.equal(
+    validacao.validarFicha({
+      ...trapaceiro,
+      magias: [...trapaceiro.magias, criarMagia("maos-magicas", "ladino")],
+    }, atributos).avisos.some((aviso) => aviso.includes("adicione o truque Mãos Mágicas")),
+    false
+  );
+});

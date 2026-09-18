@@ -5,6 +5,11 @@ import { useRolagem } from "../../context/useRolagem";
 import { obterHabilidadesPorClasse } from "../../data/habilidadesClasses";
 import { recalcularPv } from "../../utils/progressao";
 import { obterClasse } from "../../data/classes";
+import { obterSubclassesPorClasse, obterNivelEscolhaSubclasse, obterSubclasse } from "../../data/subclasses";
+import { obterHabilidadesPorSubclasse } from "../../data/habilidadesSubclasses";
+import { MAGIAS } from "../../data/magiasSistema";
+import { limitesMagiasDaClasse } from "../../data/limitesMagias";
+import { classesElegiveisParaMagia } from "../../utils/acessoMagias";
 import DetalheHabilidade from "./DetalheHabilidade";
 import "./ModalCatalogoItens.css";
 import "./ModalLevelUp.css";
@@ -31,6 +36,7 @@ export default function ModalLevelUp({
       nome: classe?.nome,
       dadoVida: classe?.dadoVida,
       nivelAtual: ficha.nivel ?? 1,
+      subclasseId: ficha.subclasseId ?? null,
       ehSecundaria: false,
       indiceSecundaria: null,
     },
@@ -43,6 +49,7 @@ export default function ModalLevelUp({
               nome: classeObj.nome,
               dadoVida: classeObj.dadoVida,
               nivelAtual: c.nivel ?? 1,
+              subclasseId: c.subclasseId ?? null,
               ehSecundaria: true,
               indiceSecundaria: indice,
             }
@@ -75,10 +82,72 @@ export default function ModalLevelUp({
   const [atributosAsiDuplo, setAtributosAsiDuplo] = useState(["forca", "destreza"]);
 
   const [habilidadesSelecionadas, setHabilidadesSelecionadas] = useState(() => new Set());
+  const [subclasseEscolhidaId, setSubclasseEscolhidaId] = useState(null);
+  const [magiaSubstituidaId, setMagiaSubstituidaId] = useState("");
+  const [novaMagiaId, setNovaMagiaId] = useState("");
 
   if (!aberto || !classe || nivelTotalAtual >= NIVEL_MAXIMO_PERSONAGEM) return null;
 
   const chaveAsi = `${classeEscolhida.id}-${novoNivelDaEscolhida}`;
+  const nivelEscolhaSubclasse = obterNivelEscolhaSubclasse(classeEscolhida.id);
+  const precisaEscolherSubclasse =
+    !classeEscolhida.subclasseId &&
+    novoNivelDaEscolhida >= (nivelEscolhaSubclasse ?? Infinity);
+  const subclassesDisponiveis = obterSubclassesPorClasse(classeEscolhida.id);
+  const subclasseNoLevelUp =
+    obterSubclasse(precisaEscolherSubclasse ? subclasseEscolhidaId : classeEscolhida.subclasseId);
+  const habilidadesSubclasseDoNivel = subclasseNoLevelUp
+    ? obterHabilidadesPorSubclasse(subclasseNoLevelUp.id).filter(
+        (habilidade) => habilidade.nivel === novoNivelDaEscolhida
+      )
+    : [];
+  const subclasseEfetiva = subclasseNoLevelUp?.id ?? classeEscolhida.subclasseId;
+  const fichaNoNovoNivel = classeEscolhida.ehSecundaria
+    ? {
+        ...ficha,
+        classesSecundarias: (ficha.classesSecundarias ?? []).map((classeSecundaria, indice) =>
+          indice === classeEscolhida.indiceSecundaria
+            ? {
+                ...classeSecundaria,
+                nivel: novoNivelDaEscolhida,
+                subclasseId: subclasseEfetiva ?? null,
+              }
+            : classeSecundaria
+        ),
+      }
+    : {
+        ...ficha,
+        nivel: novoNivelDaEscolhida,
+        subclasseId: subclasseEfetiva ?? null,
+      };
+  const limiteMagiasConhecidas = limitesMagiasDaClasse(
+    classeEscolhida.id,
+    novoNivelDaEscolhida,
+    ficha.atributos,
+    subclasseEfetiva
+  );
+  const magiasSubstituiveis = (ficha.magias ?? []).filter(
+    (magia) =>
+      magia.classeId === classeEscolhida.id &&
+      Number(magia.nivel) > 0 &&
+      !magia.origemSubclasseAutomatica
+  );
+  const podeTrocarMagia =
+    limiteMagiasConhecidas?.conhecidas !== null && magiasSubstituiveis.length > 0;
+  const fichaParaNovaMagia = magiaSubstituidaId
+    ? {
+        ...fichaNoNovoNivel,
+        magias: (fichaNoNovoNivel.magias ?? []).filter(
+          (magia) => magia.id !== magiaSubstituidaId
+        ),
+      }
+    : fichaNoNovoNivel;
+  const novasMagiasElegiveis = MAGIAS.filter((magia) =>
+    Number(magia.nivel) > 0 &&
+    classesElegiveisParaMagia(fichaParaNovaMagia, magia, true).some(
+      (classeElegivel) => classeElegivel.classeId === classeEscolhida.id
+    )
+  );
   const temAsi = NIVEIS_ASI.includes(novoNivelDaEscolhida);
   const asiJaAplicado = (ficha.niveisAsiAplicados ?? []).includes(chaveAsi);
 
@@ -98,8 +167,10 @@ export default function ModalLevelUp({
   const etapas = [
     ...(opcoesClasse.length > 1 ? ["escolha-classe"] : []),
     "pv",
+    ...(precisaEscolherSubclasse ? ["subclasse"] : []),
     ...(temAsi && !asiJaAplicado ? ["asi"] : []),
     ...(temHabilidades ? ["habilidades"] : []),
+    ...(podeTrocarMagia ? ["troca-magia"] : []),
     "resumo",
   ];
   const etapaAtual = etapas[etapa];
@@ -110,6 +181,9 @@ export default function ModalLevelUp({
     setAtributoAsiUnico("forca");
     setAtributosAsiDuplo(["forca", "destreza"]);
     setHabilidadesSelecionadas(new Set());
+    setSubclasseEscolhidaId(null);
+    setMagiaSubstituidaId("");
+    setNovaMagiaId("");
     onFechar();
   }
 
@@ -180,6 +254,7 @@ export default function ModalLevelUp({
   // ---- Concluir ----
   function handleConcluir() {
     if (novoNivelTotal > NIVEL_MAXIMO_PERSONAGEM) return;
+    if (precisaEscolherSubclasse && !subclasseEscolhidaId) return;
 
     const novosAtributos = { ...ficha.atributos };
     if (!asiJaAplicado) {
@@ -225,15 +300,37 @@ export default function ModalLevelUp({
       niveisAsiAplicados,
             habilidades: [...(ficha.habilidades ?? []), ...novasHabilidades],
     };
+    if (magiaSubstituidaId && novaMagiaId) {
+      const novaMagia = MAGIAS.find((magia) => magia.id === novaMagiaId);
+      if (novaMagia) {
+        atualizacoes.magias = (ficha.magias ?? []).map((magia) =>
+          magia.id === magiaSubstituidaId
+            ? {
+                ...magia,
+                nome: novaMagia.nome,
+                nivel: novaMagia.nivel,
+                origemId: novaMagia.id,
+                preparada: false,
+                fonteEspecial: null,
+                origemSubclasseId: null,
+                origemSubclasseTipo: null,
+                origemSubclasseAutomatica: false,
+              }
+            : magia
+        );
+      }
+    }
     if (classeEscolhida.ehSecundaria) {
       const novasClassesSecundarias = [...(ficha.classesSecundarias ?? [])];
       novasClassesSecundarias[classeEscolhida.indiceSecundaria] = {
         ...novasClassesSecundarias[classeEscolhida.indiceSecundaria],
         nivel: novoNivelDaEscolhida,
+        ...(precisaEscolherSubclasse ? { subclasseId: subclasseEscolhidaId } : {}),
       };
       atualizacoes.classesSecundarias = novasClassesSecundarias;
     } else {
       atualizacoes.nivel = novoNivelDaEscolhida;
+      if (precisaEscolherSubclasse) atualizacoes.subclasseId = subclasseEscolhidaId;
     }
 
     onConcluir(atualizacoes);
@@ -288,7 +385,10 @@ export default function ModalLevelUp({
                         ? "levelup-opcao-botao is-selecionado"
                         : "levelup-opcao-botao"
                     }
-                    onClick={() => setClasseEscolhidaId(opcao.id)}
+                    onClick={() => {
+                      setClasseEscolhidaId(opcao.id);
+                      setSubclasseEscolhidaId(null);
+                    }}
                   >
                     {opcao.nome}
                     <span className="levelup-opcao-detalhe">
@@ -347,6 +447,33 @@ export default function ModalLevelUp({
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {etapaAtual === "subclasse" && (
+            <div className="levelup-etapa">
+              <h3>Escolha a subclasse</h3>
+              <p className="levelup-texto">
+                {classeEscolhida.nome} desbloqueia a subclasse no nível {nivelEscolhaSubclasse}.
+                A escolha será salva somente ao concluir o level up.
+              </p>
+              <div className="levelup-opcoes-pv">
+                {subclassesDisponiveis.map((subclasse) => (
+                  <button
+                    key={subclasse.id}
+                    type="button"
+                    className={
+                      subclasseEscolhidaId === subclasse.id
+                        ? "levelup-opcao-botao is-selecionado"
+                        : "levelup-opcao-botao"
+                    }
+                    onClick={() => setSubclasseEscolhidaId(subclasse.id)}
+                  >
+                    {subclasse.nome}
+                    <span className="levelup-opcao-detalhe">{subclasse.descricao}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -466,6 +593,42 @@ export default function ModalLevelUp({
             </div>
           )}
 
+          {etapaAtual === "troca-magia" && (
+            <div className="levelup-etapa">
+              <h3>Trocar magia conhecida</h3>
+              <p className="levelup-texto">
+                Esta escolha é opcional. A nova magia precisa ser válida para {classeEscolhida.nome}
+                no nível {novoNivelDaEscolhida}; a mudança só será aplicada ao concluir.
+              </p>
+              <select
+                className="levelup-select"
+                value={magiaSubstituidaId}
+                onChange={(evento) => setMagiaSubstituidaId(evento.target.value)}
+              >
+                <option value="">Não substituir agora</option>
+                {magiasSubstituiveis.map((magia) => (
+                  <option key={magia.id} value={magia.id}>
+                    {magia.nome} ({magia.nivel}º círculo)
+                  </option>
+                ))}
+              </select>
+              {magiaSubstituidaId && (
+                <select
+                  className="levelup-select"
+                  value={novaMagiaId}
+                  onChange={(evento) => setNovaMagiaId(evento.target.value)}
+                >
+                  <option value="">Escolha a nova magia</option>
+                  {novasMagiasElegiveis.map((magia) => (
+                    <option key={magia.id} value={magia.id}>
+                      {magia.nome} ({magia.nivel}º círculo)
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
           {etapaAtual === "resumo" && (
             <div className="levelup-etapa">
               <h3>Resumo</h3>
@@ -506,6 +669,25 @@ export default function ModalLevelUp({
                     {habilidadesNovasDoNivel.length}
                   </li>
                 )}
+                {subclasseNoLevelUp && (
+                  <li>
+                    Subclasse: <strong>{subclasseNoLevelUp.nome}</strong>
+                  </li>
+                )}
+                {habilidadesSubclasseDoNivel.length > 0 && (
+                  <li>
+                    Características de subclasse: {habilidadesSubclasseDoNivel
+                      .map((habilidade) => habilidade.nome)
+                      .join(", ")}
+                  </li>
+                )}
+                {magiaSubstituidaId && novaMagiaId && (
+                  <li>
+                    Magia substituída: {magiasSubstituiveis.find((magia) => magia.id === magiaSubstituidaId)?.nome}
+                    {" → "}
+                    {MAGIAS.find((magia) => magia.id === novaMagiaId)?.nome}
+                  </li>
+                )}
                                 <li>Espaços de magia recalculados considerando todas as suas classes</li>
               </ul>
             </div>
@@ -532,7 +714,9 @@ export default function ModalLevelUp({
               onClick={irProximaEtapa}
               disabled={
                 (etapaAtual === "pv" && !podeAvancarPv) ||
-                (etapaAtual === "asi" && !podeAvancarAsi)
+                (etapaAtual === "asi" && !podeAvancarAsi) ||
+                (etapaAtual === "subclasse" && !subclasseEscolhidaId) ||
+                (etapaAtual === "troca-magia" && magiaSubstituidaId && !novaMagiaId)
               }
             >
               Próximo

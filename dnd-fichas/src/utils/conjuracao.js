@@ -3,8 +3,7 @@
 // usamos a tabela oficial correspondente pra preencher os espaços
 // automaticamente quando o nível muda.
 //
-// OBS: não modelamos subclasses com conjuração parcial (ex: Guerreiro
-// Cavaleiro Arcano), só a conjuração base de cada classe.
+// Cavaleiro Arcano e Trapaceiro Arcano usam conjuração de um terço.
 
 export const TIPO_CONJURADOR = {
   bardo: "completo",
@@ -14,7 +13,20 @@ export const TIPO_CONJURADOR = {
   mago: "completo",
   paladino: "metade",
   patrulheiro: "metade",
-    bruxo: "pacto",
+  bruxo: "pacto",
+};
+
+const ATRIBUTO_CONJURACAO = {
+  bardo: "carisma",
+  bruxo: "carisma",
+  clerigo: "sabedoria",
+  druida: "sabedoria",
+  feiticeiro: "carisma",
+  guerreiro: "inteligencia",
+  ladino: "inteligencia",
+  mago: "inteligencia",
+  paladino: "carisma",
+  patrulheiro: "sabedoria",
 };
 
 export function tipoConjurador(classeId, subclasseId) {
@@ -26,6 +38,17 @@ export function tipoConjurador(classeId, subclasseId) {
   }
 
   return TIPO_CONJURADOR[classeId] ?? null;
+}
+
+export function obterAtributoConjuracao(classeId, subclasseId, nivel) {
+  const tipo = tipoConjurador(classeId, subclasseId);
+  const nivelDaClasse = Number(nivel);
+
+  if (!tipo || !Number.isInteger(nivelDaClasse) || nivelDaClasse < 1) return null;
+  if (tipo === "metade" && nivelDaClasse < 2) return null;
+  if (tipo === "terco" && nivelDaClasse < 3) return null;
+
+  return ATRIBUTO_CONJURACAO[classeId] ?? null;
 }
 
 // Índice = nível (1-20). Cada linha tem os espaços de nível 1 a 9.

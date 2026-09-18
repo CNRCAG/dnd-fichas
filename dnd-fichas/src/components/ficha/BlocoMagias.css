@@ -3,6 +3,15 @@
   color: var(--color-ink-soft);
 }
 
+.magias-resumo-grupo + .magias-resumo-grupo {
+  margin-top: var(--space-3);
+}
+
+.magias-resumo-classe {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+
 .magias-resumo {
   display: flex;
   gap: var(--space-3);
@@ -235,4 +244,11 @@
 .magias-concentracao-vazio {
   color: var(--color-ink-soft);
   font-size: var(--text-sm);
+}
+
+.magias-origem-subclasse {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
 }

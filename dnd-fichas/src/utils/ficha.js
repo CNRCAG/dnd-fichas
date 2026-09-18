@@ -2,6 +2,7 @@ import { criarEspacosMagiaVazios } from "./magia";
 
 export function criarFichaVazia(nome) {
   return {
+    versaoFicha: 2,
     id: crypto.randomUUID(),
     nome: nome?.trim() || "Sem nome",
     criadoEm: Date.now(),
@@ -54,7 +55,7 @@ export function criarFichaVazia(nome) {
     idiomas: ["comum"],
     proficienciasFerramentas: [], // ids de FERRAMENTAS (data/equipamentos.js) em que é proficiente
     atributoFerramentas: {}, // { [ferramentaId]: chaveDoAtributo } — atributo usado em cada rolagem
-    classesSecundarias: [], // [{ classeId, nivel }] — multiclasse
+    classesSecundarias: [], // [{ classeId, nivel, subclasseId }] — multiclasse
     dadosDeVidaUsados: 0,
     niveisAsiAplicados: [],
     magias: [],
@@ -63,5 +64,24 @@ export function criarFichaVazia(nome) {
     concentracao: null, // { magiaId, nome } | null — magia de concentração ativa agora
     habilidades: [],
     ataques: [],
+  };
+}
+
+
+// Migração conservadora: adiciona somente os campos de estrutura que a
+// versão atual precisa para subclasses em multiclasse, sem apagar escolhas
+// antigas, magias, recursos ou campos personalizados.
+export function normalizarFicha(ficha) {
+  if (!ficha || typeof ficha !== "object") return ficha;
+  return {
+    ...ficha,
+    versaoFicha: Math.max(Number(ficha.versaoFicha) || 1, 2),
+    subclasseId: ficha.subclasseId ?? null,
+    classesSecundarias: Array.isArray(ficha.classesSecundarias)
+      ? ficha.classesSecundarias.map((classe) => ({
+          ...classe,
+          subclasseId: classe?.subclasseId ?? null,
+        }))
+      : [],
   };
 }

@@ -1,10 +1,13 @@
+import { normalizarFicha } from "./ficha";
+
 const CHAVE_ARMAZENAMENTO = "pilares-de-atlas:fichas";
 
 export function carregarFichas() {
   try {
     const bruto = localStorage.getItem(CHAVE_ARMAZENAMENTO);
     if (!bruto) return null;
-    return JSON.parse(bruto);
+    const fichas = JSON.parse(bruto);
+    return Array.isArray(fichas) ? fichas.map(normalizarFicha) : null;
   } catch {
     // localStorage indisponível (modo privado, etc.) ou JSON corrompido —
     // segue sem persistência em vez de quebrar a aplicação.
