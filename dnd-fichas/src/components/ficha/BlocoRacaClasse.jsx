@@ -365,14 +365,38 @@ function EscolhasCriacao({ classe, raca, antecedente, escolhas, onChange }) {
   const nomesPericias = Object.fromEntries(PERICIAS.map((item) => [item.chave, item.label]));
   const nomesIdiomas = Object.fromEntries(IDIOMAS.map((item) => [item.id, item.nome]));
   const nomesFerramentas = Object.fromEntries(FERRAMENTAS.map((item) => [item.id, item.nome]));
-  const Campo = ({ titulo, chave, quantidade, opcoes, nomes }) => !quantidade ? null : <label className="raca-classe-campo raca-classe-campo--largo"><span className="raca-classe-label">{titulo}: faltam {Math.max(0, quantidade - new Set((escolhas[chave] ?? []).filter(Boolean)).size)}</span><div className="raca-escolha-livre-selects">{Array.from({ length: quantidade }).map((_, indice) => <select key={indice} value={escolhas[chave]?.[indice] ?? ""} onChange={(evento) => { const proximos = [...(escolhas[chave] ?? [])]; proximos[indice] = evento.target.value || null; onChange(chave, proximos); }}><option value="">Selecione...</option>{opcoes.filter((id) => !(escolhas[chave] ?? []).includes(id) || escolhas[chave]?.[indice] === id).map((id) => <option key={id} value={id}>{nomes[id] ?? id}</option>)}</select>)}</div></label>;
   const classePericias = classe?.proficienciasIniciais?.pericias;
   return <div className="raca-classe-grid">
-    <Campo titulo="Perícias da classe" chave="periciasClasse" quantidade={classePericias?.quantidade} opcoes={opcoesPericias(classePericias)} nomes={nomesPericias} />
-    <Campo titulo="Instrumentos da classe" chave="ferramentasClasse" quantidade={classe?.proficienciasIniciais?.ferramentasEscolha?.quantidade} opcoes={classe?.proficienciasIniciais?.ferramentasEscolha?.opcoes ?? []} nomes={nomesFerramentas} />
-    <Campo titulo="Perícias da raça" chave="periciasRaca" quantidade={raca?.periciasEscolha?.quantidade} opcoes={opcoesPericias(raca?.periciasEscolha)} nomes={nomesPericias} />
-    <Campo titulo="Idiomas da raça" chave="idiomasRaca" quantidade={raca?.idiomasEscolha} opcoes={IDIOMAS.map((item) => item.id).filter((id) => !raca?.idiomasFixos?.includes(id))} nomes={nomesIdiomas} />
-    <Campo titulo="Idiomas do antecedente" chave="idiomasAntecedente" quantidade={antecedente?.idiomasEscolha} opcoes={IDIOMAS.map((item) => item.id)} nomes={nomesIdiomas} />
-    <Campo titulo="Ferramentas do antecedente" chave="ferramentasAntecedente" quantidade={antecedente?.ferramentasEscolha?.quantidade} opcoes={antecedente?.ferramentasEscolha?.opcoes ?? []} nomes={nomesFerramentas} />
+    <CampoEscolhaCriacao titulo="Perícias da classe" chave="periciasClasse" quantidade={classePericias?.quantidade} opcoes={opcoesPericias(classePericias)} nomes={nomesPericias} escolhas={escolhas} onChange={onChange} />
+    <CampoEscolhaCriacao titulo="Instrumentos da classe" chave="ferramentasClasse" quantidade={classe?.proficienciasIniciais?.ferramentasEscolha?.quantidade} opcoes={classe?.proficienciasIniciais?.ferramentasEscolha?.opcoes ?? []} nomes={nomesFerramentas} escolhas={escolhas} onChange={onChange} />
+    <CampoEscolhaCriacao titulo="Perícias da raça" chave="periciasRaca" quantidade={raca?.periciasEscolha?.quantidade} opcoes={opcoesPericias(raca?.periciasEscolha)} nomes={nomesPericias} escolhas={escolhas} onChange={onChange} />
+    <CampoEscolhaCriacao titulo="Idiomas da raça" chave="idiomasRaca" quantidade={raca?.idiomasEscolha} opcoes={IDIOMAS.map((item) => item.id).filter((id) => !raca?.idiomasFixos?.includes(id))} nomes={nomesIdiomas} escolhas={escolhas} onChange={onChange} />
+    <CampoEscolhaCriacao titulo="Idiomas do antecedente" chave="idiomasAntecedente" quantidade={antecedente?.idiomasEscolha} opcoes={IDIOMAS.map((item) => item.id)} nomes={nomesIdiomas} escolhas={escolhas} onChange={onChange} />
+    <CampoEscolhaCriacao titulo="Ferramentas do antecedente" chave="ferramentasAntecedente" quantidade={antecedente?.ferramentasEscolha?.quantidade} opcoes={antecedente?.ferramentasEscolha?.opcoes ?? []} nomes={nomesFerramentas} escolhas={escolhas} onChange={onChange} />
+  </div>;
+}
+
+function CampoEscolhaCriacao({ titulo, chave, quantidade, opcoes, nomes, escolhas, onChange }) {
+  if (!quantidade) return null;
+  const valores = escolhas[chave] ?? [];
+  const faltam = Math.max(0, quantidade - new Set(valores.filter(Boolean)).size);
+
+  return <div className="raca-classe-campo raca-classe-campo--largo">
+    <span className="raca-classe-label">{titulo}: faltam {faltam}</span>
+    <div className="raca-escolha-livre-selects">
+      {Array.from({ length: quantidade }, (_, indice) => <select
+        key={indice}
+        value={valores[indice] ?? ""}
+        aria-label={`${titulo}, escolha ${indice + 1} de ${quantidade}`}
+        onChange={(evento) => {
+          const proximos = [...valores];
+          proximos[indice] = evento.target.value || null;
+          onChange(chave, proximos);
+        }}
+      >
+        <option value="">Selecione...</option>
+        {opcoes.filter((id) => !valores.includes(id) || valores[indice] === id).map((id) => <option key={id} value={id}>{nomes[id] ?? id}</option>)}
+      </select>)}
+    </div>
   </div>;
 }

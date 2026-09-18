@@ -25,7 +25,7 @@ function fichaBase(overrides = {}) {
 }
 
 before(async () => {
-  servidor = await createServer({ server: { middlewareMode: true }, appType: "custom" });
+  servidor = await createServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
   dadosVida = await servidor.ssrLoadModule("/src/utils/dadosVida.js");
   fichaUtils = await servidor.ssrLoadModule("/src/utils/ficha.js");
   proficiencias = await servidor.ssrLoadModule("/src/utils/proficienciasMulticlasse.js");

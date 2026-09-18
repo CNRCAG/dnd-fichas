@@ -3,7 +3,6 @@ import { obterNivelEscolhaSubclasse, obterSubclasse } from "../data/subclasses";
 import { obterHabilidadesPorSubclasse } from "../data/habilidadesSubclasses";
 import { TALENTOS } from "../data/talentos";
 import { tipoConjurador } from "./conjuracao";
-import { MAGIAS } from "../data/magiasSistema";
 import {
   classesQueAcessamNivel,
   magiaPermitidaParaClasse,

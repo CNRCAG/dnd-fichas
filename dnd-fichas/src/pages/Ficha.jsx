@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import { useFichas } from "../context/useFichas";
 import { obterRaca } from "../data/racas";
 import { obterClasse } from "../data/classes";
-import { obterAntecedente } from "../data/antecedentes";
 import {
   classesDaFicha,
   sincronizarFichaComSubclasses,

@@ -10,7 +10,7 @@ let catalogo;
 let listas;
 
 before(async () => {
-  servidor = await createServer({ server: { middlewareMode: true }, appType: "custom" });
+  servidor = await createServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
   acesso = await servidor.ssrLoadModule("/src/utils/acessoMagias.js");
   validacao = await servidor.ssrLoadModule("/src/utils/validacaoFicha.js");
   limites = await servidor.ssrLoadModule("/src/data/limitesMagias.js");

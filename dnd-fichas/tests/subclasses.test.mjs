@@ -34,7 +34,7 @@ function fichaBase(overrides = {}) {
 }
 
 before(async () => {
-  servidor = await createServer({ server: { middlewareMode: true }, appType: "custom" });
+  servidor = await createServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
   subclasses = await servidor.ssrLoadModule("/src/utils/subclassesFicha.js");
   fichaUtils = await servidor.ssrLoadModule("/src/utils/ficha.js");
   conjuracao = await servidor.ssrLoadModule("/src/utils/conjuracao.js");
@@ -166,8 +166,8 @@ test("validação detecta subclasse inválida, ausência e habilidade automátic
   const ausente = fichaBase({ classeId: "ladino", nivel: 3 });
   const semHabilidade = fichaBase({ classeId: "guerreiro", nivel: 3, subclasseId: "campeao" });
 
-  assert.ok(validacao.validarFicha(invalida, atributos).avisos.some((aviso) => aviso.includes("pertence a outra classe")));
-  assert.ok(validacao.validarFicha(ausente, atributos).avisos.some((aviso) => aviso.includes("escolha uma subclasse")));
+  assert.ok(validacao.validarFicha(invalida, atributos).erros.some((erro) => erro.includes("pertence a outra classe")));
+  assert.ok(validacao.validarFicha(ausente, atributos).pendencias.some((pendencia) => pendencia.includes("escolha uma subclasse")));
   assert.ok(validacao.validarFicha(semHabilidade, atributos).avisos.some((aviso) => aviso.includes("habilidade automática")));
 });
 
