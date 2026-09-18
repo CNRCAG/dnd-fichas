@@ -80,7 +80,7 @@ export default function BlocoMagias({
     });
   }
 
-  function handleAdicionarDoCatalogo(magiaCatalogo, classeId) {
+  function handleAdicionarDoCatalogo(magiaCatalogo, classeId, origemEspecial = null) {
     onChangeMagias([
       ...magias,
       {
@@ -92,6 +92,7 @@ export default function BlocoMagias({
           "sempre-preparada",
         origemId: magiaCatalogo.id,
         classeId,
+        ...(origemEspecial ? { origemEspecial, fonteEspecial: "Segredos Mágicos" } : {}),
       },
     ]);
   }
@@ -403,7 +404,14 @@ export default function BlocoMagias({
                       <tr>
                         <td colSpan={7} className="magias-linha-detalhe">
                           <label>
-                            Origem desta magia (talento, item ou regra da mesa)
+                            Origem desta magia
+                            <select value={magia.origemEspecial?.tipo ?? "manual"} onChange={(evento) => handleAlterarMagia(magia.id, "origemEspecial", { ...(magia.origemEspecial ?? {}), tipo: evento.target.value, ...(evento.target.value === "segredos-magicos" ? { classeId: "bardo", fonteId: "segredos-magicos" } : {}) })}>
+                              <option value="manual">Conteúdo manual</option>
+                              <option value="regra-da-mesa">Regra da mesa</option>
+                              <option value="segredos-magicos">Segredos Mágicos</option>
+                              <option value="talento">Talento</option>
+                              <option value="item">Item</option>
+                            </select>
                             <input
                               type="text"
                               value={magia.fonteEspecial ?? ""}
@@ -417,6 +425,7 @@ export default function BlocoMagias({
                               }
                             />
                           </label>
+                          {(magia.origemEspecial?.tipo === "talento" || magia.origemEspecial?.tipo === "item") && <label>Identificador da fonte (talento ou item)<input value={magia.origemEspecial?.fonteId ?? ""} onChange={(evento) => handleAlterarMagia(magia.id, "origemEspecial", { ...magia.origemEspecial, fonteId: evento.target.value })} placeholder="ID estável da fonte" /></label>}
                         </td>
                       </tr>
                     )}

@@ -8,9 +8,9 @@ import { obterClasse } from "../../data/classes";
 import { obterSubclassesPorClasse, obterNivelEscolhaSubclasse, obterSubclasse } from "../../data/subclasses";
 import { obterHabilidadesPorSubclasse } from "../../data/habilidadesSubclasses";
 import { MAGIAS } from "../../data/magiasSistema";
-import { limitesMagiasDaClasse } from "../../data/limitesMagias";
 import { classesElegiveisParaMagia } from "../../utils/acessoMagias";
 import { pendenciasProficienciasMulticlasse } from "../../utils/proficienciasMulticlasse";
+import { magiasElegiveisParaTroca, obterRegraTroca, magiaElegivelPorSegredo } from "../../utils/regrasMagias";
 import DetalheHabilidade from "./DetalheHabilidade";
 import "./ModalCatalogoItens.css";
 import "./ModalLevelUp.css";
@@ -125,20 +125,10 @@ export default function ModalLevelUp({
         nivel: novoNivelDaEscolhida,
         subclasseId: subclasseEfetiva ?? null,
       };
-  const limiteMagiasConhecidas = limitesMagiasDaClasse(
-    classeEscolhida.id,
-    novoNivelDaEscolhida,
-    ficha.atributos,
-    subclasseEfetiva
-  );
-  const magiasSubstituiveis = (ficha.magias ?? []).filter(
-    (magia) =>
-      magia.classeId === classeEscolhida.id &&
-      Number(magia.nivel) > 0 &&
-      !magia.origemSubclasseAutomatica
-  );
-  const podeTrocarMagia =
-    limiteMagiasConhecidas?.conhecidas !== null && magiasSubstituiveis.length > 0;
+  const chaveTroca = `${classeEscolhida.id}-${novoNivelDaEscolhida}`;
+  const regraTroca = obterRegraTroca(fichaNoNovoNivel, classeEscolhida.id, novoNivelDaEscolhida);
+  const magiasSubstituiveis = magiasElegiveisParaTroca(ficha, classeEscolhida.id, novoNivelDaEscolhida);
+  const podeTrocarMagia = Boolean(regraTroca) && magiasSubstituiveis.length > 0 && !(ficha.trocasMagiasAplicadas ?? {})[chaveTroca];
   const fichaParaNovaMagia = magiaSubstituidaId
     ? {
         ...fichaNoNovoNivel,
@@ -147,11 +137,12 @@ export default function ModalLevelUp({
         ),
       }
     : fichaNoNovoNivel;
+  const magiaRemovida = (ficha.magias ?? []).find((magia) => magia.id === magiaSubstituidaId);
   const novasMagiasElegiveis = MAGIAS.filter((magia) =>
     Number(magia.nivel) > 0 &&
-    classesElegiveisParaMagia(fichaParaNovaMagia, magia, true).some(
-      (classeElegivel) => classeElegivel.classeId === classeEscolhida.id
-    )
+    (magiaRemovida?.origemEspecial?.tipo === "segredos-magicos"
+      ? magiaElegivelPorSegredo(fichaNoNovoNivel, classeEscolhida.id, magia)
+      : classesElegiveisParaMagia(fichaParaNovaMagia, magia, true).some((classeElegivel) => classeElegivel.classeId === classeEscolhida.id))
   );
   const temAsi = NIVEIS_ASI.includes(novoNivelDaEscolhida);
   const asiJaAplicado = (ficha.niveisAsiAplicados ?? []).includes(chaveAsi);
@@ -318,7 +309,8 @@ export default function ModalLevelUp({
                 nivel: novaMagia.nivel,
                 origemId: novaMagia.id,
                 preparada: false,
-                fonteEspecial: null,
+                fonteEspecial: magia.origemEspecial?.tipo === "segredos-magicos" ? "Segredos Mágicos" : null,
+                classeId: magia.origemEspecial?.tipo === "segredos-magicos" ? "especial" : classeEscolhida.id,
                 origemSubclasseId: null,
                 origemSubclasseTipo: null,
                 origemSubclasseAutomatica: false,
@@ -326,6 +318,12 @@ export default function ModalLevelUp({
             : magia
         );
       }
+    }
+    if (magiaSubstituidaId && novaMagiaId) {
+      atualizacoes.trocasMagiasAplicadas = {
+        ...(ficha.trocasMagiasAplicadas ?? {}),
+        [chaveTroca]: { removidaId: magiaSubstituidaId, novaMagiaId, classeId: classeEscolhida.id },
+      };
     }
     if (classeEscolhida.ehSecundaria) {
       const novasClassesSecundarias = [...(ficha.classesSecundarias ?? [])];
@@ -606,7 +604,7 @@ export default function ModalLevelUp({
             <div className="levelup-etapa">
               <h3>Trocar magia conhecida</h3>
               <p className="levelup-texto">
-                Esta escolha é opcional. A nova magia precisa ser válida para {classeEscolhida.nome}
+                {regraTroca?.mensagem ?? "Esta troca é opcional."} A nova magia precisa ser válida para {classeEscolhida.nome}
                 no nível {novoNivelDaEscolhida}; a mudança só será aplicada ao concluir.
               </p>
               <select

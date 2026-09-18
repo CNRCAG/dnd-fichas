@@ -8,6 +8,7 @@ export const ANTECEDENTES = [
     nome: "Acólito",
     descricao: "Passou a vida servindo em um templo, aprendendo rituais e doutrina.",
     periciasConcedidas: ["intuicao", "religiao"],
+    idiomasEscolha: 2,
     equipamento: "Símbolo sagrado, livro de orações, roupas comuns, 15 po",
     caracteristica: {
       nome: "Refúgio do Templo",
@@ -19,6 +20,7 @@ export const ANTECEDENTES = [
     nome: "Criminoso",
     descricao: "Tem um histórico de quebrar a lei e viver à margem dela.",
     periciasConcedidas: ["enganacao", "furtividade"],
+    ferramentasEscolha: { quantidade: 1, opcoes: ["ferramentas-ladino", "jogo-de-dados", "baralho-cartas"] },
     equipamento: "Pé-de-cabra, roupas escuras com capuz, 15 po",
     caracteristica: {
       nome: "Contato Criminoso",
@@ -30,6 +32,7 @@ export const ANTECEDENTES = [
     nome: "Herói do Povo",
     descricao: "Vem de origem humilde, mas já fez algo que o tornou querido pela gente comum.",
     periciasConcedidas: ["adestrarAnimais", "sobrevivencia"],
+    ferramentasEscolha: { quantidade: 1, opcoes: ["ferramentas-ferreiro", "ferramentas-carpinteiro", "kit-alquimista"] },
     equipamento: "Kit de artesão, uma pá, roupas comuns, 10 po",
     caracteristica: {
       nome: "Hospitalidade Rústica",
@@ -41,6 +44,7 @@ export const ANTECEDENTES = [
     nome: "Artesão Guildado",
     descricao: "Aprendeu um ofício e é membro reconhecido de uma guilda de artesãos.",
     periciasConcedidas: ["intuicao", "persuasao"],
+    ferramentasEscolha: { quantidade: 1, opcoes: ["ferramentas-ferreiro", "ferramentas-carpinteiro", "kit-alquimista", "kit-ervanario"] }, idiomasEscolha: 1,
     equipamento: "Ferramentas do seu ofício, carta da guilda, roupas de viajante, 15 po",
     caracteristica: {
       nome: "Filiação à Guilda",
@@ -52,6 +56,7 @@ export const ANTECEDENTES = [
     nome: "Eremita",
     descricao: "Viveu isolado por um longo período, em busca de reflexão ou segredo.",
     periciasConcedidas: ["medicina", "religiao"],
+    idiomasEscolha: 1, ferramentasFixas: ["kit-ervanario"],
     equipamento: "Kit de curandeiro, diário espiritual, roupas comuns, 5 po",
     caracteristica: {
       nome: "Descoberta",
@@ -63,6 +68,7 @@ export const ANTECEDENTES = [
     nome: "Nobre",
     descricao: "Nasceu em berço de riqueza, privilégio e poder.",
     periciasConcedidas: ["historia", "persuasao"],
+    idiomasEscolha: 1, ferramentasEscolha: { quantidade: 1, opcoes: ["jogo-de-dados", "baralho-cartas"] },
     equipamento: "Roupas finas, um anel de sinete, 25 po",
     caracteristica: {
       nome: "Posição Privilegiada",
@@ -74,6 +80,7 @@ export const ANTECEDENTES = [
     nome: "Sábio",
     descricao: "Passou anos estudando os segredos do universo em bibliotecas e academias.",
     periciasConcedidas: ["arcanismo", "historia"],
+    idiomasEscolha: 2,
     equipamento: "Tinteiro, livro sobre um tema que você estuda, roupas comuns, 10 po",
     caracteristica: {
       nome: "Pesquisador",
@@ -85,6 +92,7 @@ export const ANTECEDENTES = [
     nome: "Soldado",
     descricao: "Serviu numa força militar, aprendendo disciplina, tática e combate.",
     periciasConcedidas: ["atletismo", "intimidacao"],
+    ferramentasEscolha: { quantidade: 1, opcoes: ["jogo-de-dados", "baralho-cartas"] },
     equipamento: "Símbolo de patente, troféu de um inimigo caído, roupas comuns, 10 po",
     caracteristica: {
       nome: "Posto Militar",

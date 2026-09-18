@@ -20,6 +20,7 @@ export default function BlocoProficiencias({
   onChangeAtributoFerramenta,
   modificadoresAtributos,
   bonusProficiencia,
+  origensProficiencias = {},
 }) {
   const { registrarRolagem } = useRolagem();
 
@@ -55,9 +56,8 @@ export default function BlocoProficiencias({
       <section>
         <h3 className="bloco-titulo">Idiomas</h3>
         <p className="proficiencias-nota">
-          Marque os idiomas que o personagem conhece. Isso é independente do
-          antecedente e da raça — a ficha não escolhe isso automaticamente
-          ainda, então confira com o que o livro concede.
+          Idiomas, ferramentas e proficiências de criação são aplicados automaticamente.
+          Você ainda pode registrar concessões manuais ou de regra da mesa aqui.
         </p>
 
         <h4 className="proficiencias-subtitulo">Padrão</h4>
@@ -87,6 +87,7 @@ export default function BlocoProficiencias({
         <ul className="ferramentas-lista">
           {FERRAMENTAS.map((ferramenta) => {
             const proficiente = proficienciasFerramentas.includes(ferramenta.id);
+            const origem = (origensProficiencias.ferramentas?.[ferramenta.id] ?? []).join(", ");
             const atributoChave = atributoFerramentas[ferramenta.id] ?? "inteligencia";
             const modificadorAtributo = modificadoresAtributos[atributoChave];
             const modificador =
@@ -100,7 +101,7 @@ export default function BlocoProficiencias({
                     checked={proficiente}
                     onChange={() => onToggleFerramenta(ferramenta.id)}
                   />
-                  <span className="ferramenta-nome">{ferramenta.nome}</span>
+                  <span className="ferramenta-nome">{ferramenta.nome}{origem && <small> · {origem}</small>}</span>
                 </label>
 
                 <select

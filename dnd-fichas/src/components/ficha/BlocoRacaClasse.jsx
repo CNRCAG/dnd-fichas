@@ -7,6 +7,10 @@ import {
 } from "../../data/subclasses";
 import { ANTECEDENTES, obterAntecedente } from "../../data/antecedentes";
 import { ATRIBUTOS } from "../../utils/dnd";
+import { PERICIAS } from "../../data/pericias";
+import { IDIOMAS } from "../../data/idiomas";
+import { FERRAMENTAS } from "../../data/equipamentos";
+import { opcoesPericias } from "../../utils/proficienciasCriacao";
 import {
   PRE_REQUISITOS_MULTICLASSE,
   atendePreRequisitoMulticlasse,
@@ -67,6 +71,8 @@ export default function BlocoRacaClasse({
   onRemoverClasseSecundaria,
   onEscolherPericiaMulticlasse,
   onChangeBonusRacialEscolhido,
+  escolhasCriacao = {},
+  onChangeEscolhasCriacao,
 }) {
   const racaSelecionada = RACAS.find((r) => r.id === racaId);
   const subclassesDisponiveis = obterSubclassesPorClasse(classeId);
@@ -348,7 +354,25 @@ export default function BlocoRacaClasse({
           {antecedente.caracteristica.nome}: {antecedente.caracteristica.descricao}
         </p>
       )}
+      <EscolhasCriacao classe={classe} raca={racaSelecionada} antecedente={antecedente} escolhas={escolhasCriacao} onChange={onChangeEscolhasCriacao} />
       
     </section>
   );
+}
+
+function EscolhasCriacao({ classe, raca, antecedente, escolhas, onChange }) {
+  if (!onChange) return null;
+  const nomesPericias = Object.fromEntries(PERICIAS.map((item) => [item.chave, item.label]));
+  const nomesIdiomas = Object.fromEntries(IDIOMAS.map((item) => [item.id, item.nome]));
+  const nomesFerramentas = Object.fromEntries(FERRAMENTAS.map((item) => [item.id, item.nome]));
+  const Campo = ({ titulo, chave, quantidade, opcoes, nomes }) => !quantidade ? null : <label className="raca-classe-campo raca-classe-campo--largo"><span className="raca-classe-label">{titulo}: faltam {Math.max(0, quantidade - new Set((escolhas[chave] ?? []).filter(Boolean)).size)}</span><div className="raca-escolha-livre-selects">{Array.from({ length: quantidade }).map((_, indice) => <select key={indice} value={escolhas[chave]?.[indice] ?? ""} onChange={(evento) => { const proximos = [...(escolhas[chave] ?? [])]; proximos[indice] = evento.target.value || null; onChange(chave, proximos); }}><option value="">Selecione...</option>{opcoes.filter((id) => !(escolhas[chave] ?? []).includes(id) || escolhas[chave]?.[indice] === id).map((id) => <option key={id} value={id}>{nomes[id] ?? id}</option>)}</select>)}</div></label>;
+  const classePericias = classe?.proficienciasIniciais?.pericias;
+  return <div className="raca-classe-grid">
+    <Campo titulo="Perícias da classe" chave="periciasClasse" quantidade={classePericias?.quantidade} opcoes={opcoesPericias(classePericias)} nomes={nomesPericias} />
+    <Campo titulo="Instrumentos da classe" chave="ferramentasClasse" quantidade={classe?.proficienciasIniciais?.ferramentasEscolha?.quantidade} opcoes={classe?.proficienciasIniciais?.ferramentasEscolha?.opcoes ?? []} nomes={nomesFerramentas} />
+    <Campo titulo="Perícias da raça" chave="periciasRaca" quantidade={raca?.periciasEscolha?.quantidade} opcoes={opcoesPericias(raca?.periciasEscolha)} nomes={nomesPericias} />
+    <Campo titulo="Idiomas da raça" chave="idiomasRaca" quantidade={raca?.idiomasEscolha} opcoes={IDIOMAS.map((item) => item.id).filter((id) => !raca?.idiomasFixos?.includes(id))} nomes={nomesIdiomas} />
+    <Campo titulo="Idiomas do antecedente" chave="idiomasAntecedente" quantidade={antecedente?.idiomasEscolha} opcoes={IDIOMAS.map((item) => item.id)} nomes={nomesIdiomas} />
+    <Campo titulo="Ferramentas do antecedente" chave="ferramentasAntecedente" quantidade={antecedente?.ferramentasEscolha?.quantidade} opcoes={antecedente?.ferramentasEscolha?.opcoes ?? []} nomes={nomesFerramentas} />
+  </div>;
 }

@@ -35,6 +35,7 @@ import { atendePreRequisitoMulticlasse } from "../data/proficienciasMulticlasse"
 import { xpParaNivel } from "../utils/xp";
 import { calcularCdConcentracao } from "../utils/concentracao"; // NOVO
 import { restaurarRecursos } from "../utils/recurso";
+import { reconciliarProficienciasCriacao } from "../utils/proficienciasCriacao";
 import { RECURSOS_CLASSES, resolverUsosMax } from "../data/recursosClasses";
 import { RECURSOS_SUBCLASSES } from "../data/recursosSubclasses";
 import BlocoRacaClasse from "../components/ficha/BlocoRacaClasse";
@@ -394,29 +395,17 @@ function handleDescansoCurto() {
 
 
 function handleChangeRaca(novoRacaId) {
-  atualizarFicha(id, () => ({ racaId: novoRacaId, bonusRacialEscolhido: [] }));
+  atualizarFicha(id, (fichaAtual) => reconciliarProficienciasCriacao({
+    ...fichaAtual, racaId: novoRacaId, bonusRacialEscolhido: [],
+    escolhasCriacao: { ...(fichaAtual.escolhasCriacao ?? {}), idiomasRaca: [], periciasRaca: [] },
+  }));
 }
 
   function handleChangeAntecedente(novoAntecedenteId) {
-  atualizarFicha(id, (fichaAtual) => {
-    const periciasAntigas = fichaAtual.periciasDoAntecedente ?? [];
-    const novoAntecedente = obterAntecedente(novoAntecedenteId);
-    const novasPericiasConcedidas = novoAntecedente?.periciasConcedidas ?? [];
-
-    const periciasAtualizadas = { ...fichaAtual.pericias };
-    for (const chave of periciasAntigas) {
-      periciasAtualizadas[chave] = false;
-    }
-    for (const chave of novasPericiasConcedidas) {
-      periciasAtualizadas[chave] = true;
-    }
-
-    return {
-      antecedenteId: novoAntecedenteId,
-      pericias: periciasAtualizadas,
-      periciasDoAntecedente: novasPericiasConcedidas,
-    };
-  });
+  atualizarFicha(id, (fichaAtual) => reconciliarProficienciasCriacao({
+    ...fichaAtual, antecedenteId: novoAntecedenteId,
+    escolhasCriacao: { ...(fichaAtual.escolhasCriacao ?? {}), idiomasAntecedente: [], ferramentasAntecedente: [] },
+  }));
 }
 
   function handleChangeClasse(novoClasseId) {
@@ -439,6 +428,7 @@ function handleChangeRaca(novoRacaId) {
         (r) => r.origemClasseId !== classeAntigaId
       ),
       magias: fichaAtual.magias ?? [],
+      escolhasCriacao: { ...(fichaAtual.escolhasCriacao ?? {}), periciasClasse: [], ferramentasClasse: [] },
     };
     const novaClasse = obterClasse(novoClasseId);
 
@@ -705,35 +695,35 @@ function handleRemoverClasseSecundaria(indice) {
 }
 
   function handleTogglePericia(chave) {
-    atualizarFicha(id, (ficha) => ({
-      pericias: {
-        ...ficha.pericias,
-        [chave]: !ficha.pericias?.[chave],
-      },
-    }));
+    atualizarFicha(id, (fichaAtual) => {
+      const origens = structuredClone(fichaAtual.origensProficiencias ?? {});
+      origens.pericias ??= {}; origens.pericias[chave] ??= [];
+      origens.pericias[chave] = fichaAtual.pericias?.[chave]
+        ? origens.pericias[chave].filter((origem) => !origem.startsWith("manual:"))
+        : [...new Set([...origens.pericias[chave], "manual:pericia"])];
+      return reconciliarProficienciasCriacao({ ...fichaAtual, origensProficiencias: origens });
+    });
   }
 
-  function handleToggleIdioma(idiomaId) {
-  atualizarFicha(id, (ficha) => {
-    const atuais = ficha.idiomas ?? ["comum"];
-    const jaTem = atuais.includes(idiomaId);
-    return {
-      idiomas: jaTem
-        ? atuais.filter((i) => i !== idiomaId)
-        : [...atuais, idiomaId],
-    };
+function handleToggleIdioma(idiomaId) {
+  atualizarFicha(id, (fichaAtual) => {
+    const origens = structuredClone(fichaAtual.origensProficiencias ?? {});
+    origens.idiomas ??= {}; origens.idiomas[idiomaId] ??= [];
+    origens.idiomas[idiomaId] = (fichaAtual.idiomas ?? []).includes(idiomaId)
+      ? origens.idiomas[idiomaId].filter((origem) => !origem.startsWith("manual:"))
+      : [...new Set([...origens.idiomas[idiomaId], "manual:idioma"])];
+    return reconciliarProficienciasCriacao({ ...fichaAtual, origensProficiencias: origens });
   });
 }
 
 function handleToggleFerramenta(ferramentaId) {
-  atualizarFicha(id, (ficha) => {
-    const atuais = ficha.proficienciasFerramentas ?? [];
-    const jaTem = atuais.includes(ferramentaId);
-    return {
-      proficienciasFerramentas: jaTem
-        ? atuais.filter((f) => f !== ferramentaId)
-        : [...atuais, ferramentaId],
-    };
+  atualizarFicha(id, (fichaAtual) => {
+    const origens = structuredClone(fichaAtual.origensProficiencias ?? {});
+    origens.ferramentas ??= {}; origens.ferramentas[ferramentaId] ??= [];
+    origens.ferramentas[ferramentaId] = (fichaAtual.proficienciasFerramentas ?? []).includes(ferramentaId)
+      ? origens.ferramentas[ferramentaId].filter((origem) => !origem.startsWith("manual:"))
+      : [...new Set([...origens.ferramentas[ferramentaId], "manual:ferramenta"])];
+    return reconciliarProficienciasCriacao({ ...fichaAtual, origensProficiencias: origens });
   });
 }
 
@@ -844,6 +834,8 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
   onRemoverClasseSecundaria={handleRemoverClasseSecundaria}
   onEscolherPericiaMulticlasse={handleEscolherPericiaMulticlasse}
   onChangeBonusRacialEscolhido={handleChangeBonusRacialEscolhido}
+  escolhasCriacao={ficha.escolhasCriacao ?? {}}
+  onChangeEscolhasCriacao={(chave, valores) => atualizarFicha(id, (fichaAtual) => reconciliarProficienciasCriacao({ ...fichaAtual, escolhasCriacao: { ...(fichaAtual.escolhasCriacao ?? {}), [chave]: valores } }))}
 />
 
 <BlocoProgressao
@@ -853,7 +845,12 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
   onChangeXp={handleChangeProgressaoXp}
 />
 
-<BlocoValidacao ficha={ficha} atributosTotais={atributosTotais} />
+<BlocoValidacao
+  ficha={ficha}
+  atributosTotais={atributosTotais}
+  onMarcarPronta={() => atualizarFicha(id, () => ({ estadoFicha: "pronta" }))}
+  onIrParaSecao={(secao) => setAbaAtiva(secao === "identidade" ? "pericias" : secao)}
+/>
 
 <button
   type="button"
@@ -955,7 +952,7 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
               />
               <BlocoSalvaguardas
                 modificadoresAtributos={modificadoresAtributos}
-                salvaguardasProficientes={classe?.salvaguardasProficientes}
+                salvaguardasProficientes={ficha.salvaguardasProficientes ?? classe?.salvaguardasProficientes}
                 bonusProficiencia={bonusProficiencia}
               />
             </>
@@ -1000,6 +997,7 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
       onChangeAtributoFerramenta={handleChangeAtributoFerramenta}
       modificadoresAtributos={modificadoresAtributos}
       bonusProficiencia={bonusProficiencia}
+      origensProficiencias={ficha.origensProficiencias ?? {}}
     />
   </>
 )}

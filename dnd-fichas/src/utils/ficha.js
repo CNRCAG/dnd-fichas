@@ -1,9 +1,10 @@
 import { criarEspacosMagiaVazios } from "./magia";
 import { normalizarPoolsDadosVida, totalDadosVidaUsados } from "./dadosVida";
+import { reconciliarProficienciasCriacao } from "./proficienciasCriacao";
 
 export function criarFichaVazia(nome) {
   return {
-    versaoFicha: 3,
+    versaoFicha: 4,
     id: crypto.randomUUID(),
     nome: nome?.trim() || "Sem nome",
     criadoEm: Date.now(),
@@ -25,7 +26,12 @@ export function criarFichaVazia(nome) {
       sabedoria: 10,
       carisma: 10,
     },
+    metodoAtributos: "manual",
     pericias: {},
+    escolhasCriacao: {},
+    origensProficiencias: {},
+    estadoFicha: "rascunho", // "rascunho" | "pronta"; a validade é sempre derivada.
+    trocasMagiasAplicadas: {},
     inventario: [],
     moedas: {
       cobre: 0,
@@ -81,7 +87,7 @@ export function normalizarFicha(ficha) {
   if (!ficha || typeof ficha !== "object") return ficha;
   const base = {
     ...ficha,
-    versaoFicha: Math.max(Number(ficha.versaoFicha) || 1, 3),
+    versaoFicha: Math.max(Number(ficha.versaoFicha) || 1, 4),
     subclasseId: ficha.subclasseId ?? null,
     classesSecundarias: Array.isArray(ficha.classesSecundarias)
       ? ficha.classesSecundarias.map((classe) => ({
@@ -96,6 +102,14 @@ export function normalizarFicha(ficha) {
       ficha.proficienciasMulticlasse && typeof ficha.proficienciasMulticlasse === "object"
         ? ficha.proficienciasMulticlasse
         : {},
+    atributos: {
+      forca: 10, destreza: 10, constituicao: 10, inteligencia: 10, sabedoria: 10, carisma: 10,
+      ...(ficha.atributos && typeof ficha.atributos === "object" ? ficha.atributos : {}),
+    },
+    pericias: ficha.pericias && typeof ficha.pericias === "object" ? ficha.pericias : {},
+    magias: Array.isArray(ficha.magias) ? ficha.magias : [],
+    habilidades: Array.isArray(ficha.habilidades) ? ficha.habilidades : [],
+    inventario: Array.isArray(ficha.inventario) ? ficha.inventario : [],
   };
   const dadosVidaPorClasse = normalizarPoolsDadosVida(base);
   const origemClassePvPorNivel = {
@@ -107,10 +121,42 @@ export function normalizarFicha(ficha) {
   for (const nivel of Object.keys(base.pvPorNivel ?? {})) {
     origemClassePvPorNivel[nivel] ??= base.classeId ?? null;
   }
-  return {
+  const status = {
+    ...base.status,
+    pvMax: Math.max(1, Number.isFinite(Number(base.status?.pvMax)) ? Number(base.status.pvMax) : 1),
+    pvTemp: Math.max(0, Number.isFinite(Number(base.status?.pvTemp)) ? Number(base.status.pvTemp) : 0),
+  };
+  status.pvAtual = Math.min(status.pvMax, Math.max(0, Number.isFinite(Number(base.status?.pvAtual)) ? Number(base.status.pvAtual) : status.pvMax));
+  const espacosMagia = criarEspacosMagiaVazios();
+  for (const nivel of Object.keys(espacosMagia)) {
+    const anterior = base.espacosMagia?.[nivel] ?? {};
+    const total = Math.max(0, Number.isFinite(Number(anterior.total)) ? Number(anterior.total) : 0);
+    espacosMagia[nivel] = { total, usados: Math.min(total, Math.max(0, Number.isFinite(Number(anterior.usados)) ? Number(anterior.usados) : 0)) };
+  }
+  const pactoQuantidade = Math.max(0, Number.isFinite(Number(base.espacosMagiaPacto?.quantidade)) ? Number(base.espacosMagiaPacto.quantidade) : 0);
+  const espacosMagiaPacto = base.espacosMagiaPacto ? {
+    ...base.espacosMagiaPacto,
+    quantidade: pactoQuantidade,
+    nivel: Math.max(0, Math.min(9, Number.isFinite(Number(base.espacosMagiaPacto.nivel)) ? Number(base.espacosMagiaPacto.nivel) : 0)),
+    usados: Math.min(pactoQuantidade, Math.max(0, Number.isFinite(Number(base.espacosMagiaPacto.usados)) ? Number(base.espacosMagiaPacto.usados) : 0)),
+  } : null;
+  const recursos = Array.isArray(base.recursos) ? base.recursos.map((recurso) => {
+    const usosMax = Math.max(0, Number.isFinite(Number(recurso?.usosMax)) ? Number(recurso.usosMax) : 0);
+    return { ...recurso, usosMax, usosGastos: Math.min(usosMax, Math.max(0, Number.isFinite(Number(recurso?.usosGastos)) ? Number(recurso.usosGastos) : 0)) };
+  }) : [];
+  const normalizada = {
     ...base,
+    status,
+    espacosMagia,
+    espacosMagiaPacto,
+    recursos,
+    estadoFicha: base.estadoFicha === "pronta" ? "pronta" : "rascunho",
+    escolhasCriacao: base.escolhasCriacao && typeof base.escolhasCriacao === "object" ? base.escolhasCriacao : {},
+    origensProficiencias: base.origensProficiencias && typeof base.origensProficiencias === "object" ? base.origensProficiencias : {},
+    trocasMagiasAplicadas: base.trocasMagiasAplicadas && typeof base.trocasMagiasAplicadas === "object" ? base.trocasMagiasAplicadas : {},
     origemClassePvPorNivel,
     dadosVidaPorClasse,
     dadosDeVidaUsados: totalDadosVidaUsados(dadosVidaPorClasse),
   };
+  return reconciliarProficienciasCriacao(normalizada);
 }

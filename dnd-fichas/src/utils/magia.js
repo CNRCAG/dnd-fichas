@@ -4,6 +4,8 @@ export function criarMagiaVazia() {
     nome: "",
     nivel: 1,
     preparada: false,
+    origemEspecial: null,
+    fonteEspecial: "",
   };
 }
 

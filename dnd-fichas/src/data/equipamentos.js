@@ -43,6 +43,12 @@ export const FERRAMENTAS = [
   { id: "ferramentas-ferreiro", nome: "Ferramentas de ferreiro", peso: 4, custo: 20 },
   { id: "ferramentas-carpinteiro", nome: "Ferramentas de carpinteiro", peso: 3, custo: 8 },
   { id: "instrumento-musical", nome: "Instrumento musical (qualquer)", peso: 1.5, custo: 5 },
+  { id: "alaude", nome: "Alaúde", peso: 1, custo: 35 },
+  { id: "flauta", nome: "Flauta", peso: 0.5, custo: 2 },
+  { id: "tambor", nome: "Tambor", peso: 1.5, custo: 6 },
+  { id: "harpa", nome: "Harpa", peso: 18, custo: 20 },
+  { id: "lira", nome: "Lira", peso: 1, custo: 30 },
+  { id: "violino", nome: "Violino", peso: 0.5, custo: 30 },
   { id: "jogo-de-dados", nome: "Jogo de dados", peso: 0, custo: 0.1 },
   { id: "baralho-cartas", nome: "Baralho de cartas", peso: 0, custo: 0.5 },
 ];

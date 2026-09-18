@@ -2,11 +2,24 @@ import { useEffect, useState } from "react";
 import { carregarFichas, salvarFichas } from "../utils/storage";
 import { criarFichaVazia, normalizarFicha } from "../utils/ficha";
 import { sincronizarFichaComSubclasses } from "../utils/subclassesFicha";
+import { validarFicha } from "../utils/validacaoFicha";
+import { obterRaca } from "../data/racas";
 import { FichasContext } from "./fichasContext";
 
 export function FichasProvider({ children }) {
-  const sincronizarFicha = (ficha) =>
-    sincronizarFichaComSubclasses(normalizarFicha(ficha));
+  const sincronizarFicha = (ficha) => {
+    const normalizada = sincronizarFichaComSubclasses(normalizarFicha(ficha));
+    const raca = obterRaca(normalizada.racaId);
+    const bonus = { ...(raca?.bonusAtributos ?? {}) };
+    for (const atributo of normalizada.bonusRacialEscolhido ?? []) {
+      if (atributo) bonus[atributo] = (bonus[atributo] ?? 0) + 1;
+    }
+    const atributosTotais = Object.fromEntries(Object.entries(normalizada.atributos ?? {}).map(([chave, valor]) => [chave, Number(valor) + (bonus[chave] ?? 0)]));
+    const validacao = validarFicha(normalizada, atributosTotais);
+    return normalizada.estadoFicha === "pronta" && !validacao.pronta
+      ? { ...normalizada, estadoFicha: "rascunho" }
+      : normalizada;
+  };
 
   const [fichas, setFichas] = useState(() =>
     (carregarFichas() ?? []).map(sincronizarFicha)

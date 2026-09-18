@@ -19,6 +19,10 @@ import { subclasseCompativel } from "./subclassesFicha";
 import { classesComDadosVida } from "./dadosVida";
 import { pendenciasProficienciasMulticlasse } from "./proficienciasMulticlasse";
 import { obterRegraMulticlasse } from "../data/proficienciasMulticlasse";
+import { escolhasObrigatoriasCriacao } from "./proficienciasCriacao";
+import { obterRaca } from "../data/racas";
+import { obterAntecedente } from "../data/antecedentes";
+import { validarOrigemEspecial, encontrarMagiaCatalogo } from "./regrasMagias";
 
 const NIVEL_MAXIMO_PERSONAGEM = 20;
 
@@ -100,13 +104,29 @@ function nivelMaximoDeEspaco(ficha) {
 
 export function validarFicha(ficha, atributosTotais) {
   const erros = [];
+  const pendencias = [];
   const avisos = [];
   const atributos = atributosTotais ?? {};
   const classesSecundarias = ficha.classesSecundarias ?? [];
 
-  if (!ficha.racaId) adicionar(erros, "Escolha uma raça.");
-  if (!ficha.classeId) adicionar(erros, "Escolha uma classe principal.");
-  if (!ficha.antecedenteId) adicionar(erros, "Escolha um antecedente.");
+  if (!ficha.nome?.trim() || ficha.nome === "Sem nome") adicionar(pendencias, "Identidade: informe o nome do personagem.");
+  if (!ficha.racaId) adicionar(pendencias, "Identidade: escolha uma raça.");
+  else if (!obterRaca(ficha.racaId)) adicionar(erros, "Identidade: raça desconhecida.");
+  if (!ficha.classeId) adicionar(pendencias, "Identidade: escolha uma classe principal.");
+  if (!ficha.antecedenteId) adicionar(pendencias, "Identidade: escolha um antecedente.");
+  else if (!obterAntecedente(ficha.antecedenteId)) adicionar(erros, "Identidade: antecedente desconhecido.");
+  for (const pendencia of escolhasObrigatoriasCriacao(ficha)) adicionar(pendencias, pendencia.mensagem);
+  const atributosBase = Object.values(ficha.atributos ?? {}).map(Number);
+  if (ficha.metodoAtributos === "arranjo-padrao") {
+    const esperado = [15, 14, 13, 12, 10, 8].sort((a, b) => a - b).join(",");
+    if (atributosBase.sort((a, b) => a - b).join(",") !== esperado) adicionar(erros, "Atributos: o arranjo padrão deve usar 15, 14, 13, 12, 10 e 8 uma vez cada.");
+  }
+  const racaAtual = obterRaca(ficha.racaId);
+  if (racaAtual?.atributosEscolhaLivre) {
+    const escolhidos = (ficha.bonusRacialEscolhido ?? []).filter(Boolean);
+    if (new Set(escolhidos).size !== escolhidos.length || escolhidos.length !== racaAtual.atributosEscolhaLivre) adicionar(pendencias, `Raça: escolha ${racaAtual.atributosEscolhaLivre} atributos raciais diferentes.`);
+    if (escolhidos.some((atributo) => racaAtual.bonusAtributos?.[atributo])) adicionar(erros, "Raça: o bônus racial livre não pode repetir um atributo já aumentado pela raça.");
+  }
 
   for (const [atributo, valor] of Object.entries(atributos)) {
     if (!numeroInteiroNoIntervalo(valor, 1, 30)) {
@@ -169,13 +189,13 @@ export function validarFicha(ficha, atributosTotais) {
     const nivelEscolha = obterNivelEscolhaSubclasse(classe.classeId);
     const subclasse = obterSubclasse(classe.subclasseId);
     if (classe.subclasseId && !subclasse) {
-      adicionar(avisos, `${nomeClasse(classe.classeId)}: subclasse desconhecida.`);
+      adicionar(erros, `${nomeClasse(classe.classeId)}: subclasse desconhecida.`);
     } else if (classe.subclasseId && subclasse.classeId !== classe.classeId) {
-      adicionar(avisos, `${nomeClasse(classe.classeId)}: a subclasse escolhida pertence a outra classe.`);
+      adicionar(erros, `${nomeClasse(classe.classeId)}: a subclasse escolhida pertence a outra classe.`);
     } else if (classe.subclasseId && Number(classe.nivel) < subclasse.nivel) {
-      adicionar(avisos, `${nomeClasse(classe.classeId)}: ${subclasse.nome} exige nível ${subclasse.nivel} nesta classe.`);
+      adicionar(erros, `${nomeClasse(classe.classeId)}: ${subclasse.nome} exige nível ${subclasse.nivel} nesta classe.`);
     } else if (!classe.subclasseId && Number(classe.nivel) >= nivelEscolha) {
-      adicionar(avisos, `${nomeClasse(classe.classeId)}: escolha uma subclasse (disponível no nível ${nivelEscolha}).`);
+      adicionar(pendencias, `${nomeClasse(classe.classeId)}: escolha uma subclasse (disponível no nível ${nivelEscolha}).`);
     }
 
     if (!subclasseCompativel(classe.classeId, classe.subclasseId, classe.nivel)) continue;
@@ -214,11 +234,11 @@ export function validarFicha(ficha, atributosTotais) {
     const registro = ficha.proficienciasMulticlasse?.[classe.classeId];
     const regra = obterRegraMulticlasse(classe.classeId);
     if (!registro && regra && Object.keys(regra).length > 0) {
-      adicionar(avisos, `${nomeClasse(classe.classeId)}: proficiências de entrada em multiclasse ainda não foram registradas.`);
+      adicionar(pendencias, `${nomeClasse(classe.classeId)}: proficiências de entrada em multiclasse ainda não foram registradas.`);
       continue;
     }
     for (const pendencia of pendenciasProficienciasMulticlasse(ficha, classe.classeId)) {
-      adicionar(avisos, `${nomeClasse(classe.classeId)}: ${pendencia}`);
+      adicionar(pendencias, `${nomeClasse(classe.classeId)}: ${pendencia}`);
     }
     if (registro?.pericias && new Set(registro.pericias).size !== registro.pericias.length) {
       adicionar(avisos, `${nomeClasse(classe.classeId)}: há perícia de multiclasse duplicada.`);
@@ -278,18 +298,18 @@ export function validarFicha(ficha, atributosTotais) {
   }
 
   for (const [nivel, espaco] of Object.entries(ficha.espacosMagia ?? {})) {
-    const usados = Number(espaco?.usados) || 0;
-    const total = Number(espaco?.total) || 0;
-    if (usados < 0 || total < 0 || usados > total) {
+    const usados = Number(espaco?.usados);
+    const total = Number(espaco?.total);
+    if (!Number.isFinite(usados) || !Number.isFinite(total) || usados < 0 || total < 0 || usados > total) {
       adicionar(erros, `Espaços de magia de nível ${nivel}: usos devem ficar entre 0 e o total.`);
     }
   }
 
   const espacoPacto = ficha.espacosMagiaPacto;
   if (espacoPacto) {
-    const usados = Number(espacoPacto.usados) || 0;
-    const quantidade = Number(espacoPacto.quantidade) || 0;
-    if (usados < 0 || quantidade < 0 || usados > quantidade) {
+    const usados = Number(espacoPacto.usados);
+    const quantidade = Number(espacoPacto.quantidade);
+    if (!Number.isFinite(usados) || !Number.isFinite(quantidade) || usados < 0 || quantidade < 0 || usados > quantidade) {
       adicionar(erros, "Espaços de Magia de Pacto: usos devem ficar entre 0 e o total.");
     }
   }
@@ -305,9 +325,22 @@ export function validarFicha(ficha, atributosTotais) {
       "A ficha tem magias, mas não possui uma classe conjuradora; confirme se elas vêm de talento, item ou outra regra."
     );
   }
+  const magiasVistas = new Set();
   for (const magia of ficha.magias ?? []) {
-    const catalogo = MAGIAS.find((item) => item.id === magia.origemId && item.nome === magia.nome)
-      ?? MAGIAS.find((item) => item.nome.toLowerCase() === magia.nome?.trim().toLowerCase());
+    const chaveDuplicacao = `${magia.origemId ?? magia.nome?.trim().toLocaleLowerCase() ?? "sem-id"}|${magia.classeId ?? magia.origemEspecial?.classeId ?? "sem-classe"}|${magia.origemEspecial?.tipo ?? "classe"}|${magia.origemEspecial?.fonteId ?? ""}`;
+    if (magiasVistas.has(chaveDuplicacao) && magia.origemEspecial?.tipo !== "item") adicionar(erros, `${magia.nome || "Magia"}: duplicação ilegítima para a mesma origem.`);
+    magiasVistas.add(chaveDuplicacao);
+    const especial = validarOrigemEspecial(ficha, magia);
+    if (especial) {
+      adicionar(especial.categoria === "erro" ? erros : especial.categoria === "pendencia" ? pendencias : avisos, especial.mensagem);
+    }
+    if (magia.origemEspecial?.tipo === "segredos-magicos") {
+      const classeSegredo = magia.origemEspecial.classeId;
+      contagemMagias[classeSegredo] ??= { truques: 0, conhecidas: 0, preparadas: 0, arcanos: {} };
+      contagemMagias[classeSegredo].conhecidas += 1;
+    }
+    if (magia.origemEspecial || magia.classeId === "especial") continue;
+    const catalogo = encontrarMagiaCatalogo(magia);
     const classesAcessiveis = classesQueAcessamNivel(ficha, Number(magia.nivel));
     const classesValidas = catalogo
   ? classesAcessiveis.filter(({ classeId: id }) =>
@@ -330,7 +363,7 @@ const excecao =
     if (classeId === "especial") {
       if (!magia.fonteEspecial?.trim()) {
         adicionar(
-          avisos,
+          pendencias,
           `${magia.nome || "Magia sem nome"}: informe qual talento, item ou regra concede esta magia.`
         );
       }
@@ -454,17 +487,32 @@ const excecao =
   }
 
   const status = ficha.status ?? {};
-  if (Number(status.pvMax) < 1) adicionar(erros, "PV máximo deve ser pelo menos 1.");
-  if (Number(status.pvAtual) > Number(status.pvMax)) {
+  if (!Number.isFinite(Number(status.pvMax)) || Number(status.pvMax) < 1) adicionar(erros, "PV máximo deve ser pelo menos 1.");
+  if (!Number.isFinite(Number(status.pvAtual)) || Number(status.pvAtual) < 0 || Number(status.pvAtual) > Number(status.pvMax)) {
     adicionar(erros, "PV atual não pode ser maior que o PV máximo.");
   }
-  if (Number(status.pvTemp) < 0) adicionar(erros, "PV temporário não pode ser negativo.");
+  if (!Number.isFinite(Number(status.pvTemp)) || Number(status.pvTemp) < 0) adicionar(erros, "PV temporário não pode ser negativo.");
 
   for (const recurso of ficha.recursos ?? []) {
-    if (Number(recurso.usosGastos) < 0 || Number(recurso.usosGastos) > Number(recurso.usosMax)) {
+    if (!Number.isFinite(Number(recurso.usosGastos)) || !Number.isFinite(Number(recurso.usosMax)) || Number(recurso.usosGastos) < 0 || Number(recurso.usosGastos) > Number(recurso.usosMax)) {
       adicionar(erros, `${recurso.nome || "Recurso sem nome"}: usos gastos devem ficar entre 0 e o máximo.`);
     }
   }
 
-  return { erros, avisos, pronta: erros.length === 0 };
+  const itens = (categoria, lista) => lista.map((mensagem) => ({ categoria, mensagem, secao: secaoDaMensagem(mensagem) }));
+  return {
+    erros,
+    pendencias,
+    avisos,
+    itens: [...itens("erro", erros), ...itens("pendencia", pendencias), ...itens("aviso", avisos)],
+    pronta: erros.length === 0 && pendencias.length === 0,
+  };
+}
+
+function secaoDaMensagem(mensagem) {
+  const texto = mensagem.toLocaleLowerCase();
+  if (texto.includes("magia") || texto.includes("arcano") || texto.includes("segredo")) return "magias";
+  if (texto.includes("perícia") || texto.includes("idioma") || texto.includes("ferramenta") || texto.includes("proficiência")) return "pericias";
+  if (texto.includes("pv") || texto.includes("vida") || texto.includes("recurso") || texto.includes("espaço")) return "combate";
+  return "identidade";
 }

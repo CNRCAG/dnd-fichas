@@ -7,6 +7,7 @@ import {
   limiteMagiasDeQualquerEscola,
 } from "../../utils/acessoMagias";
 import DetalheMagia from "./DetalheMagia";
+import { limiteSegredosMagicos, contarSegredosMagicos, magiaElegivelPorSegredo } from "../../utils/regrasMagias";
 import "./ModalCatalogoItens.css";
 
 const NIVEIS_ABA = [
@@ -34,11 +35,14 @@ export default function ModalCatalogoMagias({
       ...(ficha.classesSecundarias ?? []).map((item) => item.classeId),
     ];
 
-    return [...new Set(ids.filter(Boolean))].map((id) => ({
+    const classes = [...new Set(ids.filter(Boolean))].map((id) => ({
       id,
       nome: CLASSES.find((classe) => classe.id === id)?.nome ?? id,
     }));
-  }, [ficha.classeId, ficha.classesSecundarias]);
+    const restantes = limiteSegredosMagicos(ficha, "bardo") - contarSegredosMagicos(ficha, "bardo");
+    if (restantes > 0) classes.push({ id: "segredos-magicos", nome: `Segredos Mágicos (${restantes})` });
+    return classes;
+  }, [ficha]);
 
   // Se a classe ativa foi removida da ficha, volta à primeira disponível.
   const classeSelecionada = classesDaFicha.some(
@@ -58,11 +62,9 @@ export default function ModalCatalogoMagias({
     () =>
       NIVEIS_ABA.filter(({ valor }) =>
         MAGIAS.some(
-          (magia) =>
-            magia.nivel === valor &&
-            classesElegiveisParaMagia(ficha, magia, true).some(
-              ({ classeId }) => classeId === classeSelecionada
-            )
+          (magia) => magia.nivel === valor && (classeSelecionada === "segredos-magicos"
+            ? magiaElegivelPorSegredo(ficha, "bardo", magia)
+            : classesElegiveisParaMagia(ficha, magia, true).some(({ classeId }) => classeId === classeSelecionada))
         )
       ),
     [ficha, classeSelecionada]
@@ -82,9 +84,9 @@ export default function ModalCatalogoMagias({
       (magia) =>
         magia.nivel === nivelSelecionado &&
         (!termo || magia.nome.toLowerCase().includes(termo)) &&
-        classesElegiveisParaMagia(ficha, magia, true).some(
-          ({ classeId }) => classeId === classeSelecionada
-        )
+        (classeSelecionada === "segredos-magicos"
+          ? magiaElegivelPorSegredo(ficha, "bardo", magia)
+          : classesElegiveisParaMagia(ficha, magia, true).some(({ classeId }) => classeId === classeSelecionada))
     );
   }, [ficha, classeSelecionada, nivelSelecionado, busca]);
 
@@ -229,9 +231,11 @@ export default function ModalCatalogoMagias({
                   <button
                     type="button"
                     className="item-catalogo-adicionar"
-                    onClick={() =>
-                      onAdicionarMagia(magia, classeSelecionada)
-                    }
+                    onClick={() => onAdicionarMagia(
+                      magia,
+                      classeSelecionada === "segredos-magicos" ? "especial" : classeSelecionada,
+                      classeSelecionada === "segredos-magicos" ? { tipo: "segredos-magicos", classeId: "bardo", fonteId: "segredos-magicos" } : null
+                    )}
                     aria-label={`Adicionar ${magia.nome} como ${classeSelecionada}`}
                   >
                     +

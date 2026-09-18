@@ -9,6 +9,7 @@ export const CLASSES = [
     dadoVida: 12,
     atributoPrincipal: "forca",
     salvaguardasProficientes: ["forca", "constituicao"],
+    proficienciasIniciais: { armaduras: ["leves", "medias"], escudos: true, armas: ["simples", "marciais"], pericias: { quantidade: 2, opcoes: ["adestrarAnimais", "atletismo", "intimidacao", "natureza", "percepcao", "sobrevivencia"] } },
   },
   {
     id: "bardo",
@@ -17,6 +18,7 @@ export const CLASSES = [
     dadoVida: 8,
     atributoPrincipal: "carisma",
     salvaguardasProficientes: ["destreza", "carisma"],
+    proficienciasIniciais: { armaduras: ["leves"], armas: ["simples", "bestas-de-mao", "espadas-longas", "rapieiras", "espadas-curtas"], ferramentasEscolha: { quantidade: 3, opcoes: ["alaude", "flauta", "tambor", "harpa", "lira", "violino"] }, pericias: { quantidade: 3, opcoes: "todas" } },
   },
   {
     id: "bruxo",
@@ -25,6 +27,7 @@ export const CLASSES = [
     dadoVida: 8,
     atributoPrincipal: "carisma",
     salvaguardasProficientes: ["sabedoria", "carisma"],
+    proficienciasIniciais: { armaduras: ["leves"], armas: ["simples"], pericias: { quantidade: 2, opcoes: ["arcanismo", "enganacao", "historia", "intimidacao", "investigacao", "natureza", "religiao"] } },
   },
   {
     id: "clerigo",
@@ -33,6 +36,7 @@ export const CLASSES = [
     dadoVida: 8,
     atributoPrincipal: "sabedoria",
     salvaguardasProficientes: ["sabedoria", "carisma"],
+    proficienciasIniciais: { armaduras: ["leves", "medias"], escudos: true, armas: ["simples"], pericias: { quantidade: 2, opcoes: ["historia", "intuicao", "medicina", "persuasao", "religiao"] } },
   },
   {
     id: "druida",
@@ -41,6 +45,7 @@ export const CLASSES = [
     dadoVida: 8,
     atributoPrincipal: "sabedoria",
     salvaguardasProficientes: ["inteligencia", "sabedoria"],
+    proficienciasIniciais: { armaduras: ["leves", "medias", "escudos-nao-metalicos"], armas: ["clavas", "adagas", "dardos", "azagaias", "macas", "bordoes", "cimitarras", "foices", "fundas", "lancas"], ferramentas: ["kit-ervanario"], pericias: { quantidade: 2, opcoes: ["arcanismo", "adestrarAnimais", "intuicao", "medicina", "natureza", "percepcao", "religiao", "sobrevivencia"] } },
   },
   {
     id: "feiticeiro",
@@ -49,6 +54,7 @@ export const CLASSES = [
     dadoVida: 6,
     atributoPrincipal: "carisma",
     salvaguardasProficientes: ["constituicao", "carisma"],
+    proficienciasIniciais: { armas: ["adagas", "dardos", "fundas", "bordoes", "bestas-leves"], pericias: { quantidade: 2, opcoes: ["arcanismo", "enganacao", "intuicao", "intimidacao", "persuasao", "religiao"] } },
   },
   {
     id: "guerreiro",
@@ -57,6 +63,7 @@ export const CLASSES = [
     dadoVida: 10,
     atributoPrincipal: "forca",
     salvaguardasProficientes: ["forca", "constituicao"],
+    proficienciasIniciais: { armaduras: ["leves", "medias", "pesadas"], escudos: true, armas: ["simples", "marciais"], pericias: { quantidade: 2, opcoes: ["acrobacia", "adestrarAnimais", "atletismo", "historia", "intuicao", "intimidacao", "percepcao", "sobrevivencia"] } },
   },
   {
     id: "ladino",
@@ -65,6 +72,7 @@ export const CLASSES = [
     dadoVida: 8,
     atributoPrincipal: "destreza",
     salvaguardasProficientes: ["destreza", "inteligencia"],
+    proficienciasIniciais: { armaduras: ["leves"], armas: ["simples", "bestas-de-mao", "espadas-longas", "rapieiras", "espadas-curtas"], ferramentas: ["ferramentas-ladino"], pericias: { quantidade: 4, opcoes: ["acrobacia", "atletismo", "enganacao", "intuicao", "intimidacao", "investigacao", "percepcao", "atuacao", "persuasao", "prestidigitacao", "furtividade"] } },
   },
   {
     id: "mago",
@@ -73,6 +81,7 @@ export const CLASSES = [
     dadoVida: 6,
     atributoPrincipal: "inteligencia",
     salvaguardasProficientes: ["inteligencia", "sabedoria"],
+    proficienciasIniciais: { armas: ["adagas", "dardos", "fundas", "bordoes", "bestas-leves"], pericias: { quantidade: 2, opcoes: ["arcanismo", "historia", "intuicao", "investigacao", "medicina", "religiao"] } },
   },
   {
     id: "monge",
@@ -81,6 +90,7 @@ export const CLASSES = [
     dadoVida: 8,
     atributoPrincipal: "destreza",
     salvaguardasProficientes: ["forca", "destreza"],
+    proficienciasIniciais: { armas: ["simples", "espadas-curtas"], pericias: { quantidade: 2, opcoes: ["acrobacia", "atletismo", "historia", "intuicao", "religiao", "furtividade"] } },
   },
   {
     id: "paladino",
@@ -89,6 +99,7 @@ export const CLASSES = [
     dadoVida: 10,
     atributoPrincipal: "forca",
     salvaguardasProficientes: ["sabedoria", "carisma"],
+    proficienciasIniciais: { armaduras: ["leves", "medias", "pesadas"], escudos: true, armas: ["simples", "marciais"], pericias: { quantidade: 2, opcoes: ["atletismo", "intuicao", "intimidacao", "medicina", "persuasao", "religiao"] } },
   },
   {
     id: "patrulheiro",
@@ -97,6 +108,7 @@ export const CLASSES = [
     dadoVida: 10,
     atributoPrincipal: "destreza",
     salvaguardasProficientes: ["forca", "destreza"],
+    proficienciasIniciais: { armaduras: ["leves", "medias"], escudos: true, armas: ["simples", "marciais"], pericias: { quantidade: 3, opcoes: ["adestrarAnimais", "atletismo", "intuicao", "investigacao", "natureza", "percepcao", "furtividade", "sobrevivencia"] } },
   },
 ];
 

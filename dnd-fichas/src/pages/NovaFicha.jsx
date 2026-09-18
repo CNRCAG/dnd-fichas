@@ -4,6 +4,9 @@ import { useFichas } from "../context/useFichas";
 import { RACAS } from "../data/racas";
 import { CLASSES } from "../data/classes";
 import { ANTECEDENTES } from "../data/antecedentes";
+import { PERICIAS } from "../data/pericias";
+import { IDIOMAS } from "../data/idiomas";
+import { FERRAMENTAS } from "../data/equipamentos";
 import { ATRIBUTOS, calcularModificador, formatarModificador } from "../utils/dnd";
 import { criarEspacosMagiaVazios } from "../utils/magia";
 import { obterEspacosPorNivel, mesclarEspacosNoAtual } from "../utils/conjuracao";
@@ -42,6 +45,8 @@ export default function NovaFicha() {
     personalidade: "",
     historico: "",
     objetivo: "",
+    escolhasCriacao: { periciasClasse: [], ferramentasClasse: [], periciasRaca: [], idiomasRaca: [], idiomasAntecedente: [], ferramentasAntecedente: [] },
+    bonusRacialEscolhido: [],
   }));
 
   const racaEscolhida = RACAS.find((r) => r.id === rascunho.racaId) ?? null;
@@ -93,7 +98,10 @@ export default function NovaFicha() {
   }
 
   function handleFinalizar() {
-    const bonusRacial = racaEscolhida?.bonusAtributos ?? {};
+    const bonusRacial = { ...(racaEscolhida?.bonusAtributos ?? {}) };
+    for (const atributo of rascunho.bonusRacialEscolhido ?? []) {
+      if (atributo) bonusRacial[atributo] = (bonusRacial[atributo] ?? 0) + 1;
+    }
     const modCon = calcularModificador(
       rascunho.atributos.constituicao + (bonusRacial.constituicao ?? 0)
     );
@@ -101,11 +109,6 @@ export default function NovaFicha() {
       rascunho.atributos.destreza + (bonusRacial.destreza ?? 0)
     );
     const pvInicial = classeEscolhida ? classeEscolhida.dadoVida + modCon : 10;
-
-    const periciasIniciais = {};
-    antecedenteEscolhido?.periciasConcedidas.forEach((chave) => {
-      periciasIniciais[chave] = true;
-    });
 
     const espacosIniciais = classeEscolhida
       ? mesclarEspacosNoAtual(
@@ -119,7 +122,9 @@ export default function NovaFicha() {
       classeId: rascunho.classeId,
       antecedenteId: rascunho.antecedenteId,
       atributos: rascunho.atributos,
-      pericias: periciasIniciais,
+      metodoAtributos: "arranjo-padrao",
+      escolhasCriacao: rascunho.escolhasCriacao,
+      bonusRacialEscolhido: rascunho.bonusRacialEscolhido,
       jogador: rascunho.jogador,
       aparencia: rascunho.aparencia,
       personalidade: rascunho.personalidade,
@@ -229,7 +234,7 @@ export default function NovaFicha() {
 
             <div className="criacao-atributos-grid">
               {ATRIBUTOS.map((atributo) => {
-                const bonusRacial = racaEscolhida?.bonusAtributos?.[atributo.chave] ?? 0;
+                const bonusRacial = (racaEscolhida?.bonusAtributos?.[atributo.chave] ?? 0) + (rascunho.bonusRacialEscolhido ?? []).filter((chave) => chave === atributo.chave).length;
                 const valorBase = rascunho.atributos[atributo.chave];
                 const valorFinal = valorBase + bonusRacial;
                 return (
@@ -283,6 +288,18 @@ export default function NovaFicha() {
               Esses campos não têm efeito nas regras, mas deixam o jogo mais
               envolvente.
             </p>
+
+            <EscolhasDeCriacao
+              rascunho={rascunho}
+              raca={racaEscolhida}
+              classe={classeEscolhida}
+              antecedente={antecedenteEscolhido}
+              onChange={(chave, valores) => setRascunho((atual) => ({
+                ...atual,
+                escolhasCriacao: { ...atual.escolhasCriacao, [chave]: valores },
+              }))}
+              onBonusRacial={(valores) => setRascunho((atual) => ({ ...atual, bonusRacialEscolhido: valores }))}
+            />
 
             <div className="criacao-toques-grid">
               <label className="criacao-campo">
@@ -358,6 +375,42 @@ export default function NovaFicha() {
       </div>
     </div>
   );
+}
+
+function EscolhasDeCriacao({ rascunho, raca, classe, antecedente, onChange, onBonusRacial }) {
+  const escolha = rascunho.escolhasCriacao ?? {};
+  const seletor = (titulo, chave, quantidade, opcoes, rotulos, bloqueadas = []) => {
+    if (!quantidade) return null;
+    const valores = escolha[chave] ?? [];
+    return <div className="criacao-campo" key={chave}>
+      <span>{titulo} — escolha {quantidade}</span>
+      {Array.from({ length: quantidade }).map((_, indice) => (
+        <select key={indice} value={valores[indice] ?? ""} onChange={(evento) => {
+          const proximos = [...valores]; proximos[indice] = evento.target.value || null; onChange(chave, proximos);
+        }}>
+          <option value="">Selecione...</option>
+          {opcoes.filter((id) => !bloqueadas.includes(id) && (!valores.includes(id) || valores[indice] === id)).map((id) => <option key={id} value={id}>{rotulos[id] ?? id}</option>)}
+        </select>
+      ))}
+    </div>;
+  };
+  const pericias = Object.fromEntries(PERICIAS.map((item) => [item.chave, item.label]));
+  const idiomas = Object.fromEntries(IDIOMAS.map((item) => [item.id, item.nome]));
+  const ferramentas = Object.fromEntries(FERRAMENTAS.map((item) => [item.id, item.nome]));
+  const classeRegra = classe?.proficienciasIniciais?.pericias;
+  const periciasClasse = classeRegra?.opcoes === "todas" ? PERICIAS.map((item) => item.chave) : classeRegra?.opcoes ?? [];
+  const periciasRaca = raca?.periciasEscolha?.opcoes === "todas" ? PERICIAS.map((item) => item.chave) : raca?.periciasEscolha?.opcoes ?? [];
+  const bloqueadasClasse = [...(antecedente?.periciasConcedidas ?? []), ...(raca?.periciasConcedidas ?? []), ...(escolha.periciasRaca ?? [])];
+  return <section className="criacao-escolhas">
+    <h3 className="criacao-titulo">Escolhas obrigatórias</h3>
+    {raca?.atributosEscolhaLivre && Array.from({ length: raca.atributosEscolhaLivre }).map((_, indice) => <select key={`atributo-${indice}`} value={rascunho.bonusRacialEscolhido?.[indice] ?? ""} onChange={(evento) => { const proximos = [...(rascunho.bonusRacialEscolhido ?? [])]; proximos[indice] = evento.target.value || null; onBonusRacial(proximos); }}><option value="">Atributo para +1...</option>{ATRIBUTOS.filter((a) => !raca.bonusAtributos?.[a.chave] && (!(rascunho.bonusRacialEscolhido ?? []).includes(a.chave) || rascunho.bonusRacialEscolhido?.[indice] === a.chave)).map((a) => <option key={a.chave} value={a.chave}>{a.label}</option>)}</select>)}
+    {seletor("Perícias da classe", "periciasClasse", classeRegra?.quantidade, periciasClasse, pericias, bloqueadasClasse)}
+    {seletor("Instrumentos da classe", "ferramentasClasse", classe?.proficienciasIniciais?.ferramentasEscolha?.quantidade, classe?.proficienciasIniciais?.ferramentasEscolha?.opcoes ?? [], ferramentas)}
+    {seletor("Perícias da raça", "periciasRaca", raca?.periciasEscolha?.quantidade, periciasRaca, pericias, antecedente?.periciasConcedidas ?? [])}
+    {seletor("Idiomas da raça", "idiomasRaca", raca?.idiomasEscolha, IDIOMAS.map((item) => item.id), idiomas, raca?.idiomasFixos ?? [])}
+    {seletor("Idiomas do antecedente", "idiomasAntecedente", antecedente?.idiomasEscolha, IDIOMAS.map((item) => item.id), idiomas, [...(raca?.idiomasFixos ?? []), ...(escolha.idiomasRaca ?? [])])}
+    {seletor("Ferramentas do antecedente", "ferramentasAntecedente", antecedente?.ferramentasEscolha?.quantidade, antecedente?.ferramentasEscolha?.opcoes ?? [], ferramentas, antecedente?.ferramentasFixas ?? [])}
+  </section>;
 }
 
 function EtapaEscolha({ titulo, texto, itens, renderExtra, onEscolher, onVoltar, onPular }) {

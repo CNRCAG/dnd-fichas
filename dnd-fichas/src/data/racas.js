@@ -16,6 +16,7 @@ export const RACAS = [
       carisma: 1,
     },
     deslocamento: 9,
+    idiomasFixos: ["comum"], idiomasEscolha: 1,
   },
   {
     id: "elfo",
@@ -23,6 +24,7 @@ export const RACAS = [
     descricao: "Ágeis e de sentidos apurados, com longevidade e afinidade natural com magia.",
     bonusAtributos: { destreza: 2 },
     deslocamento: 9,
+    idiomasFixos: ["comum", "elfico"], periciasConcedidas: ["percepcao"],
   },
   {
     id: "anao",
@@ -30,6 +32,7 @@ export const RACAS = [
     descricao: "Resistentes e teimosos, vêm de uma tradição de mineração e forja.",
     bonusAtributos: { constituicao: 2 },
     deslocamento: 7,
+    idiomasFixos: ["comum", "anao"],
   },
   {
     id: "halfling",
@@ -37,6 +40,7 @@ export const RACAS = [
     descricao: "Pequenos, sortudos e surpreendentemente corajosos apesar do tamanho.",
     bonusAtributos: { destreza: 2 },
     deslocamento: 7,
+    idiomasFixos: ["comum", "halfling"],
   },
   {
     id: "draconato",
@@ -44,6 +48,7 @@ export const RACAS = [
     descricao: "Descendentes de dragões, com presença imponente e sopro elemental.",
     bonusAtributos: { forca: 2, carisma: 1 },
     deslocamento: 9,
+    idiomasFixos: ["comum", "draconico"],
   },
   {
     id: "gnomo",
@@ -51,6 +56,7 @@ export const RACAS = [
     descricao: "Curiosos e inventivos, com uma mente afiada pra mecanismos e magia.",
     bonusAtributos: { inteligencia: 2 },
     deslocamento: 7,
+    idiomasFixos: ["comum", "gnomico"],
   },
   {
   id: "meio-elfo",
@@ -58,6 +64,8 @@ export const RACAS = [
   bonusAtributos: { carisma: 2 },
   atributosEscolhaLivre: 2,
   deslocamento: 9,
+  idiomasFixos: ["comum", "elfico"], idiomasEscolha: 1,
+  periciasEscolha: { quantidade: 2, opcoes: "todas" },
 },
   {
     id: "meio-orc",
@@ -65,6 +73,7 @@ export const RACAS = [
     descricao: "Fortes e resilientes, com uma ferocidade que os torna temíveis em combate.",
     bonusAtributos: { forca: 2, constituicao: 1 },
     deslocamento: 9,
+    idiomasFixos: ["comum", "orc"],
   },
   {
     id: "tiefling",
@@ -72,6 +81,7 @@ export const RACAS = [
     descricao: "Marcados por uma ascendência infernal distante, carismáticos e resistentes a fogo.",
     bonusAtributos: { carisma: 2, inteligencia: 1 },
     deslocamento: 9,
+    idiomasFixos: ["comum", "infernal"],
   },
 ];
 
