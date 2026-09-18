@@ -7,6 +7,12 @@ import {
 } from "../../data/subclasses";
 import { ANTECEDENTES, obterAntecedente } from "../../data/antecedentes";
 import { ATRIBUTOS } from "../../utils/dnd";
+import {
+  PRE_REQUISITOS_MULTICLASSE,
+  atendePreRequisitoMulticlasse,
+  periciasDisponiveisMulticlasse,
+} from "../../data/proficienciasMulticlasse";
+import { obterRegraMulticlasse } from "../../data/proficienciasMulticlasse";
 import "./BlocoRacaClasse.css";
 
 function CampoNivel({ nivel, nivelMaximo, onChangeNivel }) {
@@ -47,6 +53,9 @@ export default function BlocoRacaClasse({
   nivelMaximoPrincipal,
   subclasseId,
   classesSecundarias,
+  atributosTotais = {},
+  pericias = {},
+  proficienciasMulticlasse = {},
   bonusRacialEscolhido,
   onChangeRaca,
   onChangeClasse,
@@ -56,6 +65,7 @@ export default function BlocoRacaClasse({
   onAdicionarClasseSecundaria,
   onAlterarClasseSecundaria,
   onRemoverClasseSecundaria,
+  onEscolherPericiaMulticlasse,
   onChangeBonusRacialEscolhido,
 }) {
   const racaSelecionada = RACAS.find((r) => r.id === racaId);
@@ -196,8 +206,16 @@ export default function BlocoRacaClasse({
         <div className="multiclasse-bloco">
           <span className="raca-classe-label">Classes secundárias (multiclasse)</span>
           <p className="multiclasse-limite">Nível total: {nivelTotal}/20</p>
-          {(classesSecundarias ?? []).map((c, indice) => (
-            <div key={indice} className="multiclasse-linha">
+          {(classesSecundarias ?? []).map((c, indice) => {
+            const regra = obterRegraMulticlasse(c.classeId) ?? {};
+            const requisito = PRE_REQUISITOS_MULTICLASSE[c.classeId];
+            const registro = proficienciasMulticlasse[c.classeId];
+            const quantidadePericias = regra.escolhas
+              ?.filter((escolha) => escolha.tipo === "pericia")
+              .reduce((total, escolha) => total + escolha.quantidade, 0) ?? 0;
+            const periciasEscolhidas = registro?.pericias ?? [];
+            const podeEscolherPericia = periciasEscolhidas.length < quantidadePericias;
+            return <div key={indice} className="multiclasse-linha">
               <select
                 value={c.classeId ?? ""}
                 onChange={(evento) =>
@@ -205,9 +223,18 @@ export default function BlocoRacaClasse({
                 }
               >
                 <option value="">Selecione...</option>
-                {CLASSES.filter((classeItem) => classeItem.id !== classeId).map(
+                {CLASSES.filter((classeItem) =>
+                  classeItem.id !== classeId &&
+                  !(classesSecundarias ?? []).some(
+                    (outra, outroIndice) => outroIndice !== indice && outra.classeId === classeItem.id
+                  )
+                ).map(
                   (classeItem) => (
-                    <option key={classeItem.id} value={classeItem.id}>
+                    <option
+                      key={classeItem.id}
+                      value={classeItem.id}
+                      disabled={!atendePreRequisitoMulticlasse(classeItem.id, atributosTotais)}
+                    >
                       {classeItem.nome}
                     </option>
                   )
@@ -264,8 +291,41 @@ export default function BlocoRacaClasse({
               >
                 ×
               </button>
+              {c.classeId && (
+                <div className="multiclasse-detalhes">
+                  <p>
+                    Pré-requisito: {requisito?.descricao ?? "—"} {atendePreRequisitoMulticlasse(c.classeId, atributosTotais) ? "✓" : "✕"}
+                    {" · Dado de vida: "}d{obterClasse(c.classeId)?.dadoVida}
+                  </p>
+                  <p>
+                    Recebe: {[...(regra.armas ?? []), ...(regra.armaduras ?? []), regra.escudos ? "escudos" : null, ...(regra.ferramentas ?? [])]
+                      .filter(Boolean).join(", ") || "nenhuma proficiência automática"}.
+                  </p>
+                  {quantidadePericias > 0 && (
+                    <label>
+                      {podeEscolherPericia
+                        ? `Escolha ${quantidadePericias - periciasEscolhidas.length} perícia da multiclasse`
+                        : "Perícia de multiclasse escolhida"}
+                      {podeEscolherPericia && (
+                        <select
+                          value=""
+                          onChange={(evento) => {
+                            if (evento.target.value) onEscolherPericiaMulticlasse(indice, evento.target.value);
+                          }}
+                        >
+                          <option value="">Selecione...</option>
+                          {periciasDisponiveisMulticlasse(pericias).map((pericia) => (
+                            <option key={pericia.chave} value={pericia.chave}>{pericia.nome}</option>
+                          ))}
+                        </select>
+                      )}
+                      {periciasEscolhidas.length > 0 && <span> {periciasEscolhidas.join(", ")}</span>}
+                    </label>
+                  )}
+                </div>
+              )}
             </div>
-          ))}
+          })}
           <button
             type="button"
             className="multiclasse-adicionar"

@@ -40,10 +40,12 @@ O produto já é utilizável como ficha digital de mesa. Ainda não é um constr
 ### 2.3 Nível, progressão e multiclasse
 
 - Assistente de level up com escolha da classe que sobe, pontos de vida, subclasse quando ela é desbloqueada, ASI, habilidades, troca opcional de magia conhecida e resumo antes de confirmar.
-- Histórico de PV por nível para impedir ganho duplicado e nova rolagem ao revisitar um nível.
+- Histórico de PV por nível e por classe de origem para impedir ganho duplicado, nova rolagem ao revisitar um nível e uso do dado de vida errado em multiclasse.
 - ASI limitado a atributos de valor máximo 20.
 - Progressão por marco ou XP, com tabela, barra de andamento e trava de XP insuficiente.
 - Multiclasse com classes secundárias que guardam independentemente classe, nível e subclasse; o assistente também permite subir cada uma delas.
+- Entrada em classe secundária confere pré-requisito, impede classe repetida e registra as proficiências reduzidas de multiclasse, inclusive escolhas de perícia pendentes.
+- Dados de vida são mantidos em pools por classe, com gasto escolhido no descanso curto e recuperação no descanso longo priorizando d12, d10, d8 e d6.
 - Cálculo de espaços de magia combinados para conjuradores completos, conjuradores de metade e Magia de Pacto do Bruxo em separado.
 - Conjuração de um terço para Cavaleiro Arcano e Trapaceiro Arcano, inclusive sua contribuição para os espaços combinados de multiclasse. A ficha recalcula os espaços ao trocar classe, subclasse ou nível e usa Inteligência para CD e ataque mágico dessas subclasses.
 - **Nível total máximo de 20 aplicado em três camadas:** botão de level up, modal de level up e persistência da ficha. A interface de multiclasse também limita cada classe ao saldo de níveis disponível e bloqueia novas classes no nível 20.
@@ -77,24 +79,27 @@ O produto já é utilizável como ficha digital de mesa. Ainda não é um constr
 
 ### 2.6 Descanso, inventário e proficiências
 
-- Descanso curto para gastar dado de vida e restaurar recursos de descanso curto; Bruxo pode recuperar Magia de Pacto.
-- Descanso longo para restaurar PV, espaços, recursos e metade dos dados de vida (mínimo um).
+- Descanso curto para gastar explicitamente um dado de vida de qualquer pool de classe e restaurar recursos de descanso curto; Bruxo pode recuperar Magia de Pacto.
+- Descanso longo para restaurar PV, espaços, recursos e metade dos dados de vida (mínimo um), priorizando os maiores dados gastos.
 - Inventário manual e catálogo com 37 armas, 13 armaduras e 40 equipamentos/ferramentas.
 - Peso total e capacidade de carga exibidos.
 - Moedas em cobre, prata, electro, ouro e platina.
 - Marcação genérica de item mágico, raridade e bônus numérico; o bônus é aplicado a armas e armaduras equipadas.
 - Idiomas e proficiências com ferramentas em áreas separadas do inventário, com atributo selecionável e botão de rolagem para cada ferramenta.
 
+### 2.7 Entregas concluídas
+
+- **Sistema de subclasses:** as 26 subclasses cadastradas funcionam para a classe principal e para classes secundárias, incluindo escolha por nível da classe, level up, habilidades automáticas, recursos rastreáveis, regras de magia, persistência e validação.
+- **Sistema de multiclasse:** pré-requisitos, limite total de nível 20, prevenção de classe repetida, subclasses, proficiências reduzidas de entrada, pools de dados de vida para descanso e ganho de PV vinculado à classe que subiu estão integrados e persistidos.
+
 ## 3. Limitações atuais e itens ainda pendentes
 
 ### Prioridade 0 — precisão de regras e confiança da ficha
 
 1. **Validação de ficha antes de usar na mesa.** A checagem consolidada básica já existe, mas ainda não há um fluxo de bloqueio/confirmação nem validação de todas as escolhas de criação e regras específicas por classe.
-2. **Multiclasse completa.** O teto total de 20, os pré-requisitos e as subclasses de classes secundárias já são tratados. Ainda faltam proficiências concedidas na primeira classe secundária e outros casos gerais de classe.
-3. **Dados de vida em multiclasse.** O descanso curto usa o dado de vida e a quantidade de níveis da classe principal; ele não mantém pools separados por classe, como a regra pede.
-4. **Magias por classe.** Listas básicas, círculo acessível, limites, magias sempre preparadas/concedidas e listas expandidas das subclasses disponíveis são tratados. Ainda faltam Segredos Mágicos, a validação da posse de talentos/itens usados como origem especial e ampliar o catálogo local. O grimório do Mago continua sem limite artificial de magias registradas.
-5. **Troca de magias conhecidas no level up.** O fluxo dedicado existe para classes cuja tabela local representa magias conhecidas. Regras futuras que concedam troca diferente ou mais de uma magia no mesmo nível exigirão modelagem adicional.
-6. **Proficiências de criação.** Antecedentes aplicam perícias, mas a escolha de perícias da classe, idiomas concedidos por raça/antecedente e proficiências iniciais de ferramentas não é automatizada.
+2. **Magias por classe.** Listas básicas, círculo acessível, limites, magias sempre preparadas/concedidas e listas expandidas das subclasses disponíveis são tratados. Ainda faltam Segredos Mágicos, a validação da posse de talentos/itens usados como origem especial e ampliar o catálogo local. O grimório do Mago continua sem limite artificial de magias registradas.
+3. **Troca de magias conhecidas no level up.** O fluxo dedicado existe para classes cuja tabela local representa magias conhecidas. Regras futuras que concedam troca diferente ou mais de uma magia no mesmo nível exigirão modelagem adicional.
+4. **Proficiências de criação.** Antecedentes aplicam perícias, mas a escolha de perícias da classe, idiomas concedidos por raça/antecedente e proficiências iniciais de ferramentas não é automatizada.
 
 ### Prioridade 1 — conteúdo e automações de mesa
 
@@ -123,17 +128,17 @@ O produto já é utilizável como ficha digital de mesa. Ainda não é um constr
 
 ## 4. Recomendação de próxima etapa
 
-O sistema de subclasses está concluído dentro do modelo atual de ficha: as 26 subclasses, multiclasse, level up, características, exceções de magia, recursos rastreáveis e validações estão integrados. A próxima entrega recomendada é avançar para regras gerais de multiclasse (proficiências e pools de dados de vida) ou para ampliação de conteúdo.
+Os sistemas de subclasses e multiclasse estão concluídos dentro do modelo atual de ficha. A próxima entrega recomendada é o fluxo de validação final antes de usar a ficha na mesa, começando pelos dados e escolhas feitos na criação.
 
 Critérios de aceite sugeridos:
 
 - uma ficha não pode ser considerada pronta sem raça, classe, antecedente e atributos válidos;
 - a multiclasse exige os pré-requisitos de atributo e mantém o total em 20;
-- cada classe secundária pode ter subclasse, mas os dados de vida ainda aguardam pools separados por classe;
+- cada classe secundária pode ter subclasse, recebe as proficiências reduzidas de entrada, tem pool de dados de vida separado para descanso e registra o dado de vida correto em cada ganho de PV;
 - o catálogo de magia exibe apenas opções da classe e do círculo disponíveis; excessos de magias conhecidas/preparadas são avisados, sem bloquear exceções legítimas;
 - Cavaleiro Arcano e Trapaceiro Arcano recebem espaços de magia de conjurador de um terço sem usar o nível total para liberar magias;
 - as regras críticas de subclasses e magia têm testes automatizados.
 
 ## 5. Estado de qualidade verificado
 
-Foram adicionados testes de subclasses, mas não foram executados nesta etapa por solicitação do usuário. O usuário fará testes, lint, build e conferência da interface.
+Foram adicionados testes de subclasses, magia e multiclasse, incluindo pools de dados de vida, proficiências de entrada e PV ao subir uma classe secundária. Eles não foram executados nesta etapa por solicitação do usuário. O usuário fará testes, lint, build e conferência da interface.

@@ -20,7 +20,18 @@ import {
   mesclarEspacosPacto,
 } from "../utils/conjuracao";
 import { recalcularPv } from "../utils/progressao";
-import { restaurarTodosEspacos, calcularDadosDeVidaRecuperados } from "../utils/descanso";
+import { restaurarTodosEspacos } from "../utils/descanso";
+import {
+  gastarDadoVida,
+  restaurarDadosVidaLongo,
+  totalDadosVidaUsados,
+} from "../utils/dadosVida";
+import {
+  concederProficienciasMulticlasse,
+  escolherPericiaMulticlasse,
+  pendenciasProficienciasMulticlasse,
+} from "../utils/proficienciasMulticlasse";
+import { atendePreRequisitoMulticlasse } from "../data/proficienciasMulticlasse";
 import { xpParaNivel } from "../utils/xp";
 import { calcularCdConcentracao } from "../utils/concentracao"; // NOVO
 import { restaurarRecursos } from "../utils/recurso";
@@ -63,7 +74,8 @@ function calcularNivelTotal(ficha) {
   return (
     normalizarNivel(ficha.nivel) +
     (ficha.classesSecundarias ?? []).reduce(
-      (soma, classeSecundaria) => soma + normalizarNivel(classeSecundaria.nivel),
+      (soma, classeSecundaria) =>
+        soma + (classeSecundaria.classeId ? normalizarNivel(classeSecundaria.nivel) : 0),
       0
     )
   );
@@ -171,7 +183,8 @@ export default function Ficha() {
   const forcaTotal = ficha.atributos.forca + (bonusRacial.forca ?? 0);
   const nivelTotal = calcularNivelTotal(ficha);
   const nivelSecundarioTotal = (ficha.classesSecundarias ?? []).reduce(
-    (soma, classeSecundaria) => soma + normalizarNivel(classeSecundaria.nivel),
+    (soma, classeSecundaria) =>
+      soma + (classeSecundaria.classeId ? normalizarNivel(classeSecundaria.nivel) : 0),
     0
   );
   const nivelMaximoPrincipal = Math.max(
@@ -335,14 +348,18 @@ function handleAdicionarSugestaoRecurso(sugestao) {
   }));
 }
 
-  function handleGastarDadoDeVida(cura) {
-  atualizarFicha(id, (fichaAtual) => ({
-    status: {
-      ...fichaAtual.status,
-      pvAtual: Math.min(fichaAtual.status.pvMax, fichaAtual.status.pvAtual + cura),
-    },
-    dadosDeVidaUsados: (fichaAtual.dadosDeVidaUsados ?? 0) + 1,
-  }));
+  function handleGastarDadoDeVida(classeId, cura) {
+  atualizarFicha(id, (fichaAtual) => {
+    const dadosVidaPorClasse = gastarDadoVida(fichaAtual.dadosVidaPorClasse, classeId);
+    return {
+      status: {
+        ...fichaAtual.status,
+        pvAtual: Math.min(fichaAtual.status.pvMax, fichaAtual.status.pvAtual + cura),
+      },
+      dadosVidaPorClasse,
+      dadosDeVidaUsados: totalDadosVidaUsados(dadosVidaPorClasse),
+    };
+  });
 }
 
 function handleRestaurarEspacosMagia() {
@@ -355,10 +372,14 @@ function handleRestaurarEspacosMagia() {
 
 function handleDescansoLongo() {
   atualizarFicha(id, (fichaAtual) => {
-    const recuperados = calcularDadosDeVidaRecuperados(fichaAtual.nivel ?? 1);
+    const dadosVidaPorClasse = restaurarDadosVidaLongo(
+      fichaAtual.dadosVidaPorClasse,
+      calcularNivelTotal(fichaAtual)
+    );
     return {
       status: { ...fichaAtual.status, pvAtual: fichaAtual.status.pvMax },
-      dadosDeVidaUsados: Math.max(0, (fichaAtual.dadosDeVidaUsados ?? 0) - recuperados),
+      dadosVidaPorClasse,
+      dadosDeVidaUsados: totalDadosVidaUsados(dadosVidaPorClasse),
       espacosMagia: restaurarTodosEspacos(fichaAtual.espacosMagia ?? {}),
       recursos: restaurarRecursos(fichaAtual.recursos ?? [], "longo"),
     };
@@ -432,14 +453,18 @@ function handleChangeRaca(novoRacaId) {
 
       if (novaClasse) {
         const modCon = modificadoresAtributos.constituicao;
-        const fichaComPvZerado = { ...fichaAtual, pvPorNivel: {} };
-        const { pvPorNivel, status } = recalcularPv(
-          fichaComPvZerado,
+        // Trocar a classe principal não deve apagar nem recalcular os PV que
+        // já foram escolhidos. Isso é especialmente importante quando a
+        // ficha já tem níveis de outras classes.
+        const fichaComClasseAlterada = { ...fichaAtual, classeId: novoClasseId };
+        const { pvPorNivel, origemClassePvPorNivel, status } = recalcularPv(
+          fichaComClasseAlterada,
           novaClasse,
           modCon,
-          fichaAtual.nivel ?? 1
+          calcularNivelTotal(fichaComClasseAlterada)
         );
         atualizacoes.pvPorNivel = pvPorNivel;
+        atualizacoes.origemClassePvPorNivel = origemClassePvPorNivel;
         atualizacoes.status = status;
       }
 
@@ -459,7 +484,8 @@ function handleChangeRaca(novoRacaId) {
   function handleChangeNivel(novoNivel) {
     atualizarFicha(id, (fichaAtual) => {
       const totalSecundario = (fichaAtual.classesSecundarias ?? []).reduce(
-        (soma, classeSecundaria) => soma + normalizarNivel(classeSecundaria.nivel),
+        (soma, classeSecundaria) =>
+          soma + (classeSecundaria.classeId ? normalizarNivel(classeSecundaria.nivel) : 0),
         0
       );
       const limite = Math.max(1, NIVEL_MAXIMO_PERSONAGEM - totalSecundario);
@@ -468,13 +494,18 @@ function handleChangeRaca(novoRacaId) {
 
       if (classe) {
         const modCon = modificadoresAtributos.constituicao;
-        const { pvPorNivel, status } = recalcularPv(
+        const nivelTotalNovo = calcularNivelTotal({
+          ...fichaAtual,
+          nivel: nivelAjustado,
+        });
+        const { pvPorNivel, origemClassePvPorNivel, status } = recalcularPv(
           fichaAtual,
           classe,
           modCon,
-          nivelAjustado
+          nivelTotalNovo
         );
         atualizacoes.pvPorNivel = pvPorNivel;
+        atualizacoes.origemClassePvPorNivel = origemClassePvPorNivel;
         atualizacoes.status = status;
       }
 
@@ -547,12 +578,17 @@ function handleAlterarClasseSecundaria(indice, campo, valor) {
     if (!novasClasses[indice]) return {};
 
     let valorAjustado = valor;
+    if (
+      campo === "nivel" &&
+      novasClasses[indice].classeId &&
+      pendenciasProficienciasMulticlasse(fichaAtual, novasClasses[indice].classeId).length > 0
+    ) return {};
     if (campo === "nivel") {
       const niveisDasOutrasClasses = novasClasses.reduce(
         (soma, classeSecundaria, indiceClasse) =>
           indiceClasse === indice
             ? soma
-            : soma + normalizarNivel(classeSecundaria.nivel),
+            : soma + (classeSecundaria.classeId ? normalizarNivel(classeSecundaria.nivel) : 0),
         normalizarNivel(fichaAtual.nivel)
       );
       const limite = Math.max(1, NIVEL_MAXIMO_PERSONAGEM - niveisDasOutrasClasses);
@@ -561,6 +597,15 @@ function handleAlterarClasseSecundaria(indice, campo, valor) {
 
     if (campo === "classeId") {
       valorAjustado = valor || null;
+      if (
+        valorAjustado &&
+        (!atendePreRequisitoMulticlasse(valorAjustado, atributosTotais) ||
+          fichaAtual.classeId === valorAjustado ||
+          novasClasses.some(
+            (classeSecundaria, indiceClasse) =>
+              indiceClasse !== indice && classeSecundaria.classeId === valorAjustado
+          ))
+      ) return {};
       novasClasses[indice] = {
         ...novasClasses[indice],
         classeId: valorAjustado,
@@ -583,9 +628,33 @@ function handleAlterarClasseSecundaria(indice, campo, valor) {
       ...fichaAtual,
       classesSecundarias: novasClasses,
     };
-    const fichaSincronizada = sincronizarFichaComSubclasses(fichaComClasses);
+    const nivelTotalAnterior = calcularNivelTotal(fichaAtual);
+    const nivelTotalNovo = calcularNivelTotal(fichaComClasses);
+    let atualizacoesPv = {};
+    if (nivelTotalNovo !== nivelTotalAnterior) {
+      const classeQueMudou = obterClasse(novasClasses[indice]?.classeId);
+      const resultadoPv = recalcularPv(
+        fichaAtual,
+        nivelTotalNovo > nivelTotalAnterior ? classeQueMudou : null,
+        modificadoresAtributos.constituicao,
+        nivelTotalNovo
+      );
+      atualizacoesPv = {
+        pvPorNivel: resultadoPv.pvPorNivel,
+        origemClassePvPorNivel: resultadoPv.origemClassePvPorNivel,
+        status: resultadoPv.status,
+      };
+    }
+    const atualizacoesProf =
+      campo === "classeId" && valorAjustado
+        ? concederProficienciasMulticlasse(fichaAtual, valorAjustado)
+        : {};
+    const fichaComProficiencias = { ...fichaComClasses, ...atualizacoesProf };
+    const fichaSincronizada = sincronizarFichaComSubclasses(fichaComProficiencias);
     return {
       classesSecundarias: novasClasses,
+      ...atualizacoesPv,
+      ...atualizacoesProf,
       recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
       habilidades: fichaSincronizada.habilidades,
       magias: fichaSincronizada.magias,
@@ -594,6 +663,13 @@ function handleAlterarClasseSecundaria(indice, campo, valor) {
         classesSecundarias: novasClasses,
       }),
     };
+  });
+}
+
+function handleEscolherPericiaMulticlasse(indice, periciaId) {
+  atualizarFicha(id, (fichaAtual) => {
+    const classeId = fichaAtual.classesSecundarias?.[indice]?.classeId;
+    return classeId ? escolherPericiaMulticlasse(fichaAtual, classeId, periciaId) : {};
   });
 }
 
@@ -606,8 +682,17 @@ function handleRemoverClasseSecundaria(indice) {
       ...fichaAtual,
       classesSecundarias: novasClasses,
     });
+    const resultadoPv = recalcularPv(
+      fichaAtual,
+      null,
+      modificadoresAtributos.constituicao,
+      calcularNivelTotal({ ...fichaAtual, classesSecundarias: novasClasses })
+    );
     return {
       classesSecundarias: novasClasses,
+      pvPorNivel: resultadoPv.pvPorNivel,
+      origemClassePvPorNivel: resultadoPv.origemClassePvPorNivel,
+      status: resultadoPv.status,
       recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
       habilidades: fichaSincronizada.habilidades,
       magias: fichaSincronizada.magias,
@@ -745,6 +830,9 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
   nivelMaximoPrincipal={nivelMaximoPrincipal}
   subclasseId={ficha.subclasseId}
   classesSecundarias={ficha.classesSecundarias ?? []}
+  atributosTotais={atributosTotais}
+  pericias={ficha.pericias ?? {}}
+  proficienciasMulticlasse={ficha.proficienciasMulticlasse ?? {}}
   bonusRacialEscolhido={ficha.bonusRacialEscolhido ?? []}
   onChangeRaca={handleChangeRaca}
   onChangeClasse={handleChangeClasse}
@@ -754,6 +842,7 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
   onAdicionarClasseSecundaria={handleAdicionarClasseSecundaria}
   onAlterarClasseSecundaria={handleAlterarClasseSecundaria}
   onRemoverClasseSecundaria={handleRemoverClasseSecundaria}
+  onEscolherPericiaMulticlasse={handleEscolherPericiaMulticlasse}
   onChangeBonusRacialEscolhido={handleChangeBonusRacialEscolhido}
 />
 
@@ -856,10 +945,9 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
               <BlocoDescanso
                 classe={classe}
                 classesSecundarias={ficha.classesSecundarias ?? []}
-                nivel={ficha.nivel ?? 1}
                 modConstituicao={modificadoresAtributos.constituicao}
                 status={ficha.status}
-                dadosDeVidaUsados={ficha.dadosDeVidaUsados ?? 0}
+                dadosVidaPorClasse={ficha.dadosVidaPorClasse ?? {}}
                 onGastarDadoDeVida={handleGastarDadoDeVida}
                 onRestaurarEspacosMagia={handleRestaurarEspacosMagia}
                 onDescansoLongo={handleDescansoLongo}
@@ -904,6 +992,9 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
       idiomas={ficha.idiomas ?? ["comum"]}
       onToggleIdioma={handleToggleIdioma}
       proficienciasFerramentas={ficha.proficienciasFerramentas ?? []}
+      proficienciasArmas={ficha.proficienciasArmas ?? []}
+      proficienciasArmaduras={ficha.proficienciasArmaduras ?? []}
+      proficienciasEscudos={ficha.proficienciasEscudos ?? false}
       onToggleFerramenta={handleToggleFerramenta}
       atributoFerramentas={ficha.atributoFerramentas ?? {}}
       onChangeAtributoFerramenta={handleChangeAtributoFerramenta}

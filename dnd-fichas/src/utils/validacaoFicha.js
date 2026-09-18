@@ -16,6 +16,9 @@ import {
 } from "../data/magiasExcecoesSubclasse";
 import { limitesMagiasDaClasse } from "../data/limitesMagias";
 import { subclasseCompativel } from "./subclassesFicha";
+import { classesComDadosVida } from "./dadosVida";
+import { pendenciasProficienciasMulticlasse } from "./proficienciasMulticlasse";
+import { obterRegraMulticlasse } from "../data/proficienciasMulticlasse";
 
 const NIVEL_MAXIMO_PERSONAGEM = 20;
 
@@ -204,6 +207,73 @@ export function validarFicha(ficha, atributosTotais) {
           `Multiclasse em ${nomeClasse(classe.classeId)} requer ${requisito.descricao}.`
         );
       }
+    }
+  }
+
+  for (const classe of classesSecundarias.filter((item) => item.classeId)) {
+    const registro = ficha.proficienciasMulticlasse?.[classe.classeId];
+    const regra = obterRegraMulticlasse(classe.classeId);
+    if (!registro && regra && Object.keys(regra).length > 0) {
+      adicionar(avisos, `${nomeClasse(classe.classeId)}: proficiências de entrada em multiclasse ainda não foram registradas.`);
+      continue;
+    }
+    for (const pendencia of pendenciasProficienciasMulticlasse(ficha, classe.classeId)) {
+      adicionar(avisos, `${nomeClasse(classe.classeId)}: ${pendencia}`);
+    }
+    if (registro?.pericias && new Set(registro.pericias).size !== registro.pericias.length) {
+      adicionar(avisos, `${nomeClasse(classe.classeId)}: há perícia de multiclasse duplicada.`);
+    }
+    for (const periciaId of registro?.pericias ?? []) {
+      if (!ficha.pericias?.[periciaId]) {
+        adicionar(avisos, `${nomeClasse(classe.classeId)}: a perícia de multiclasse escolhida não está marcada na ficha.`);
+      }
+    }
+  }
+
+  for (const [tipo, itens] of [
+    ["armas", ficha.proficienciasArmas],
+    ["armaduras", ficha.proficienciasArmaduras],
+    ["ferramentas", ficha.proficienciasFerramentas],
+  ]) {
+    if (Array.isArray(itens) && new Set(itens).size !== itens.length) {
+      adicionar(avisos, `Há proficiências de ${tipo} duplicadas.`);
+    }
+  }
+
+  const poolsEsperados = classesComDadosVida(ficha);
+  const pools = ficha.dadosVidaPorClasse;
+  if (!pools || typeof pools !== "object") {
+    adicionar(avisos, "Pools de dados de vida ausentes; recarregue a ficha para migrar os dados antigos.");
+  } else {
+    for (const classe of poolsEsperados) {
+      const pool = pools[classe.classeId];
+      if (!pool) {
+        adicionar(avisos, `${classe.nome}: pool de dados de vida ausente.`);
+        continue;
+      }
+      if (Number(pool.dadoVida) !== classe.dadoVida) {
+        adicionar(avisos, `${classe.nome}: o pool deve usar d${classe.dadoVida}.`);
+      }
+      if (Number(pool.maximo) !== classe.maximo) {
+        adicionar(avisos, `${classe.nome}: o máximo de dados de vida deve ser ${classe.maximo}.`);
+      }
+      if (Number(pool.usados) < 0 || Number(pool.usados) > Number(pool.maximo)) {
+        adicionar(avisos, `${classe.nome}: dados de vida gastos devem ficar entre 0 e o máximo.`);
+      }
+    }
+    for (const classeId of Object.keys(pools)) {
+      if (!poolsEsperados.some((classe) => classe.classeId === classeId)) {
+        adicionar(avisos, `Pool de dados de vida associado a classe ausente: ${classeId}.`);
+      }
+    }
+  }
+
+  for (const nivel of Object.keys(ficha.pvPorNivel ?? {})) {
+    const classeOrigemId = ficha.origemClassePvPorNivel?.[nivel];
+    if (!classeOrigemId) {
+      adicionar(avisos, `PV do nível ${nivel}: classe de origem ausente.`);
+    } else if (!CLASSES.some((classe) => classe.id === classeOrigemId)) {
+      adicionar(avisos, `PV do nível ${nivel}: classe de origem inválida.`);
     }
   }
 

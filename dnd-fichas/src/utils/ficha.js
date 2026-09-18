@@ -1,8 +1,9 @@
 import { criarEspacosMagiaVazios } from "./magia";
+import { normalizarPoolsDadosVida, totalDadosVidaUsados } from "./dadosVida";
 
 export function criarFichaVazia(nome) {
   return {
-    versaoFicha: 2,
+    versaoFicha: 3,
     id: crypto.randomUUID(),
     nome: nome?.trim() || "Sem nome",
     criadoEm: Date.now(),
@@ -43,7 +44,8 @@ export function criarFichaVazia(nome) {
       testesMorteSucessos: 0,  // NOVO
       testesMorteFalhas: 0,    // NOVO
     },
-        pvPorNivel: {},
+    pvPorNivel: {},
+    origemClassePvPorNivel: {},
     progressao: {
       modo: "marco", // "marco" | "xp"
       xpAtual: 0,
@@ -56,7 +58,12 @@ export function criarFichaVazia(nome) {
     proficienciasFerramentas: [], // ids de FERRAMENTAS (data/equipamentos.js) em que é proficiente
     atributoFerramentas: {}, // { [ferramentaId]: chaveDoAtributo } — atributo usado em cada rolagem
     classesSecundarias: [], // [{ classeId, nivel, subclasseId }] — multiclasse
-    dadosDeVidaUsados: 0,
+    dadosDeVidaUsados: 0, // legado: mantido como total dos pools
+    dadosVidaPorClasse: {},
+    proficienciasArmas: [],
+    proficienciasArmaduras: [],
+    proficienciasEscudos: false,
+    proficienciasMulticlasse: {},
     niveisAsiAplicados: [],
     magias: [],
     espacosMagia: criarEspacosMagiaVazios(),
@@ -68,14 +75,13 @@ export function criarFichaVazia(nome) {
 }
 
 
-// Migração conservadora: adiciona somente os campos de estrutura que a
-// versão atual precisa para subclasses em multiclasse, sem apagar escolhas
+// Migração conservadora: acrescenta os campos estruturais sem apagar escolhas
 // antigas, magias, recursos ou campos personalizados.
 export function normalizarFicha(ficha) {
   if (!ficha || typeof ficha !== "object") return ficha;
-  return {
+  const base = {
     ...ficha,
-    versaoFicha: Math.max(Number(ficha.versaoFicha) || 1, 2),
+    versaoFicha: Math.max(Number(ficha.versaoFicha) || 1, 3),
     subclasseId: ficha.subclasseId ?? null,
     classesSecundarias: Array.isArray(ficha.classesSecundarias)
       ? ficha.classesSecundarias.map((classe) => ({
@@ -83,5 +89,28 @@ export function normalizarFicha(ficha) {
           subclasseId: classe?.subclasseId ?? null,
         }))
       : [],
+    proficienciasArmas: Array.isArray(ficha.proficienciasArmas) ? ficha.proficienciasArmas : [],
+    proficienciasArmaduras: Array.isArray(ficha.proficienciasArmaduras) ? ficha.proficienciasArmaduras : [],
+    proficienciasEscudos: Boolean(ficha.proficienciasEscudos),
+    proficienciasMulticlasse:
+      ficha.proficienciasMulticlasse && typeof ficha.proficienciasMulticlasse === "object"
+        ? ficha.proficienciasMulticlasse
+        : {},
+  };
+  const dadosVidaPorClasse = normalizarPoolsDadosVida(base);
+  const origemClassePvPorNivel = {
+    ...(ficha.origemClassePvPorNivel ?? {}),
+  };
+  // Fichas antigas não guardavam a origem do ganho de PV. Para preservar os
+  // valores já salvos, atribuímos essas entradas à classe principal; somente
+  // ganhos futuros passam a registrar a classe que realmente subiu.
+  for (const nivel of Object.keys(base.pvPorNivel ?? {})) {
+    origemClassePvPorNivel[nivel] ??= base.classeId ?? null;
+  }
+  return {
+    ...base,
+    origemClassePvPorNivel,
+    dadosVidaPorClasse,
+    dadosDeVidaUsados: totalDadosVidaUsados(dadosVidaPorClasse),
   };
 }

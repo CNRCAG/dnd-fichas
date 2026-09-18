@@ -10,6 +10,7 @@ import { obterHabilidadesPorSubclasse } from "../../data/habilidadesSubclasses";
 import { MAGIAS } from "../../data/magiasSistema";
 import { limitesMagiasDaClasse } from "../../data/limitesMagias";
 import { classesElegiveisParaMagia } from "../../utils/acessoMagias";
+import { pendenciasProficienciasMulticlasse } from "../../utils/proficienciasMulticlasse";
 import DetalheHabilidade from "./DetalheHabilidade";
 import "./ModalCatalogoItens.css";
 import "./ModalLevelUp.css";
@@ -50,6 +51,7 @@ export default function ModalLevelUp({
               dadoVida: classeObj.dadoVida,
               nivelAtual: c.nivel ?? 1,
               subclasseId: c.subclasseId ?? null,
+              pendenteMulticlasse: pendenciasProficienciasMulticlasse(ficha, c.classeId).length > 0,
               ehSecundaria: true,
               indiceSecundaria: indice,
             }
@@ -66,7 +68,10 @@ export default function ModalLevelUp({
 
   const nivelTotalAtual =
     (ficha.nivel ?? 1) +
-    (ficha.classesSecundarias ?? []).reduce((soma, c) => soma + (c.nivel ?? 0), 0);
+    (ficha.classesSecundarias ?? []).reduce(
+      (soma, c) => soma + (c.classeId ? (c.nivel ?? 0) : 0),
+      0
+    );
   const novoNivelTotal = nivelTotalAtual + 1;
 
   // ---- rascunho das escolhas, só vira de verdade ao "Concluir" ----
@@ -254,6 +259,7 @@ export default function ModalLevelUp({
   // ---- Concluir ----
   function handleConcluir() {
     if (novoNivelTotal > NIVEL_MAXIMO_PERSONAGEM) return;
+    if (classeEscolhida.pendenteMulticlasse) return;
     if (precisaEscolherSubclasse && !subclasseEscolhidaId) return;
 
     const novosAtributos = { ...ficha.atributos };
@@ -280,9 +286,9 @@ export default function ModalLevelUp({
         origemId: h.id,
       }));
 
-    const { pvPorNivel, status } = recalcularPv(
+    const { pvPorNivel, origemClassePvPorNivel, status } = recalcularPv(
       ficha,
-      classe,
+      obterClasse(classeEscolhida.id),
       modCon,
       novoNivelTotal,
       { [novoNivelTotal]: ganhoPv ?? 0 }
@@ -295,6 +301,7 @@ export default function ModalLevelUp({
 
     const atualizacoes = {
       pvPorNivel,
+      origemClassePvPorNivel,
       status,
       atributos: novosAtributos,
       niveisAsiAplicados,
@@ -389,10 +396,12 @@ export default function ModalLevelUp({
                       setClasseEscolhidaId(opcao.id);
                       setSubclasseEscolhidaId(null);
                     }}
+                    disabled={opcao.pendenteMulticlasse}
                   >
                     {opcao.nome}
                     <span className="levelup-opcao-detalhe">
                       nível {opcao.nivelAtual} → {opcao.nivelAtual + 1}
+                      {opcao.pendenteMulticlasse && " · escolha as proficiências pendentes primeiro"}
                     </span>
                   </button>
                 ))}

@@ -55,6 +55,22 @@
   margin-top: var(--space-2);
 }
 
+.multiclasse-detalhes {
+  flex-basis: 100%;
+  padding: var(--space-2);
+  border-left: 2px solid var(--color-accent);
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
+}
+
+.multiclasse-detalhes p {
+  margin: 0 0 var(--space-1);
+}
+
+.multiclasse-detalhes select {
+  margin-left: var(--space-1);
+}
+
 .multiclasse-limite {
   margin: var(--space-1) 0 0;
   color: var(--color-ink-soft);

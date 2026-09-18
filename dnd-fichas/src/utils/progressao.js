@@ -1,5 +1,8 @@
+import { obterClasse } from "../data/classes";
+
 // PV por nível, com histórico banked (ficha.pvPorNivel = { 1: valor, 2:
-// valor, ... }). Isso existe pra resolver um problema específico: sem
+// valor, ... }) e origemClassePvPorNivel. Isso existe pra resolver um
+// problema específico: sem
 // isso, subir pro nível 20 e depois voltar pro nível 1 "esquecia" o PV
 // que deveria sumir, e subir de novo dava PV em dobro (ou deixava
 // rerolar o dado quantas vezes quisesse). Com o histórico banked:
@@ -24,17 +27,25 @@ export function valorPvNivel1(classe, modCon) {
 // cura de graça.
 export function recalcularPv(fichaAtual, classe, modCon, novoNivel, override) {
   const pvPorNivel = { ...(fichaAtual.pvPorNivel ?? {}) };
+  const origemClassePvPorNivel = { ...(fichaAtual.origemClassePvPorNivel ?? {}) };
 
   if (override) {
     Object.assign(pvPorNivel, override);
+    for (const nivel of Object.keys(override)) {
+      origemClassePvPorNivel[nivel] ??= classe?.id ?? fichaAtual.classeId ?? null;
+    }
   }
 
   if (classe) {
     for (let n = 1; n <= novoNivel; n += 1) {
+      const classeDoNivel = obterClasse(origemClassePvPorNivel[n]) ?? classe;
       if (pvPorNivel[n] == null) {
         pvPorNivel[n] =
-          n === 1 ? valorPvNivel1(classe, modCon) : valorMediaPv(classe, modCon);
+          n === 1
+            ? valorPvNivel1(classeDoNivel, modCon)
+            : valorMediaPv(classeDoNivel, modCon);
       }
+      origemClassePvPorNivel[n] ??= classeDoNivel.id;
     }
   }
 
@@ -51,6 +62,7 @@ export function recalcularPv(fichaAtual, classe, modCon, novoNivel, override) {
 
   return {
     pvPorNivel,
+    origemClassePvPorNivel,
     status: { ...fichaAtual.status, pvMax: novoPvMax, pvAtual: novoPvAtual },
   };
 }

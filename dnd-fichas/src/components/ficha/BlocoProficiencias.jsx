@@ -12,6 +12,9 @@ export default function BlocoProficiencias({
   idiomas,
   onToggleIdioma,
   proficienciasFerramentas,
+  proficienciasArmas = [],
+  proficienciasArmaduras = [],
+  proficienciasEscudos = false,
   onToggleFerramenta,
   atributoFerramentas,
   onChangeAtributoFerramenta,
@@ -62,6 +65,15 @@ export default function BlocoProficiencias({
 
         <h4 className="proficiencias-subtitulo">Exóticos</h4>
         <div className="idiomas-grid">{renderChipsIdiomas(IDIOMAS_EXOTICOS)}</div>
+      </section>
+
+      <section>
+        <h3 className="bloco-titulo">Proficiências de combate</h3>
+        <p className="proficiencias-nota">
+          Armas: {proficienciasArmas.length ? proficienciasArmas.join(", ") : "nenhuma registrada"}.<br />
+          Armaduras: {proficienciasArmaduras.length ? proficienciasArmaduras.join(", ") : "nenhuma registrada"}.<br />
+          Escudos: {proficienciasEscudos ? "proficiente" : "não registrado"}.
+        </p>
       </section>
 
       <section>

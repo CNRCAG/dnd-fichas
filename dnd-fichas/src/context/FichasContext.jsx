@@ -5,8 +5,11 @@ import { sincronizarFichaComSubclasses } from "../utils/subclassesFicha";
 import { FichasContext } from "./fichasContext";
 
 export function FichasProvider({ children }) {
+  const sincronizarFicha = (ficha) =>
+    sincronizarFichaComSubclasses(normalizarFicha(ficha));
+
   const [fichas, setFichas] = useState(() =>
-    (carregarFichas() ?? []).map((ficha) => sincronizarFichaComSubclasses(ficha))
+    (carregarFichas() ?? []).map(sincronizarFicha)
   );
 
   // Toda mudança na lista de fichas é persistida automaticamente.
@@ -15,9 +18,7 @@ export function FichasProvider({ children }) {
   }, [fichas]);
 
   function criarFicha(nome, overrides = {}) {
-    const novaFicha = sincronizarFichaComSubclasses(
-      normalizarFicha({ ...criarFichaVazia(nome), ...overrides })
-    );
+    const novaFicha = sincronizarFicha({ ...criarFichaVazia(nome), ...overrides });
     setFichas((atual) => [...atual, novaFicha]);
     return novaFicha;
   }
@@ -25,7 +26,7 @@ export function FichasProvider({ children }) {
   function atualizarFicha(id, atualizador) {
     setFichas((atual) =>
       atual.map((ficha) =>
-        ficha.id === id ? { ...ficha, ...atualizador(ficha) } : ficha
+        ficha.id === id ? sincronizarFicha({ ...ficha, ...atualizador(ficha) }) : ficha
       )
     );
   }
