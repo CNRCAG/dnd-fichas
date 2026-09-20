@@ -5,11 +5,13 @@ import Home from "./pages/Home";
 import Ficha from "./pages/Ficha";
 import NovaFicha from "./pages/NovaFicha";
 import PainelRolagens from "./components/rolagem/PainelRolagens";
+import AvisoPersistencia from "./components/layout/AvisoPersistencia";
 
 export default function App() {
   return (
     <div className="app-shell">
       <Topbar />
+      <AvisoPersistencia />
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Home />} />

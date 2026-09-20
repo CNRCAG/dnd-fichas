@@ -4,6 +4,7 @@ import { criarMagiaVazia } from "../../utils/magia";
 import { formatarModificador } from "../../utils/dnd";
 import { MAGIAS } from "../../data/magiasSistema";
 import { CLASSES } from "../../data/classes";
+import { TALENTOS } from "../../data/talentos";
 import { obterAtributoConjuracao } from "../../utils/conjuracao";
 import ModalCatalogoMagias from "../modal/ModalCatalogoMagias";
 import DetalheMagia from "../modal/DetalheMagia";
@@ -22,6 +23,10 @@ const NIVEIS_MAGIA = [
   { valor: 9, label: "9º nível" },
 ];
 
+const CLASSES_INICIADO_MAGIA = [
+  "bardo", "bruxo", "clerigo", "druida", "feiticeiro", "mago",
+];
+
 export default function BlocoMagias({
   ficha,
   modificadoresAtributos,
@@ -35,6 +40,8 @@ export default function BlocoMagias({
   concentracaoAtual,      // NOVO
   onIniciarConcentracao,  // NOVO
   onPararConcentracao,    // NOVO
+  onAplicarEfeitoPv,
+  onAplicarCondicao,
 }) {
   const conjuracoes = [
     {
@@ -53,6 +60,7 @@ export default function BlocoMagias({
         classeId,
         nome: CLASSES.find((item) => item.id === classeId)?.nome ?? classeId,
         atributo,
+        modificador,
         cd: 8 + bonusProficiencia + modificador,
         ataque: bonusProficiencia + modificador,
       };
@@ -112,10 +120,21 @@ export default function BlocoMagias({
           ...magia,
           [campo]: valor,
           ...(campo === "nome" ? { origemId: null } : {}),
+          ...(campo === "classeId" && valor !== "especial"
+            ? { origemEspecial: null, fonteEspecial: "" }
+            : {}),
           ...(["nome", "nivel", "classeId"].includes(campo)
             ? { origemSubclasseId: null }
             : {}),
         } : magia
+      )
+    );
+  }
+
+  function handleAlterarOrigemEspecial(id, origemEspecial, fonteEspecial = "") {
+    onChangeMagias(
+      magias.map((magia) =>
+        magia.id === id ? { ...magia, origemEspecial, fonteEspecial } : magia
       )
     );
   }
@@ -231,6 +250,11 @@ export default function BlocoMagias({
           onFechar={() => setModalAberto(false)}
           onAdicionarMagia={handleAdicionarDoCatalogo}
           ficha={ficha}
+          modificadoresConjuracao={Object.fromEntries(
+            conjuracoes.map((conjuracao) => [conjuracao.classeId, conjuracao.modificador])
+          )}
+          onAplicarEfeitoPv={onAplicarEfeitoPv}
+          onAplicarCondicao={onAplicarCondicao}
         />
 
         {magias.length === 0 ? (
@@ -405,27 +429,110 @@ export default function BlocoMagias({
                         <td colSpan={7} className="magias-linha-detalhe">
                           <label>
                             Origem desta magia
-                            <select value={magia.origemEspecial?.tipo ?? "manual"} onChange={(evento) => handleAlterarMagia(magia.id, "origemEspecial", { ...(magia.origemEspecial ?? {}), tipo: evento.target.value, ...(evento.target.value === "segredos-magicos" ? { classeId: "bardo", fonteId: "segredos-magicos" } : {}) })}>
+                            <select value={magia.origemEspecial?.tipo ?? "manual"} onChange={(evento) => {
+                              const tipo = evento.target.value;
+                              handleAlterarOrigemEspecial(
+                                magia.id,
+                                tipo === "segredos-magicos"
+                                  ? { tipo, classeId: "bardo", fonteId: "segredos-magicos" }
+                                  : { tipo },
+                                tipo === "segredos-magicos" ? "Segredos Mágicos" : ""
+                              );
+                            }}>
                               <option value="manual">Conteúdo manual</option>
                               <option value="regra-da-mesa">Regra da mesa</option>
                               <option value="segredos-magicos">Segredos Mágicos</option>
                               <option value="talento">Talento</option>
                               <option value="item">Item</option>
                             </select>
-                            <input
-                              type="text"
-                              value={magia.fonteEspecial ?? ""}
-                              placeholder="Ex.: talento Iniciado em Magia"
-                              onChange={(evento) =>
-                                handleAlterarMagia(
-                                  magia.id,
-                                  "fonteEspecial",
-                                  evento.target.value
-                                )
-                              }
-                            />
                           </label>
-                          {(magia.origemEspecial?.tipo === "talento" || magia.origemEspecial?.tipo === "item") && <label>Identificador da fonte (talento ou item)<input value={magia.origemEspecial?.fonteId ?? ""} onChange={(evento) => handleAlterarMagia(magia.id, "origemEspecial", { ...magia.origemEspecial, fonteId: evento.target.value })} placeholder="ID estável da fonte" /></label>}
+                          {(!magia.origemEspecial?.tipo || ["manual", "regra-da-mesa"].includes(magia.origemEspecial.tipo)) && (
+                            <label>
+                              Descrição da origem
+                              <input
+                                type="text"
+                                value={magia.fonteEspecial ?? ""}
+                                placeholder="Ex.: recompensa concedida pelo mestre"
+                                onChange={(evento) => handleAlterarMagia(magia.id, "fonteEspecial", evento.target.value)}
+                              />
+                            </label>
+                          )}
+                          {magia.origemEspecial?.tipo === "talento" && (
+                            <>
+                              <label>
+                                Talento presente na ficha
+                                <select
+                                  value={magia.origemEspecial.fonteId ?? ""}
+                                  onChange={(evento) => {
+                                    const fonteId = evento.target.value;
+                                    const talento = TALENTOS.find((item) => item.id === fonteId);
+                                    handleAlterarOrigemEspecial(
+                                      magia.id,
+                                      {
+                                        tipo: "talento",
+                                        fonteId,
+                                        ...(fonteId === "iniciado-magia"
+                                          ? { classeLista: magia.origemEspecial?.classeLista ?? "" }
+                                          : {}),
+                                      },
+                                      talento?.nome ?? ""
+                                    );
+                                  }}
+                                >
+                                  <option value="">Selecione...</option>
+                                  {magia.origemEspecial.fonteId && !(ficha.habilidades ?? []).some((habilidade) => habilidade.tipo === "talento" && habilidade.origemId === magia.origemEspecial.fonteId) && (
+                                    <option value={magia.origemEspecial.fonteId}>Fonte ausente: {magia.origemEspecial.fonteId}</option>
+                                  )}
+                                  {[...new Set((ficha.habilidades ?? []).filter((habilidade) => habilidade.tipo === "talento" && habilidade.origemId).map((habilidade) => habilidade.origemId))].map((idTalento) => (
+                                    <option key={idTalento} value={idTalento}>{TALENTOS.find((item) => item.id === idTalento)?.nome ?? idTalento}</option>
+                                  ))}
+                                </select>
+                              </label>
+                              {magia.origemEspecial.fonteId === "iniciado-magia" && (
+                                <label>
+                                  Lista escolhida no talento
+                                  <select
+                                    value={magia.origemEspecial.classeLista ?? ""}
+                                    onChange={(evento) => handleAlterarOrigemEspecial(
+                                      magia.id,
+                                      { ...magia.origemEspecial, classeLista: evento.target.value },
+                                      "Iniciado em Magia"
+                                    )}
+                                  >
+                                    <option value="">Selecione...</option>
+                                    {CLASSES_INICIADO_MAGIA.map((classeId) => (
+                                      <option key={classeId} value={classeId}>{CLASSES.find((item) => item.id === classeId)?.nome ?? classeId}</option>
+                                    ))}
+                                  </select>
+                                </label>
+                              )}
+                            </>
+                          )}
+                          {magia.origemEspecial?.tipo === "item" && (
+                            <label>
+                              Item presente no inventário
+                              <select
+                                value={magia.origemEspecial.fonteId ?? ""}
+                                onChange={(evento) => {
+                                  const fonteId = evento.target.value;
+                                  const item = (ficha.inventario ?? []).find((registro) => registro.id === fonteId);
+                                  handleAlterarOrigemEspecial(
+                                    magia.id,
+                                    { tipo: "item", fonteId },
+                                    item?.nome ?? ""
+                                  );
+                                }}
+                              >
+                                <option value="">Selecione...</option>
+                                {magia.origemEspecial.fonteId && !(ficha.inventario ?? []).some((item) => item.id === magia.origemEspecial.fonteId) && (
+                                  <option value={magia.origemEspecial.fonteId}>Fonte ausente: {magia.origemEspecial.fonteId}</option>
+                                )}
+                                {(ficha.inventario ?? []).map((item) => (
+                                  <option key={item.id} value={item.id}>{item.nome || "Item sem nome"}</option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
                         </td>
                       </tr>
                     )}
@@ -433,7 +540,20 @@ export default function BlocoMagias({
                       <tr>
                         <td colSpan={7} className="magias-linha-detalhe">
                           {dadosCatalogo ? (
-                            <DetalheMagia magia={dadosCatalogo} />
+                            <DetalheMagia
+                              magia={dadosCatalogo}
+                              modificadorConjuracao={
+                                conjuracoes.find((conjuracao) =>
+                                  conjuracao.classeId === (
+                                    magia.classeId === "especial"
+                                      ? magia.origemEspecial?.classeId
+                                      : magia.classeId
+                                  )
+                                )?.modificador ?? 0
+                              }
+                              onAplicarEfeitoPv={onAplicarEfeitoPv}
+                              onAplicarCondicao={onAplicarCondicao}
+                            />
                           ) : (
                             <p className="magias-sem-catalogo">
                               Essa é uma magia personalizada — sem dados de

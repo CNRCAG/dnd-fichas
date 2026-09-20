@@ -43,6 +43,38 @@
   color: var(--color-accent);
 }
 
+.rolagem-modo-resumo {
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
+}
+
+.painel-rolagens-modo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+}
+
+.painel-rolagens-modo legend,
+.painel-rolagens-modo small {
+  width: 100%;
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
+}
+
+.painel-rolagens-modo label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+}
+
+.painel-rolagens-modo input {
+  accent-color: var(--color-accent);
+}
+
 .rolagem-total.is-critico {
   color: #6fc978;
 }

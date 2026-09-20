@@ -1,10 +1,14 @@
 import { criarEspacosMagiaVazios } from "./magia";
 import { normalizarPoolsDadosVida, totalDadosVidaUsados } from "./dadosVida";
 import { reconciliarProficienciasCriacao } from "./proficienciasCriacao";
+import { normalizarNiveisFicha } from "./niveis";
+import { normalizarInventario } from "./itensMagicos";
+import { normalizarCondicoes } from "./efeitos";
+import { normalizarMoedas } from "./moedas";
 
 export function criarFichaVazia(nome) {
   return {
-    versaoFicha: 4,
+    versaoFicha: 8,
     id: crypto.randomUUID(),
     nome: nome?.trim() || "Sem nome",
     criadoEm: Date.now(),
@@ -75,6 +79,7 @@ export function criarFichaVazia(nome) {
     espacosMagia: criarEspacosMagiaVazios(),
     espacosMagiaPacto: null, // { quantidade, nivel, usados } — Bruxo, sempre separado
     concentracao: null, // { magiaId, nome } | null — magia de concentração ativa agora
+    condicoesAtivas: [],
     habilidades: [],
     ataques: [],
   };
@@ -85,12 +90,13 @@ export function criarFichaVazia(nome) {
 // antigas, magias, recursos ou campos personalizados.
 export function normalizarFicha(ficha) {
   if (!ficha || typeof ficha !== "object") return ficha;
+  const fichaComNiveisValidos = normalizarNiveisFicha(ficha);
   const base = {
-    ...ficha,
-    versaoFicha: Math.max(Number(ficha.versaoFicha) || 1, 4),
-    subclasseId: ficha.subclasseId ?? null,
-    classesSecundarias: Array.isArray(ficha.classesSecundarias)
-      ? ficha.classesSecundarias.map((classe) => ({
+    ...fichaComNiveisValidos,
+    versaoFicha: Math.max(Number(fichaComNiveisValidos.versaoFicha) || 1, 8),
+    subclasseId: fichaComNiveisValidos.subclasseId ?? null,
+    classesSecundarias: Array.isArray(fichaComNiveisValidos.classesSecundarias)
+      ? fichaComNiveisValidos.classesSecundarias.map((classe) => ({
           ...classe,
           subclasseId: classe?.subclasseId ?? null,
         }))
@@ -109,7 +115,11 @@ export function normalizarFicha(ficha) {
     pericias: ficha.pericias && typeof ficha.pericias === "object" ? ficha.pericias : {},
     magias: Array.isArray(ficha.magias) ? ficha.magias : [],
     habilidades: Array.isArray(ficha.habilidades) ? ficha.habilidades : [],
-    inventario: Array.isArray(ficha.inventario) ? ficha.inventario : [],
+    inventario: Array.isArray(ficha.inventario)
+      ? normalizarInventario(ficha.inventario)
+      : [],
+    moedas: normalizarMoedas(ficha.moedas),
+    condicoesAtivas: normalizarCondicoes(ficha.condicoesAtivas),
   };
   const dadosVidaPorClasse = normalizarPoolsDadosVida(base);
   const origemClassePvPorNivel = {

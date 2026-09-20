@@ -1,6 +1,7 @@
 import { ARMAS } from "./armas";
 import { ARMADURAS } from "./armaduras";
 import { EQUIPAMENTOS } from "./equipamentos";
+import { ITENS_MAGICOS } from "./itensMagicos";
 
 // Junta armas, armaduras e equipamentos num formato único, pronto pra
 // popular o menu "Adicionar Itens". Cada entrada guarda um "resumo" (linha
@@ -35,6 +36,16 @@ export const CATALOGO_ITENS = [
     peso: item.peso,
     custo: item.custo,
     resumo: item.descricao ? item.descricao.slice(0, 40) + (item.descricao.length > 40 ? "…" : "") : `${item.peso} kg`,
+    original: item,
+  })),
+  ...ITENS_MAGICOS.map((item) => ({
+    id: `magico-${item.id}`,
+    nome: item.nome,
+    grupo: "Itens mágicos",
+    tipoItem: item.tipoItem,
+    peso: item.peso,
+    custo: null,
+    resumo: `${item.raridade}${item.requerSintonizacao ? " · requer sintonização" : ""}`,
     original: item,
   })),
 ];

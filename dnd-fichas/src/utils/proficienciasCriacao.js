@@ -3,17 +3,47 @@ import { obterRaca } from "../data/racas";
 import { obterAntecedente } from "../data/antecedentes";
 import { PERICIAS } from "../data/pericias";
 import { IDIOMAS } from "../data/idiomas";
+import {
+  FERRAMENTAS,
+  FERRAMENTAS_ARTESAO_IDS,
+  INSTRUMENTOS_MUSICA_IDS,
+  JOGOS_IDS,
+} from "../data/equipamentos";
 
 // Esta camada é a única fonte das concessões automáticas da criação. O campo
 // `origensProficiencias` é aditivo: fichas antigas continuam legíveis e tudo
 // que não pode ser atribuído com segurança permanece manual.
-const ORIGENS_AUTOMATICAS = /^(classe-inicial|raca|antecedente):/;
+const ORIGENS_AUTOMATICAS = /^(classe-inicial|raca|antecedente|substituicao-criacao):/;
 
 export function opcoesPericias(regra) {
   if (!regra) return [];
   return regra.opcoes === "todas"
     ? PERICIAS.map((pericia) => pericia.chave)
     : regra.opcoes ?? [];
+}
+
+export function opcoesFerramentas(regra) {
+  if (!regra) return [];
+  if (regra.opcoes) return regra.opcoes;
+  if (regra.grupo === "artesao") return FERRAMENTAS_ARTESAO_IDS;
+  if (regra.grupo === "jogos") return JOGOS_IDS;
+  if (regra.grupo === "artesao-ou-instrumento") {
+    return [...FERRAMENTAS_ARTESAO_IDS, ...INSTRUMENTOS_MUSICA_IDS];
+  }
+  return [];
+}
+
+export function quantidadeSubstituicoesFerramentas(classe, raca, antecedente) {
+  const contagem = new Map();
+  const fontes = [
+    classe?.proficienciasIniciais?.ferramentas ?? [],
+    raca?.ferramentasFixas ?? [],
+    antecedente?.ferramentasFixas ?? [],
+  ];
+  for (const lista of fontes) {
+    for (const id of new Set(lista)) contagem.set(id, (contagem.get(id) ?? 0) + 1);
+  }
+  return [...contagem.values()].reduce((total, quantidade) => total + Math.max(0, quantidade - 1), 0);
 }
 
 export function escolhasObrigatoriasCriacao(ficha) {
@@ -29,11 +59,14 @@ export function escolhasObrigatoriasCriacao(ficha) {
     }
   };
   verificar("Perícias da classe", classe?.proficienciasIniciais?.pericias, escolhas.periciasClasse);
-  verificar("Instrumentos da classe", classe?.proficienciasIniciais?.ferramentasEscolha, escolhas.ferramentasClasse);
+  verificar("Ferramentas da classe", classe?.proficienciasIniciais?.ferramentasEscolha, escolhas.ferramentasClasse);
   verificar("Perícias raciais", raca?.periciasEscolha, escolhas.periciasRaca);
   verificar("Idiomas raciais", raca?.idiomasEscolha, escolhas.idiomasRaca);
+  verificar("Ferramentas da raça", raca?.ferramentasEscolha, escolhas.ferramentasRaca);
   verificar("Idiomas do antecedente", antecedente?.idiomasEscolha, escolhas.idiomasAntecedente);
   verificar("Ferramentas do antecedente", antecedente?.ferramentasEscolha, escolhas.ferramentasAntecedente);
+  const quantidadeSubstituicoes = quantidadeSubstituicoesFerramentas(classe, raca, antecedente);
+  verificar("Ferramentas substitutas", quantidadeSubstituicoes, escolhas.ferramentasSubstitutas);
   const validarLista = (titulo, valores, opcoes, bloqueadas = []) => {
     const vistos = new Set();
     for (const valor of valores ?? []) {
@@ -45,12 +78,18 @@ export function escolhasObrigatoriasCriacao(ficha) {
     }
   };
   const periciasJaManuais = Object.entries(ficha.origensProficiencias?.pericias ?? {}).filter(([, origens]) => (origens ?? []).some((origem) => origem.startsWith("manual:") || origem.startsWith("multiclasse:"))).map(([id]) => id);
+  const ferramentasJaManuais = Object.entries(ficha.origensProficiencias?.ferramentas ?? {}).filter(([, origens]) => (origens ?? []).some((origem) => origem.startsWith("manual:") || origem.startsWith("multiclasse:"))).map(([id]) => id);
   validarLista("Perícias da classe", escolhas.periciasClasse, opcoesPericias(classe?.proficienciasIniciais?.pericias), [...(raca?.periciasConcedidas ?? []), ...(raca?.periciasEscolha ? escolhas.periciasRaca ?? [] : []), ...(antecedente?.periciasConcedidas ?? []), ...periciasJaManuais]);
   validarLista("Perícias raciais", escolhas.periciasRaca, opcoesPericias(raca?.periciasEscolha), antecedente?.periciasConcedidas ?? []);
-  validarLista("Instrumentos da classe", escolhas.ferramentasClasse, classe?.proficienciasIniciais?.ferramentasEscolha?.opcoes ?? []);
+  const ferramentasClasseFixas = classe?.proficienciasIniciais?.ferramentas ?? [];
+  const ferramentasRacaFixas = raca?.ferramentasFixas ?? [];
+  const ferramentasAntecedenteFixas = antecedente?.ferramentasFixas ?? [];
+  validarLista("Ferramentas da classe", escolhas.ferramentasClasse, opcoesFerramentas(classe?.proficienciasIniciais?.ferramentasEscolha), [...ferramentasClasseFixas, ...ferramentasRacaFixas, ...ferramentasAntecedenteFixas, ...(escolhas.ferramentasRaca ?? []), ...(escolhas.ferramentasAntecedente ?? []), ...ferramentasJaManuais]);
   validarLista("Idiomas raciais", escolhas.idiomasRaca, IDIOMAS.map((item) => item.id), raca?.idiomasFixos ?? []);
   validarLista("Idiomas do antecedente", escolhas.idiomasAntecedente, IDIOMAS.map((item) => item.id), [...(raca?.idiomasFixos ?? []), ...(escolhas.idiomasRaca ?? [])]);
-  validarLista("Ferramentas do antecedente", escolhas.ferramentasAntecedente, antecedente?.ferramentasEscolha?.opcoes ?? [], antecedente?.ferramentasFixas ?? []);
+  validarLista("Ferramentas da raça", escolhas.ferramentasRaca, opcoesFerramentas(raca?.ferramentasEscolha), [...ferramentasClasseFixas, ...ferramentasRacaFixas, ...ferramentasAntecedenteFixas, ...(escolhas.ferramentasClasse ?? []), ...(escolhas.ferramentasAntecedente ?? []), ...ferramentasJaManuais]);
+  validarLista("Ferramentas do antecedente", escolhas.ferramentasAntecedente, opcoesFerramentas(antecedente?.ferramentasEscolha), [...ferramentasClasseFixas, ...ferramentasRacaFixas, ...ferramentasAntecedenteFixas, ...(escolhas.ferramentasClasse ?? []), ...(escolhas.ferramentasRaca ?? []), ...ferramentasJaManuais]);
+  validarLista("Ferramentas substitutas", escolhas.ferramentasSubstitutas, FERRAMENTAS.map((item) => item.id), [...new Set([...ferramentasClasseFixas, ...ferramentasRacaFixas, ...ferramentasAntecedenteFixas, ...(escolhas.ferramentasClasse ?? []), ...(escolhas.ferramentasRaca ?? []), ...(escolhas.ferramentasAntecedente ?? []), ...ferramentasJaManuais])]);
   return pendencias;
 }
 
@@ -72,18 +111,19 @@ function removerOrigensAutomaticas(mapa) {
 
 function criarOrigensLegadas(ficha) {
   const origens = structuredClone(ficha.origensProficiencias ?? {});
-  if (ficha.origensProficiencias && typeof ficha.origensProficiencias === "object" && Object.keys(ficha.origensProficiencias).length) return origens;
   // Uma ficha que ainda não tem origem não perde nada: o que já existia é
-  // marcado como manual em vez de ser atribuído retroativamente.
+  // marcado como manual em vez de ser atribuído retroativamente. O mesmo vale
+  // para mapas de origem parciais criados por versões anteriores.
+  const semOrigem = (tipo, id) => !(origens[tipo]?.[id]?.length);
   const antecedentesLegados = new Set(ficha.periciasDoAntecedente ?? []);
   for (const pericia of Object.keys(ficha.pericias ?? {})) {
-    if (ficha.pericias?.[pericia] && !antecedentesLegados.has(pericia)) adicionarOrigem(origens, "pericias", pericia, "manual:legado");
+    if (ficha.pericias?.[pericia] && !antecedentesLegados.has(pericia) && semOrigem("pericias", pericia)) adicionarOrigem(origens, "pericias", pericia, "manual:legado");
   }
-  for (const idioma of ficha.idiomas ?? []) adicionarOrigem(origens, "idiomas", idioma, "manual:legado");
-  for (const ferramenta of ficha.proficienciasFerramentas ?? []) adicionarOrigem(origens, "ferramentas", ferramenta, "manual:legado");
-  for (const arma of ficha.proficienciasArmas ?? []) adicionarOrigem(origens, "armas", arma, "manual:legado");
-  for (const armadura of ficha.proficienciasArmaduras ?? []) adicionarOrigem(origens, "armaduras", armadura, "manual:legado");
-  if (ficha.proficienciasEscudos) adicionarOrigem(origens, "escudos", "escudos", "manual:legado");
+  for (const idioma of ficha.idiomas ?? []) if (semOrigem("idiomas", idioma)) adicionarOrigem(origens, "idiomas", idioma, "manual:legado");
+  for (const ferramenta of ficha.proficienciasFerramentas ?? []) if (semOrigem("ferramentas", ferramenta)) adicionarOrigem(origens, "ferramentas", ferramenta, "manual:legado");
+  for (const arma of ficha.proficienciasArmas ?? []) if (semOrigem("armas", arma)) adicionarOrigem(origens, "armas", arma, "manual:legado");
+  for (const armadura of ficha.proficienciasArmaduras ?? []) if (semOrigem("armaduras", armadura)) adicionarOrigem(origens, "armaduras", armadura, "manual:legado");
+  if (ficha.proficienciasEscudos && semOrigem("escudos", "escudos")) adicionarOrigem(origens, "escudos", "escudos", "manual:legado");
   return origens;
 }
 
@@ -115,7 +155,10 @@ export function reconciliarProficienciasCriacao(ficha) {
     concederLista(origens, "idiomas", escolhas.idiomasRaca, `raca:${raca.id}`);
     concederLista(origens, "pericias", raca.periciasConcedidas, `raca:${raca.id}`);
     concederLista(origens, "pericias", escolhas.periciasRaca, `raca:${raca.id}`);
+    concederLista(origens, "ferramentas", raca.ferramentasFixas, `raca:${raca.id}`);
+    concederLista(origens, "ferramentas", escolhas.ferramentasRaca, `raca:${raca.id}`);
   }
+  concederLista(origens, "ferramentas", escolhas.ferramentasSubstitutas, "substituicao-criacao:duplicidade");
   if (antecedente) {
     concederLista(origens, "pericias", antecedente.periciasConcedidas, `antecedente:${antecedente.id}`);
     concederLista(origens, "idiomas", escolhas.idiomasAntecedente, `antecedente:${antecedente.id}`);

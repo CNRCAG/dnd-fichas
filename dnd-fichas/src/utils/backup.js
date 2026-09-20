@@ -2,8 +2,22 @@
 // Importar: lê um arquivo .json de volta e devolve o objeto pra virar
 // uma ficha nova (uso pensado como cópia de segurança, não sincronização).
 
+import { normalizarFicha } from "./ficha";
+
+export function serializarFicha(ficha) {
+  return JSON.stringify(ficha, null, 2);
+}
+
+export function importarFichaDeJson(conteudo) {
+  const dados = JSON.parse(String(conteudo ?? ""));
+  if (!dados || typeof dados !== "object" || Array.isArray(dados)) {
+    throw new Error("Arquivo inválido");
+  }
+  return normalizarFicha(dados);
+}
+
 export function exportarFicha(ficha) {
-  const conteudo = JSON.stringify(ficha, null, 2);
+  const conteudo = serializarFicha(ficha);
   const blob = new Blob([conteudo], { type: "application/json" });
   const url = URL.createObjectURL(blob);
 
@@ -25,7 +39,7 @@ export function lerArquivoFicha(arquivo) {
     const leitor = new FileReader();
     leitor.onload = () => {
       try {
-        resolve(JSON.parse(leitor.result));
+        resolve(importarFichaDeJson(leitor.result));
       } catch {
         reject(new Error("Arquivo inválido"));
       }

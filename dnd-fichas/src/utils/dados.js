@@ -53,7 +53,21 @@ export function rolarFormula(formula) {
 
 // Rola um teste d20 (atributo, perícia, salvaguarda, ataque) somando um
 // modificador fixo. Retorna { d20, modificador, total }.
-export function rolarTesteD20(modificador = 0) {
-  const d20 = rolarD20();
-  return { d20, modificador, total: d20 + modificador };
+export function rolarTesteD20(
+  modificador = 0,
+  { vantagem = false, desvantagem = false } = {},
+  rolar = rolarD20
+) {
+  const modo = vantagem === desvantagem
+    ? "normal"
+    : vantagem
+    ? "vantagem"
+    : "desvantagem";
+  const rolagens = modo === "normal" ? [rolar()] : [rolar(), rolar()];
+  const d20 = modo === "vantagem"
+    ? Math.max(...rolagens)
+    : modo === "desvantagem"
+    ? Math.min(...rolagens)
+    : rolagens[0];
+  return { d20, rolagens, modo, modificador, total: d20 + modificador };
 }

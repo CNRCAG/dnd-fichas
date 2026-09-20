@@ -33,6 +33,10 @@ export const RACAS = [
     bonusAtributos: { constituicao: 2 },
     deslocamento: 7,
     idiomasFixos: ["comum", "anao"],
+    ferramentasEscolha: {
+      quantidade: 1,
+      opcoes: ["ferramentas-ferreiro", "ferramentas-cervejeiro", "ferramentas-pedreiro"],
+    },
   },
   {
     id: "halfling",

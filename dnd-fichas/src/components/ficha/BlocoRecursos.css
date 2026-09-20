@@ -21,7 +21,7 @@
 }
 
 .recurso-nome {
-  flex: 1;
+  width: 100%;
   min-width: 140px;
   padding: var(--space-1);
   background: transparent;
@@ -117,4 +117,17 @@
 .recursos-sugestao-botao:hover {
   background: var(--color-accent);
   color: var(--color-accent-ink);
+}
+
+.recurso-identidade {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+}
+
+.recurso-identidade small {
+  padding-left: var(--space-1);
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
 }

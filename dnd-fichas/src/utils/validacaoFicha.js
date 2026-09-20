@@ -21,9 +21,12 @@ import { obterRegraMulticlasse } from "../data/proficienciasMulticlasse";
 import { escolhasObrigatoriasCriacao } from "./proficienciasCriacao";
 import { obterRaca } from "../data/racas";
 import { obterAntecedente } from "../data/antecedentes";
-import { validarOrigemEspecial, encontrarMagiaCatalogo } from "./regrasMagias";
-
-const NIVEL_MAXIMO_PERSONAGEM = 20;
+import {
+  validarOrigemEspecial,
+  encontrarMagiaCatalogo,
+  limiteSegredosMagicosAdicionais,
+} from "./regrasMagias";
+import { NIVEL_MAXIMO_PERSONAGEM } from "./niveis";
 
 const PRE_REQUISITOS_MULTICLASSE = {
   barbaro: {
@@ -107,6 +110,13 @@ export function validarFicha(ficha, atributosTotais) {
   const avisos = [];
   const atributos = atributosTotais ?? {};
   const classesSecundarias = ficha.classesSecundarias ?? [];
+
+  if (ficha.normalizacaoNiveis?.ajustado) {
+    adicionar(
+      avisos,
+      "Migração: níveis inválidos ou acima do total 20 foram ajustados automaticamente; confira as classes."
+    );
+  }
 
   if (!ficha.nome?.trim() || ficha.nome === "Sem nome") adicionar(pendencias, "Identidade: informe o nome do personagem.");
   if (!ficha.racaId) adicionar(pendencias, "Identidade: escolha uma raça.");
@@ -262,22 +272,22 @@ export function validarFicha(ficha, atributosTotais) {
   const poolsEsperados = classesComDadosVida(ficha);
   const pools = ficha.dadosVidaPorClasse;
   if (!pools || typeof pools !== "object") {
-    adicionar(avisos, "Pools de dados de vida ausentes; recarregue a ficha para migrar os dados antigos.");
+    adicionar(erros, "Pools de dados de vida ausentes; recarregue a ficha para migrar os dados antigos.");
   } else {
     for (const classe of poolsEsperados) {
       const pool = pools[classe.classeId];
       if (!pool) {
-        adicionar(avisos, `${classe.nome}: pool de dados de vida ausente.`);
+        adicionar(erros, `${classe.nome}: pool de dados de vida ausente.`);
         continue;
       }
       if (Number(pool.dadoVida) !== classe.dadoVida) {
-        adicionar(avisos, `${classe.nome}: o pool deve usar d${classe.dadoVida}.`);
+        adicionar(erros, `${classe.nome}: o pool deve usar d${classe.dadoVida}.`);
       }
       if (Number(pool.maximo) !== classe.maximo) {
-        adicionar(avisos, `${classe.nome}: o máximo de dados de vida deve ser ${classe.maximo}.`);
+        adicionar(erros, `${classe.nome}: o máximo de dados de vida deve ser ${classe.maximo}.`);
       }
       if (Number(pool.usados) < 0 || Number(pool.usados) > Number(pool.maximo)) {
-        adicionar(avisos, `${classe.nome}: dados de vida gastos devem ficar entre 0 e o máximo.`);
+        adicionar(erros, `${classe.nome}: dados de vida gastos devem ficar entre 0 e o máximo.`);
       }
     }
     for (const classeId of Object.keys(pools)) {
@@ -287,12 +297,19 @@ export function validarFicha(ficha, atributosTotais) {
     }
   }
 
-  for (const nivel of Object.keys(ficha.pvPorNivel ?? {})) {
+  const classesAtuais = new Set(classesComNivel.map((classe) => classe.classeId).filter(Boolean));
+  for (let nivel = 1; nivel <= nivelTotal; nivel += 1) {
+    const ganho = Number(ficha.pvPorNivel?.[nivel]);
     const classeOrigemId = ficha.origemClassePvPorNivel?.[nivel];
+    if (!Number.isFinite(ganho) || ganho < 1) {
+      adicionar(erros, `PV do nível ${nivel}: ganho ausente ou inválido.`);
+    }
     if (!classeOrigemId) {
-      adicionar(avisos, `PV do nível ${nivel}: classe de origem ausente.`);
+      adicionar(erros, `PV do nível ${nivel}: classe de origem ausente.`);
     } else if (!CLASSES.some((classe) => classe.id === classeOrigemId)) {
-      adicionar(avisos, `PV do nível ${nivel}: classe de origem inválida.`);
+      adicionar(erros, `PV do nível ${nivel}: classe de origem inválida.`);
+    } else if (!classesAtuais.has(classeOrigemId)) {
+      adicionar(erros, `PV do nível ${nivel}: a classe de origem não está mais na ficha.`);
     }
   }
 
@@ -335,8 +352,9 @@ export function validarFicha(ficha, atributosTotais) {
     }
     if (magia.origemEspecial?.tipo === "segredos-magicos") {
       const classeSegredo = magia.origemEspecial.classeId;
-      contagemMagias[classeSegredo] ??= { truques: 0, conhecidas: 0, preparadas: 0, arcanos: {} };
+      contagemMagias[classeSegredo] ??= { truques: 0, conhecidas: 0, preparadas: 0, arcanos: {}, segredosMagicos: 0 };
       contagemMagias[classeSegredo].conhecidas += 1;
+      contagemMagias[classeSegredo].segredosMagicos += 1;
     }
     if (magia.origemEspecial || magia.classeId === "especial") continue;
     const catalogo = encontrarMagiaCatalogo(magia);
@@ -401,8 +419,10 @@ const excecao =
       );
     }
     if (classeId && classesComNivel.some((item) => item.classeId === classeId)) {
-      contagemMagias[classeId] ??= { truques: 0, conhecidas: 0, preparadas: 0, arcanos: {} };
-      if (Number(magia.nivel) === 0) contagemMagias[classeId].truques += 1;
+      contagemMagias[classeId] ??= { truques: 0, conhecidas: 0, preparadas: 0, arcanos: {}, segredosMagicos: 0 };
+      if (Number(magia.nivel) === 0 && excecao?.tipo !== "concedida") {
+        contagemMagias[classeId].truques += 1;
+      }
       else if (classeId === "bruxo" && Number(magia.nivel) >= 6) {
         contagemMagias[classeId].arcanos[magia.nivel] = (contagemMagias[classeId].arcanos[magia.nivel] ?? 0) + 1;
       }
@@ -459,8 +479,13 @@ const excecao =
     if (contagem.truques > limites.truques) {
       adicionar(avisos, `${nome}: ${contagem.truques} truques cadastrados; limite básico no nível ${classe.nivel}: ${limites.truques}.`);
     }
-    if (limites.conhecidas !== null && contagem.conhecidas > limites.conhecidas) {
-      adicionar(avisos, `${nome}: ${contagem.conhecidas} magias conhecidas cadastradas; limite básico no nível ${classe.nivel}: ${limites.conhecidas}.`);
+    const segredosAdicionais = Math.min(
+      contagem.segredosMagicos ?? 0,
+      limiteSegredosMagicosAdicionais(ficha, classe.classeId)
+    );
+    const conhecidasNoLimite = contagem.conhecidas - segredosAdicionais;
+    if (limites.conhecidas !== null && conhecidasNoLimite > limites.conhecidas) {
+      adicionar(avisos, `${nome}: ${conhecidasNoLimite} magias conhecidas contam para o limite; máximo básico no nível ${classe.nivel}: ${limites.conhecidas}.`);
     }
     if (limites.preparadas !== null && contagem.preparadas > limites.preparadas) {
       adicionar(avisos, `${nome}: ${contagem.preparadas} magias preparadas; limite básico no nível ${classe.nivel}: ${limites.preparadas} (magias de domínio, círculo ou juramento podem ser extras).`);
@@ -505,13 +530,23 @@ const excecao =
     avisos,
     itens: [...itens("erro", erros), ...itens("pendencia", pendencias), ...itens("aviso", avisos)],
     pronta: erros.length === 0 && pendencias.length === 0,
+    estado: erros.length === 0 && pendencias.length === 0 ? "valida" : "bloqueada",
   };
 }
 
-function secaoDaMensagem(mensagem) {
+export function secaoDaMensagem(mensagem) {
   const texto = mensagem.toLocaleLowerCase();
   if (texto.includes("magia") || texto.includes("arcano") || texto.includes("segredo")) return "magias";
   if (texto.includes("perícia") || texto.includes("idioma") || texto.includes("ferramenta") || texto.includes("proficiência")) return "pericias";
+  if (texto.includes("talento") || texto.includes("habilidade")) return "habilidades";
+  if (texto.includes("item") || texto.includes("inventário")) return "inventario";
   if (texto.includes("pv") || texto.includes("vida") || texto.includes("recurso") || texto.includes("espaço")) return "combate";
   return "identidade";
+}
+
+export function reconciliarEstadoProntidao(ficha, atributosTotais) {
+  if (ficha?.estadoFicha !== "pronta") return ficha;
+  return validarFicha(ficha, atributosTotais).pronta
+    ? ficha
+    : { ...ficha, estadoFicha: "rascunho" };
 }

@@ -10,7 +10,11 @@ import { ATRIBUTOS } from "../../utils/dnd";
 import { PERICIAS } from "../../data/pericias";
 import { IDIOMAS } from "../../data/idiomas";
 import { FERRAMENTAS } from "../../data/equipamentos";
-import { opcoesPericias } from "../../utils/proficienciasCriacao";
+import {
+  opcoesFerramentas,
+  opcoesPericias,
+  quantidadeSubstituicoesFerramentas,
+} from "../../utils/proficienciasCriacao";
 import {
   PRE_REQUISITOS_MULTICLASSE,
   atendePreRequisitoMulticlasse,
@@ -366,17 +370,25 @@ function EscolhasCriacao({ classe, raca, antecedente, escolhas, onChange }) {
   const nomesIdiomas = Object.fromEntries(IDIOMAS.map((item) => [item.id, item.nome]));
   const nomesFerramentas = Object.fromEntries(FERRAMENTAS.map((item) => [item.id, item.nome]));
   const classePericias = classe?.proficienciasIniciais?.pericias;
+  const ferramentasFixas = [
+    ...(classe?.proficienciasIniciais?.ferramentas ?? []),
+    ...(raca?.ferramentasFixas ?? []),
+    ...(antecedente?.ferramentasFixas ?? []),
+  ];
+  const substituicoes = quantidadeSubstituicoesFerramentas(classe, raca, antecedente);
   return <div className="raca-classe-grid">
     <CampoEscolhaCriacao titulo="Perícias da classe" chave="periciasClasse" quantidade={classePericias?.quantidade} opcoes={opcoesPericias(classePericias)} nomes={nomesPericias} escolhas={escolhas} onChange={onChange} />
-    <CampoEscolhaCriacao titulo="Instrumentos da classe" chave="ferramentasClasse" quantidade={classe?.proficienciasIniciais?.ferramentasEscolha?.quantidade} opcoes={classe?.proficienciasIniciais?.ferramentasEscolha?.opcoes ?? []} nomes={nomesFerramentas} escolhas={escolhas} onChange={onChange} />
+    <CampoEscolhaCriacao titulo="Ferramentas da classe" chave="ferramentasClasse" quantidade={classe?.proficienciasIniciais?.ferramentasEscolha?.quantidade} opcoes={opcoesFerramentas(classe?.proficienciasIniciais?.ferramentasEscolha)} bloqueadas={[...ferramentasFixas, ...(escolhas.ferramentasRaca ?? []), ...(escolhas.ferramentasAntecedente ?? [])]} nomes={nomesFerramentas} escolhas={escolhas} onChange={onChange} />
     <CampoEscolhaCriacao titulo="Perícias da raça" chave="periciasRaca" quantidade={raca?.periciasEscolha?.quantidade} opcoes={opcoesPericias(raca?.periciasEscolha)} nomes={nomesPericias} escolhas={escolhas} onChange={onChange} />
     <CampoEscolhaCriacao titulo="Idiomas da raça" chave="idiomasRaca" quantidade={raca?.idiomasEscolha} opcoes={IDIOMAS.map((item) => item.id).filter((id) => !raca?.idiomasFixos?.includes(id))} nomes={nomesIdiomas} escolhas={escolhas} onChange={onChange} />
+    <CampoEscolhaCriacao titulo="Ferramentas da raça" chave="ferramentasRaca" quantidade={raca?.ferramentasEscolha?.quantidade} opcoes={opcoesFerramentas(raca?.ferramentasEscolha)} bloqueadas={[...ferramentasFixas, ...(escolhas.ferramentasClasse ?? []), ...(escolhas.ferramentasAntecedente ?? [])]} nomes={nomesFerramentas} escolhas={escolhas} onChange={onChange} />
     <CampoEscolhaCriacao titulo="Idiomas do antecedente" chave="idiomasAntecedente" quantidade={antecedente?.idiomasEscolha} opcoes={IDIOMAS.map((item) => item.id)} nomes={nomesIdiomas} escolhas={escolhas} onChange={onChange} />
-    <CampoEscolhaCriacao titulo="Ferramentas do antecedente" chave="ferramentasAntecedente" quantidade={antecedente?.ferramentasEscolha?.quantidade} opcoes={antecedente?.ferramentasEscolha?.opcoes ?? []} nomes={nomesFerramentas} escolhas={escolhas} onChange={onChange} />
+    <CampoEscolhaCriacao titulo="Ferramentas do antecedente" chave="ferramentasAntecedente" quantidade={antecedente?.ferramentasEscolha?.quantidade} opcoes={opcoesFerramentas(antecedente?.ferramentasEscolha)} bloqueadas={[...ferramentasFixas, ...(escolhas.ferramentasClasse ?? []), ...(escolhas.ferramentasRaca ?? [])]} nomes={nomesFerramentas} escolhas={escolhas} onChange={onChange} />
+    <CampoEscolhaCriacao titulo="Substituições por proficiências repetidas" chave="ferramentasSubstitutas" quantidade={substituicoes} opcoes={FERRAMENTAS.map((item) => item.id)} bloqueadas={[...new Set([...ferramentasFixas, ...(escolhas.ferramentasClasse ?? []), ...(escolhas.ferramentasRaca ?? []), ...(escolhas.ferramentasAntecedente ?? [])])]} nomes={nomesFerramentas} escolhas={escolhas} onChange={onChange} />
   </div>;
 }
 
-function CampoEscolhaCriacao({ titulo, chave, quantidade, opcoes, nomes, escolhas, onChange }) {
+function CampoEscolhaCriacao({ titulo, chave, quantidade, opcoes, bloqueadas = [], nomes, escolhas, onChange }) {
   if (!quantidade) return null;
   const valores = escolhas[chave] ?? [];
   const faltam = Math.max(0, quantidade - new Set(valores.filter(Boolean)).size);
@@ -395,7 +407,7 @@ function CampoEscolhaCriacao({ titulo, chave, quantidade, opcoes, nomes, escolha
         }}
       >
         <option value="">Selecione...</option>
-        {opcoes.filter((id) => !valores.includes(id) || valores[indice] === id).map((id) => <option key={id} value={id}>{nomes[id] ?? id}</option>)}
+        {opcoes.filter((id) => !bloqueadas.includes(id) && (!valores.includes(id) || valores[indice] === id)).map((id) => <option key={id} value={id}>{nomes[id] ?? id}</option>)}
       </select>)}
     </div>
   </div>;

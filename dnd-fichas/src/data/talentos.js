@@ -14,9 +14,23 @@ export const TALENTOS = [
   { id: "mestre-armadura-pesada", nome: "Mestre da Armadura Pesada", descricao: "Com proficiência em armadura pesada, reduz em 3 o dano de ataques cortantes, perfurantes e concussão não mágicos." },
   { id: "lider-inspirador", nome: "Líder Inspirador", descricao: "Gasta 10 minutos motivando aliados, que ganham pontos de vida temporários." },
   { id: "mente-afiada", nome: "Mente Afiada", descricao: "Melhora Inteligência em 1; ganha proficiência numa perícia de Inteligência e sabe a hora do dia sem relógio." },
-  { id: "sortudo", nome: "Sortudo", descricao: "Ganha pontos de sorte pra rerrolar dados de ataque, teste ou resistência, seus ou de um inimigo contra você." },
+  {
+    id: "sortudo",
+    nome: "Sortudo",
+    descricao: "Ganha pontos de sorte pra rerrolar dados de ataque, teste ou resistência, seus ou de um inimigo contra você.",
+    recursos: [
+      { id: "pontos-sorte", nome: "Pontos de Sorte", formulaMaximo: { base: 3 }, restauraEm: "longo" },
+    ],
+  },
   { id: "iniciado-magia", nome: "Iniciado em Magia", descricao: "Aprende dois truques e uma magia de nível 1 de uma classe conjuradora à escolha." },
-  { id: "adepto-marcial", nome: "Adepto Marcial", descricao: "Aprende duas manobras de combate e ganha um dado de superioridade pra usá-las." },
+  {
+    id: "adepto-marcial",
+    nome: "Adepto Marcial",
+    descricao: "Aprende duas manobras de combate e ganha um dado de superioridade pra usá-las.",
+    recursos: [
+      { id: "dado-superioridade-adepto", nome: "Dado de Superioridade (Adepto Marcial)", formulaMaximo: { base: 1 }, restauraEm: "curto" },
+    ],
+  },
   { id: "movel", nome: "Móvel", descricao: "Deslocamento aumenta em 3m; ignora terreno difícil ao Disparar; não sofre ataque de oportunidade de quem já atacou." },
   { id: "combatente-montado", nome: "Combatente Montado", descricao: "Ganha vantagem em ataques contra criaturas menores que sua montaria e pode redirecionar ataques pra si mesmo." },
   { id: "observador", nome: "Observador", descricao: "Melhora Inteligência ou Sabedoria em 1; ganha bônus passivo em Percepção e Investigação, e lê lábios." },

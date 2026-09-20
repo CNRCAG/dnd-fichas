@@ -147,5 +147,5 @@ test("pré-requisitos e validação de pools continuam protegendo multiclasse", 
   assert.equal(regras.atendePreRequisitoMulticlasse("mago", atributosValidos), true);
   assert.equal(regras.atendePreRequisitoMulticlasse("mago", { ...atributosValidos, inteligencia: 10 }), false);
   const resultado = validacao.validarFicha(fichaBase({ dadosVidaPorClasse: {} }), atributosValidos);
-  assert.ok(resultado.avisos.some((aviso) => aviso.includes("pool de dados de vida ausente")));
+  assert.ok(resultado.erros.some((erro) => erro.includes("pool de dados de vida ausente")));
 });

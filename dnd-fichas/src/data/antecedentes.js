@@ -16,11 +16,24 @@ export const ANTECEDENTES = [
     },
   },
   {
+    id: "charlatao",
+    nome: "Charlatão",
+    descricao: "Sobrevive usando identidades falsas, lábia e pequenos golpes cuidadosamente preparados.",
+    periciasConcedidas: ["enganacao", "prestidigitacao"],
+    ferramentasFixas: ["ferramentas-disfarce", "ferramentas-falsificacao"],
+    equipamento: "Roupas finas, kit de disfarce, ferramentas do golpe favorito, 15 po",
+    caracteristica: {
+      nome: "Identidade Falsa",
+      descricao: "Mantém uma segunda identidade completa, com documentos, contatos e disfarces apropriados.",
+    },
+  },
+  {
     id: "criminoso",
     nome: "Criminoso",
     descricao: "Tem um histórico de quebrar a lei e viver à margem dela.",
     periciasConcedidas: ["enganacao", "furtividade"],
-    ferramentasEscolha: { quantidade: 1, opcoes: ["ferramentas-ladino", "jogo-de-dados", "baralho-cartas"] },
+    ferramentasFixas: ["ferramentas-ladino"],
+    ferramentasEscolha: { quantidade: 1, grupo: "jogos" },
     equipamento: "Pé-de-cabra, roupas escuras com capuz, 15 po",
     caracteristica: {
       nome: "Contato Criminoso",
@@ -28,11 +41,28 @@ export const ANTECEDENTES = [
     },
   },
   {
+    id: "artista",
+    nome: "Artista",
+    descricao: "Aprendeu a conquistar uma plateia por meio de música, atuação ou outra forma de espetáculo.",
+    periciasConcedidas: ["acrobacia", "atuacao"],
+    ferramentasFixas: ["ferramentas-disfarce"],
+    ferramentasEscolha: {
+      quantidade: 1,
+      opcoes: ["alaude", "flauta", "tambor", "harpa", "lira", "violino", "gaita-de-foles", "dulcimer", "trompa", "flauta-de-pa", "charamela"],
+    },
+    equipamento: "Instrumento musical, presente de um admirador, traje, 15 po",
+    caracteristica: {
+      nome: "Pela Demanda Popular",
+      descricao: "Sempre encontra um lugar onde se apresentar e costuma receber comida e hospedagem modestas em troca.",
+    },
+  },
+  {
     id: "heroi-do-povo",
     nome: "Herói do Povo",
     descricao: "Vem de origem humilde, mas já fez algo que o tornou querido pela gente comum.",
     periciasConcedidas: ["adestrarAnimais", "sobrevivencia"],
-    ferramentasEscolha: { quantidade: 1, opcoes: ["ferramentas-ferreiro", "ferramentas-carpinteiro", "kit-alquimista"] },
+    ferramentasFixas: ["veiculos-terrestres"],
+    ferramentasEscolha: { quantidade: 1, grupo: "artesao" },
     equipamento: "Kit de artesão, uma pá, roupas comuns, 10 po",
     caracteristica: {
       nome: "Hospitalidade Rústica",
@@ -44,7 +74,7 @@ export const ANTECEDENTES = [
     nome: "Artesão Guildado",
     descricao: "Aprendeu um ofício e é membro reconhecido de uma guilda de artesãos.",
     periciasConcedidas: ["intuicao", "persuasao"],
-    ferramentasEscolha: { quantidade: 1, opcoes: ["ferramentas-ferreiro", "ferramentas-carpinteiro", "kit-alquimista", "kit-ervanario"] }, idiomasEscolha: 1,
+    ferramentasEscolha: { quantidade: 1, grupo: "artesao" }, idiomasEscolha: 1,
     equipamento: "Ferramentas do seu ofício, carta da guilda, roupas de viajante, 15 po",
     caracteristica: {
       nome: "Filiação à Guilda",
@@ -68,11 +98,27 @@ export const ANTECEDENTES = [
     nome: "Nobre",
     descricao: "Nasceu em berço de riqueza, privilégio e poder.",
     periciasConcedidas: ["historia", "persuasao"],
-    idiomasEscolha: 1, ferramentasEscolha: { quantidade: 1, opcoes: ["jogo-de-dados", "baralho-cartas"] },
+    idiomasEscolha: 1, ferramentasEscolha: { quantidade: 1, grupo: "jogos" },
     equipamento: "Roupas finas, um anel de sinete, 25 po",
     caracteristica: {
       nome: "Posição Privilegiada",
       descricao: "Sua origem nobre abre portas — as pessoas assumem que você tem autoridade e o direito de estar em qualquer lugar.",
+    },
+  },
+  {
+    id: "forasteiro",
+    nome: "Forasteiro",
+    descricao: "Cresceu longe das cidades, viajando por regiões selvagens e aprendendo a viver da terra.",
+    periciasConcedidas: ["atletismo", "sobrevivencia"],
+    idiomasEscolha: 1,
+    ferramentasEscolha: {
+      quantidade: 1,
+      opcoes: ["alaude", "flauta", "tambor", "harpa", "lira", "violino", "gaita-de-foles", "dulcimer", "trompa", "flauta-de-pa", "charamela"],
+    },
+    equipamento: "Cajado, armadilha de caça, troféu de um animal, roupas de viajante, 10 po",
+    caracteristica: {
+      nome: "Andarilho",
+      descricao: "Recorda mapas e terrenos com facilidade e consegue encontrar alimento e água para um pequeno grupo em terras férteis.",
     },
   },
   {
@@ -88,15 +134,40 @@ export const ANTECEDENTES = [
     },
   },
   {
+    id: "marinheiro",
+    nome: "Marinheiro",
+    descricao: "Passou anos a bordo de embarcações, enfrentando longas viagens, tempestades e portos distantes.",
+    periciasConcedidas: ["atletismo", "percepcao"],
+    ferramentasFixas: ["ferramentas-navegador", "veiculos-aquaticos"],
+    equipamento: "Clava, corda de seda, amuleto da sorte, roupas comuns, 10 po",
+    caracteristica: {
+      nome: "Passagem de Navio",
+      descricao: "Pode conseguir transporte marítimo gratuito para si e seus companheiros quando houver uma embarcação amiga disponível.",
+    },
+  },
+  {
     id: "soldado",
     nome: "Soldado",
     descricao: "Serviu numa força militar, aprendendo disciplina, tática e combate.",
     periciasConcedidas: ["atletismo", "intimidacao"],
-    ferramentasEscolha: { quantidade: 1, opcoes: ["jogo-de-dados", "baralho-cartas"] },
+    ferramentasFixas: ["veiculos-terrestres"],
+    ferramentasEscolha: { quantidade: 1, grupo: "jogos" },
     equipamento: "Símbolo de patente, troféu de um inimigo caído, roupas comuns, 10 po",
     caracteristica: {
       nome: "Posto Militar",
       descricao: "Você pode invocar seu posto pra conseguir acesso a acampamentos militares e apoio de outros soldados de sua nação.",
+    },
+  },
+  {
+    id: "orfao",
+    nome: "Órfão",
+    descricao: "Cresceu sozinho nas ruas e aprendeu a sobreviver sem dinheiro, proteção ou uma família.",
+    periciasConcedidas: ["prestidigitacao", "furtividade"],
+    ferramentasFixas: ["ferramentas-disfarce", "ferramentas-ladino"],
+    equipamento: "Faca pequena, mapa da cidade, lembrança dos pais, roupas comuns, 10 po",
+    caracteristica: {
+      nome: "Segredos da Cidade",
+      descricao: "Conhece passagens e atalhos urbanos que permitem atravessar cidades mais rapidamente fora de combate.",
     },
   },
 ];

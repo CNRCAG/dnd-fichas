@@ -7,6 +7,15 @@ export default function BlocoRecursos({
   sugestoes,
   onAdicionarSugestao,
 }) {
+  function rotuloOrigem(recurso) {
+    if (recurso.origemTipo === "talento" || recurso.origemTalentoId) return "Talento";
+    if (recurso.origemTipo === "item" || recurso.origemItemId) return "Item";
+    if (recurso.origemTipo === "subclasse" || recurso.origemSubclasseId) return "Subclasse";
+    if (recurso.origemTipo === "classe" || recurso.origemClasseId) return "Classe";
+    if (recurso.origemTipo === "geral") return "Regra geral";
+    return recurso.origemId ? "Catálogo" : "Personalizado";
+  }
+
   function handleAdicionar() {
     onChangeRecursos([...recursos, criarRecursoVazio()]);
   }
@@ -29,7 +38,7 @@ export default function BlocoRecursos({
 
   return (
     <section>
-      <h3 className="bloco-titulo">Recursos de Classe</h3>
+      <h3 className="bloco-titulo">Recursos rastreáveis</h3>
 
       {sugestoes && sugestoes.length > 0 && (
         <div className="recursos-sugestoes">
@@ -54,15 +63,18 @@ export default function BlocoRecursos({
         <div className="recursos-lista">
           {recursos.map((recurso) => (
             <div key={recurso.id} className="recurso-item">
-              <input
-                type="text"
-                className="recurso-nome"
-                placeholder="Nome do recurso"
-                value={recurso.nome}
-                onChange={(evento) =>
-                  handleAlterar(recurso.id, "nome", evento.target.value)
-                }
-              />
+              <div className="recurso-identidade">
+                <input
+                  type="text"
+                  className="recurso-nome"
+                  placeholder="Nome do recurso"
+                  value={recurso.nome}
+                  onChange={(evento) =>
+                    handleAlterar(recurso.id, "nome", evento.target.value)
+                  }
+                />
+                <small>{rotuloOrigem(recurso)}</small>
+              </div>
 
               <div className="recurso-pips">
                 {Array.from({ length: recurso.usosMax }).map((_, indice) => (
@@ -106,6 +118,8 @@ export default function BlocoRecursos({
                 >
                   <option value="curto">Descanso curto</option>
                   <option value="longo">Descanso longo</option>
+                  <option value="amanhecer">Ao amanhecer</option>
+                  <option value="manual">Manual/evento</option>
                 </select>
               </label>
 
@@ -123,7 +137,7 @@ export default function BlocoRecursos({
       )}
 
       <button type="button" className="recursos-adicionar" onClick={handleAdicionar}>
-        + Adicionar recurso
+        + Recurso personalizado
       </button>
     </section>
   );

@@ -1,5 +1,6 @@
 import { formatarModificador } from "./dnd";
 import { obterItemCatalogo } from "../data/catalogoItens";
+import { itemMagicoAtivo } from "./itensMagicos";
 
 export function criarAtaqueApartirDeItemEquipado(itemInventario) {
   const catalogo = obterItemCatalogo(itemInventario.origemId);
@@ -18,7 +19,7 @@ export function criarAtaqueApartirDeItemEquipado(itemInventario) {
       ? "destreza"
       : "forca";
 
-    const bonusMagico = itemInventario.magico ? itemInventario.bonusMagico ?? 0 : 0;
+    const bonusMagico = itemMagicoAtivo(itemInventario) ? itemInventario.bonusMagico ?? 0 : 0;
 
   return {
     id: itemInventario.id,

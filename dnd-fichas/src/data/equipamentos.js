@@ -38,10 +38,25 @@ export const FERRAMENTAS = [
   { id: "ferramentas-ladino", nome: "Ferramentas de ladino", peso: 0.5, custo: 25 },
   { id: "ferramentas-disfarce", nome: "Kit de disfarce", peso: 1.5, custo: 25 },
   { id: "ferramentas-falsificacao", nome: "Kit de falsificação", peso: 2.5, custo: 15 },
+  { id: "ferramentas-navegador", nome: "Ferramentas de navegador", peso: 1, custo: 25 },
   { id: "kit-alquimista", nome: "Ferramentas de alquimista", peso: 4, custo: 50 },
   { id: "kit-ervanario", nome: "Kit de herbalismo", peso: 1.5, custo: 5 },
   { id: "ferramentas-ferreiro", nome: "Ferramentas de ferreiro", peso: 4, custo: 20 },
   { id: "ferramentas-carpinteiro", nome: "Ferramentas de carpinteiro", peso: 3, custo: 8 },
+  { id: "ferramentas-cartografo", nome: "Ferramentas de cartógrafo", peso: 3, custo: 15 },
+  { id: "ferramentas-cervejeiro", nome: "Suprimentos de cervejeiro", peso: 4.5, custo: 20 },
+  { id: "ferramentas-pedreiro", nome: "Ferramentas de pedreiro", peso: 4, custo: 10 },
+  { id: "ferramentas-cozinheiro", nome: "Utensílios de cozinheiro", peso: 4, custo: 1 },
+  { id: "ferramentas-costureiro", nome: "Ferramentas de tecelão", peso: 2.5, custo: 1 },
+  { id: "ferramentas-entalhador", nome: "Ferramentas de entalhador", peso: 2.5, custo: 1 },
+  { id: "ferramentas-coureiro", nome: "Ferramentas de coureiro", peso: 2.5, custo: 5 },
+  { id: "ferramentas-joalheiro", nome: "Ferramentas de joalheiro", peso: 1, custo: 25 },
+  { id: "ferramentas-oleiro", nome: "Ferramentas de oleiro", peso: 1.5, custo: 10 },
+  { id: "ferramentas-pintor", nome: "Suprimentos de pintor", peso: 2.5, custo: 10 },
+  { id: "ferramentas-sapateiro", nome: "Ferramentas de sapateiro", peso: 2.5, custo: 5 },
+  { id: "ferramentas-soprador-vidro", nome: "Ferramentas de soprador de vidro", peso: 2.5, custo: 30 },
+  { id: "ferramentas-funileiro", nome: "Ferramentas de funileiro", peso: 5, custo: 50 },
+  { id: "suprimentos-caligrafia", nome: "Suprimentos de caligrafia", peso: 2.5, custo: 10 },
   { id: "instrumento-musical", nome: "Instrumento musical (qualquer)", peso: 1.5, custo: 5 },
   { id: "alaude", nome: "Alaúde", peso: 1, custo: 35 },
   { id: "flauta", nome: "Flauta", peso: 0.5, custo: 2 },
@@ -49,8 +64,35 @@ export const FERRAMENTAS = [
   { id: "harpa", nome: "Harpa", peso: 18, custo: 20 },
   { id: "lira", nome: "Lira", peso: 1, custo: 30 },
   { id: "violino", nome: "Violino", peso: 0.5, custo: 30 },
+  { id: "gaita-de-foles", nome: "Gaita de foles", peso: 3, custo: 30 },
+  { id: "dulcimer", nome: "Dulcimer", peso: 5, custo: 25 },
+  { id: "trompa", nome: "Trompa", peso: 1, custo: 3 },
+  { id: "flauta-de-pa", nome: "Flauta de pã", peso: 1, custo: 12 },
+  { id: "charamela", nome: "Charamela", peso: 0.5, custo: 2 },
   { id: "jogo-de-dados", nome: "Jogo de dados", peso: 0, custo: 0.1 },
   { id: "baralho-cartas", nome: "Baralho de cartas", peso: 0, custo: 0.5 },
+  { id: "jogo-dragonchess", nome: "Conjunto de dragonchess", peso: 0.25, custo: 1 },
+  { id: "jogo-tres-dragoes", nome: "Baralho dos Três Dragões", peso: 0, custo: 1 },
+  { id: "veiculos-terrestres", nome: "Veículos terrestres", peso: 0, custo: 0 },
+  { id: "veiculos-aquaticos", nome: "Veículos aquáticos", peso: 0, custo: 0 },
+];
+
+export const FERRAMENTAS_ARTESAO_IDS = [
+  "kit-alquimista", "ferramentas-cervejeiro", "suprimentos-caligrafia",
+  "ferramentas-carpinteiro", "ferramentas-cartografo", "ferramentas-coureiro", "ferramentas-cozinheiro",
+  "ferramentas-entalhador", "ferramentas-ferreiro", "ferramentas-funileiro",
+  "ferramentas-joalheiro", "ferramentas-oleiro", "ferramentas-pedreiro",
+  "ferramentas-pintor", "ferramentas-sapateiro", "ferramentas-soprador-vidro",
+  "ferramentas-costureiro",
+];
+
+export const INSTRUMENTOS_MUSICA_IDS = [
+  "alaude", "flauta", "tambor", "harpa", "lira", "violino",
+  "gaita-de-foles", "dulcimer", "trompa", "flauta-de-pa", "charamela",
+];
+
+export const JOGOS_IDS = [
+  "jogo-de-dados", "baralho-cartas", "jogo-dragonchess", "jogo-tres-dragoes",
 ];
 
 export const EQUIPAMENTOS = [...EQUIPAMENTOS_GERAIS, ...FERRAMENTAS];

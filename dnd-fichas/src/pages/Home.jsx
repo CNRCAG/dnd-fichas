@@ -25,6 +25,11 @@ export default function Home() {
       const dados = await lerArquivoFicha(arquivo);
       delete dados.id;
       const novaFicha = criarFicha(dados.nome, dados);
+      if (novaFicha.normalizacaoNiveis?.ajustado) {
+        window.alert(
+          "A ficha foi importada, mas os níveis foram ajustados para respeitar o total máximo de 20. Confira as classes antes de usar."
+        );
+      }
       navigate(`/ficha/${novaFicha.id}`);
     } catch {
       window.alert(

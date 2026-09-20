@@ -4,7 +4,6 @@ import { useFichas } from "../context/useFichas";
 import { obterRaca } from "../data/racas";
 import { obterClasse } from "../data/classes";
 import {
-  classesDaFicha,
   sincronizarFichaComSubclasses,
   subclasseCompativel,
 } from "../utils/subclassesFicha";
@@ -12,6 +11,16 @@ import { obterHabilidadeClasse } from "../data/habilidadesClasses";
 import { calcularBonusProficiencia, calcularModificadoresAtributos } from "../utils/dnd";
 import { criarEspacosMagiaVazios } from "../utils/magia";
 import { calcularCaEquipada } from "../utils/equipamento";
+import { somarEfeitoItens } from "../utils/itensMagicos";
+import { atualizarStatus } from "../utils/status";
+import { atualizarMoeda } from "../utils/moedas";
+import {
+  adicionarCondicao,
+  aplicarEfeitoPv,
+  avisoConcentracaoPorDano,
+  avancarCondicao,
+  criarCondicaoAtiva,
+} from "../utils/efeitos";
 import {
   tipoConjurador,
   obterEspacosCombinadosMulticlasse,
@@ -19,10 +28,12 @@ import {
   mesclarEspacosPacto,
 } from "../utils/conjuracao";
 import { recalcularPv } from "../utils/progressao";
-import { restaurarTodosEspacos } from "../utils/descanso";
+import {
+  aplicarDescansoCurto,
+  aplicarDescansoLongo,
+} from "../utils/descanso";
 import {
   gastarDadoVida,
-  restaurarDadosVidaLongo,
   totalDadosVidaUsados,
 } from "../utils/dadosVida";
 import {
@@ -32,11 +43,18 @@ import {
 } from "../utils/proficienciasMulticlasse";
 import { atendePreRequisitoMulticlasse } from "../data/proficienciasMulticlasse";
 import { xpParaNivel } from "../utils/xp";
-import { calcularCdConcentracao } from "../utils/concentracao"; // NOVO
-import { restaurarRecursos } from "../utils/recurso";
+import {
+  calcularNivelTotal,
+  NIVEL_MAXIMO_PERSONAGEM,
+  normalizarNivel,
+} from "../utils/niveis";
+import {
+  criarRecursoDoCatalogo,
+  listarSugestoesRecursos,
+  sincronizarRecursosCatalogo,
+} from "../utils/recurso";
 import { reconciliarProficienciasCriacao } from "../utils/proficienciasCriacao";
-import { RECURSOS_CLASSES, resolverUsosMax } from "../data/recursosClasses";
-import { RECURSOS_SUBCLASSES } from "../data/recursosSubclasses";
+import { RECURSOS_RASTREAVEIS } from "../data/recursosRastreaveis";
 import BlocoRacaClasse from "../components/ficha/BlocoRacaClasse";
 import BlocoAtributos from "../components/ficha/BlocoAtributos";
 import BlocoStatus from "../components/ficha/BlocoStatus";
@@ -53,6 +71,7 @@ import BlocoDescanso from "../components/ficha/BlocoDescanso";
 import BlocoRecursos from "../components/ficha/BlocoRecursos";
 import BlocoProgressao from "../components/ficha/BlocoProgressao"; // NOVO
 import BlocoValidacao from "../components/ficha/BlocoValidacao";
+import FichaImpressao from "../components/ficha/FichaImpressao";
 import "./Ficha.css";
 
 const ABAS = [
@@ -64,49 +83,35 @@ const ABAS = [
   { chave: "notas", label: "Notas" },
 ];
 
-const NIVEL_MAXIMO_PERSONAGEM = 20;
-
-function normalizarNivel(nivel) {
-  return Math.min(NIVEL_MAXIMO_PERSONAGEM, Math.max(1, Number(nivel) || 1));
+function calcularBonusRacialFicha(ficha) {
+  const bonus = { ...(obterRaca(ficha?.racaId)?.bonusAtributos ?? {}) };
+  for (const chave of ficha?.bonusRacialEscolhido ?? []) {
+    if (chave) bonus[chave] = (bonus[chave] ?? 0) + 1;
+  }
+  return bonus;
 }
 
-function calcularNivelTotal(ficha) {
-  return (
-    normalizarNivel(ficha.nivel) +
-    (ficha.classesSecundarias ?? []).reduce(
-      (soma, classeSecundaria) =>
-        soma + (classeSecundaria.classeId ? normalizarNivel(classeSecundaria.nivel) : 0),
-      0
-    )
+function contextoRecursos(ficha, modificadores) {
+  const nivelTotal = calcularNivelTotal(ficha);
+  const atributos = { ...(ficha.atributos ?? {}) };
+  for (const [chave, bonus] of Object.entries(calcularBonusRacialFicha(ficha))) {
+    atributos[chave] = (atributos[chave] ?? 0) + bonus;
+  }
+  return {
+    nivelTotal,
+    bonusProficiencia: calcularBonusProficiencia(nivelTotal),
+    modificadores,
+    atributos,
+  };
+}
+
+function sincronizarRecursosDaFicha(ficha, modificadores) {
+  return sincronizarRecursosCatalogo(
+    ficha.recursos ?? [],
+    RECURSOS_RASTREAVEIS,
+    ficha,
+    contextoRecursos(ficha, modificadores)
   );
-}
-
-const RECURSOS_DE_CLASSE = [...RECURSOS_CLASSES, ...RECURSOS_SUBCLASSES];
-
-function sincronizarRecursosDeClasse(ficha, modificadores) {
-  return (ficha.recursos ?? []).flatMap((recurso) => {
-    const regra = RECURSOS_DE_CLASSE.find((item) => item.id === recurso.origemId);
-    if (!regra) return [recurso];
-
-    const classe = classesDaFicha(ficha).find(
-      (item) =>
-        item.classeId === regra.classeId &&
-        (!regra.subclasseId || item.subclasseId === regra.subclasseId) &&
-        Number(item.nivel) >= Number(regra.nivelMinimo ?? 1)
-    );
-    if (!classe) return [];
-
-    const usosMax = resolverUsosMax(regra, {
-      nivel: classe.nivel,
-      modCarisma: modificadores.carisma,
-      modSabedoria: modificadores.sabedoria,
-    });
-    return [{
-      ...recurso,
-      usosMax,
-      usosGastos: Math.min(Number(recurso.usosGastos) || 0, usosMax),
-    }];
-  });
 }
 
 export default function Ficha() {
@@ -117,11 +122,7 @@ export default function Ficha() {
   const [modalLevelUpAberto, setModalLevelUpAberto] = useState(false);
   const [avisoConcentracao, setAvisoConcentracao] = useState(null); // { cd } | null   NOVO
 
-  const raca = ficha ? obterRaca(ficha.racaId) : null;
-  const bonusRacial = { ...(raca?.bonusAtributos ?? {}) };
-  for (const chave of ficha?.bonusRacialEscolhido ?? []) {
-    if (chave) bonusRacial[chave] = (bonusRacial[chave] ?? 0) + 1;
-  }
+  const bonusRacial = calcularBonusRacialFicha(ficha);
   const modificadoresAtributos = ficha
     ? calcularModificadoresAtributos(ficha.atributos, bonusRacial)
     : null;
@@ -132,6 +133,9 @@ export default function Ficha() {
         ficha.classeId
       )
     : null;
+  const bonusSalvaguardasItens = ficha
+    ? somarEfeitoItens(ficha.inventario, "bonus-salvaguardas")
+    : 0;
 
   useEffect(() => {
     if (!ficha || caCalculada === null || ficha.status.ca === caCalculada) return;
@@ -223,9 +227,10 @@ const ehConjurador =
     atualizarFicha(id, (fichaAtual) => {
       const atributos = { ...fichaAtual.atributos, [chave]: novoValor };
       const modificadores = calcularModificadoresAtributos(atributos, bonusRacial);
+      const fichaComAtributos = { ...fichaAtual, atributos };
       return {
         atributos,
-        recursos: sincronizarRecursosDeClasse(fichaAtual, modificadores),
+        recursos: sincronizarRecursosDaFicha(fichaComAtributos, modificadores),
       };
     });
   }
@@ -257,93 +262,42 @@ function handleFecharAvisoConcentracao() {
   setAvisoConcentracao(null);
 }
 
+function avisarTesteConcentracao(danoRecebido) {
+  const aviso = avisoConcentracaoPorDano(ficha.concentracao, danoRecebido);
+  if (aviso) setAvisoConcentracao(aviso);
+}
+
   function handleChangeStatus(chave, novoValor) {
   if (chave === "pvAtual" && ficha.concentracao) {
-    const danoRecebido = (ficha.status.pvAtual ?? 0) - novoValor;
-    if (danoRecebido > 0) {
-      setAvisoConcentracao({ cd: calcularCdConcentracao(danoRecebido) });
-    }
+    const statusAtualizado = atualizarStatus(ficha.status, chave, novoValor);
+    const danoRecebido = (ficha.status.pvAtual ?? 0) - statusAtualizado.pvAtual;
+    avisarTesteConcentracao(danoRecebido);
   }
 
-  atualizarFicha(id, (ficha) => {
-    // ...resto continua igual...
-      const novoStatus = { ...ficha.status, [chave]: novoValor };
-
-      if (chave === "pvAtual") {
-        novoStatus.pvAtual = Math.min(novoValor, novoStatus.pvMax);
-        if (novoStatus.pvAtual > 0) {
-          novoStatus.testesMorteSucessos = 0;
-          novoStatus.testesMorteFalhas = 0;
-        }
-      }
-
-      if (chave === "pvMax" && novoStatus.pvAtual > novoValor) {
-        novoStatus.pvAtual = novoValor;
-      }
-
-      return { status: novoStatus };
-    });
+  atualizarFicha(id, (fichaAtual) => ({
+    status: atualizarStatus(fichaAtual.status, chave, novoValor),
+  }));
   }
 
   function handleChangeRecursos(novosRecursos) {
   atualizarFicha(id, () => ({ recursos: novosRecursos }));
 }
 
-function nivelDaClasse(classeIdAlvo) {
-  if (classeIdAlvo === ficha.classeId) return ficha.nivel ?? 1;
-  return (
-    (ficha.classesSecundarias ?? []).find((c) => c.classeId === classeIdAlvo)
-      ?.nivel ?? 1
-  );
-}
-
-const sugestoesRecursos = [...RECURSOS_CLASSES, ...RECURSOS_SUBCLASSES].filter(
-  (r) => {
-    const classePresente =
-      r.classeId === ficha.classeId ||
-      (ficha.classesSecundarias ?? []).some((c) => c.classeId === r.classeId);
-    const subclasseCompativel =
-      !r.subclasseId ||
-      [
-        { classeId: ficha.classeId, subclasseId: ficha.subclasseId },
-        ...(ficha.classesSecundarias ?? []),
-      ].some(
-        (classe) =>
-          classe.classeId === r.classeId && classe.subclasseId === r.subclasseId
-      );
-    return (
-      classePresente &&
-      subclasseCompativel &&
-      nivelDaClasse(r.classeId) >= (r.nivelMinimo ?? 1)
-    );
-  }
-)
-    .filter(
-    (r) => !(ficha.recursos ?? []).some((existente) => existente.origemId === r.id)
-  )
-  .map((r) => ({
-    ...r,
-    usosMaxSugerido: resolverUsosMax(r, {
-      nivel: nivelDaClasse(r.classeId),
-      modCarisma: modificadoresAtributos.carisma,
-      modSabedoria: modificadoresAtributos.sabedoria,
-    }),
-  }));
+const sugestoesRecursos = listarSugestoesRecursos(
+  RECURSOS_RASTREAVEIS,
+  ficha,
+  contextoRecursos(ficha, modificadoresAtributos)
+);
 
 function handleAdicionarSugestaoRecurso(sugestao) {
   atualizarFicha(id, (fichaAtual) => ({
     recursos: [
       ...(fichaAtual.recursos ?? []),
-      {
-        id: crypto.randomUUID(),
-        nome: sugestao.nome,
-        usosMax: sugestao.usosMaxSugerido,
-        usosGastos: 0,
-        restauraEm: sugestao.restauraEm,
-        origemId: sugestao.id,
-        origemClasseId: sugestao.classeId,
-        origemSubclasseId: sugestao.subclasseId ?? null,
-      },
+      criarRecursoDoCatalogo(
+        sugestao,
+        fichaAtual,
+        contextoRecursos(fichaAtual, modificadoresAtributos)
+      ),
     ],
   }));
 }
@@ -371,39 +325,35 @@ function handleRestaurarEspacosMagia() {
 }
 
 function handleDescansoLongo() {
-  atualizarFicha(id, (fichaAtual) => {
-    const dadosVidaPorClasse = restaurarDadosVidaLongo(
-      fichaAtual.dadosVidaPorClasse,
-      calcularNivelTotal(fichaAtual)
-    );
-    return {
-      status: { ...fichaAtual.status, pvAtual: fichaAtual.status.pvMax },
-      dadosVidaPorClasse,
-      dadosDeVidaUsados: totalDadosVidaUsados(dadosVidaPorClasse),
-      espacosMagia: restaurarTodosEspacos(fichaAtual.espacosMagia ?? {}),
-      recursos: restaurarRecursos(fichaAtual.recursos ?? [], "longo"),
-    };
-  });
+  atualizarFicha(id, aplicarDescansoLongo);
 }
 
 function handleDescansoCurto() {
-  atualizarFicha(id, (fichaAtual) => ({
-    recursos: restaurarRecursos(fichaAtual.recursos ?? [], "curto"),
-  }));
+  atualizarFicha(id, aplicarDescansoCurto);
 }
 
 
 function handleChangeRaca(novoRacaId) {
-  atualizarFicha(id, (fichaAtual) => reconciliarProficienciasCriacao({
-    ...fichaAtual, racaId: novoRacaId, bonusRacialEscolhido: [],
-    escolhasCriacao: { ...(fichaAtual.escolhasCriacao ?? {}), idiomasRaca: [], periciasRaca: [] },
-  }));
+  atualizarFicha(id, (fichaAtual) => {
+    const fichaComRaca = reconciliarProficienciasCriacao({
+      ...fichaAtual, racaId: novoRacaId, bonusRacialEscolhido: [],
+      escolhasCriacao: { ...(fichaAtual.escolhasCriacao ?? {}), idiomasRaca: [], periciasRaca: [], ferramentasRaca: [], ferramentasSubstitutas: [] },
+    });
+    const modificadores = calcularModificadoresAtributos(
+      fichaComRaca.atributos,
+      calcularBonusRacialFicha(fichaComRaca)
+    );
+    return {
+      ...fichaComRaca,
+      recursos: sincronizarRecursosDaFicha(fichaComRaca, modificadores),
+    };
+  });
 }
 
   function handleChangeAntecedente(novoAntecedenteId) {
   atualizarFicha(id, (fichaAtual) => reconciliarProficienciasCriacao({
     ...fichaAtual, antecedenteId: novoAntecedenteId,
-    escolhasCriacao: { ...(fichaAtual.escolhasCriacao ?? {}), idiomasAntecedente: [], ferramentasAntecedente: [] },
+    escolhasCriacao: { ...(fichaAtual.escolhasCriacao ?? {}), idiomasAntecedente: [], ferramentasAntecedente: [], ferramentasSubstitutas: [] },
   }));
 }
 
@@ -427,7 +377,7 @@ function handleChangeRaca(novoRacaId) {
         (r) => r.origemClasseId !== classeAntigaId
       ),
       magias: fichaAtual.magias ?? [],
-      escolhasCriacao: { ...(fichaAtual.escolhasCriacao ?? {}), periciasClasse: [], ferramentasClasse: [] },
+      escolhasCriacao: { ...(fichaAtual.escolhasCriacao ?? {}), periciasClasse: [], ferramentasClasse: [], ferramentasSubstitutas: [] },
     };
     const novaClasse = obterClasse(novoClasseId);
 
@@ -463,7 +413,7 @@ function handleChangeRaca(novoRacaId) {
       });
       return {
         ...atualizacoes,
-        recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
+        recursos: sincronizarRecursosDaFicha(fichaSincronizada, modificadoresAtributos),
         habilidades: fichaSincronizada.habilidades,
         magias: fichaSincronizada.magias,
       };
@@ -509,7 +459,7 @@ function handleChangeRaca(novoRacaId) {
       });
       return {
         ...atualizacoes,
-        recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
+        recursos: sincronizarRecursosDaFicha(fichaSincronizada, modificadoresAtributos),
         habilidades: fichaSincronizada.habilidades,
         magias: fichaSincronizada.magias,
       };
@@ -530,7 +480,7 @@ function handleChangeRaca(novoRacaId) {
       });
       return {
         subclasseId: novaSubclasseId,
-        recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
+        recursos: sincronizarRecursosDaFicha(fichaSincronizada, modificadoresAtributos),
         habilidades: fichaSincronizada.habilidades,
         magias: fichaSincronizada.magias,
         ...calcularAtualizacoesEspacosMagia({
@@ -545,7 +495,15 @@ function handleChangeBonusRacialEscolhido(indice, valor) {
   atualizarFicha(id, (fichaAtual) => {
     const atual = [...(fichaAtual.bonusRacialEscolhido ?? [])];
     atual[indice] = valor;
-    return { bonusRacialEscolhido: atual };
+    const fichaComBonus = { ...fichaAtual, bonusRacialEscolhido: atual };
+    const modificadores = calcularModificadoresAtributos(
+      fichaComBonus.atributos,
+      calcularBonusRacialFicha(fichaComBonus)
+    );
+    return {
+      bonusRacialEscolhido: atual,
+      recursos: sincronizarRecursosDaFicha(fichaComBonus, modificadores),
+    };
   });
 }
 
@@ -644,7 +602,7 @@ function handleAlterarClasseSecundaria(indice, campo, valor) {
       classesSecundarias: novasClasses,
       ...atualizacoesPv,
       ...atualizacoesProf,
-      recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
+      recursos: sincronizarRecursosDaFicha(fichaSincronizada, modificadoresAtributos),
       habilidades: fichaSincronizada.habilidades,
       magias: fichaSincronizada.magias,
       ...calcularAtualizacoesEspacosMagia({
@@ -682,7 +640,7 @@ function handleRemoverClasseSecundaria(indice) {
       pvPorNivel: resultadoPv.pvPorNivel,
       origemClassePvPorNivel: resultadoPv.origemClassePvPorNivel,
       status: resultadoPv.status,
-      recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
+      recursos: sincronizarRecursosDaFicha(fichaSincronizada, modificadoresAtributos),
       habilidades: fichaSincronizada.habilidades,
       magias: fichaSincronizada.magias,
       ...calcularAtualizacoesEspacosMagia({
@@ -733,12 +691,18 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
 }
 
   function handleChangeInventario(novoInventario) {
-    atualizarFicha(id, () => ({ inventario: novoInventario }));
+    atualizarFicha(id, (fichaAtual) => {
+      const fichaComInventario = { ...fichaAtual, inventario: novoInventario };
+      return {
+        inventario: novoInventario,
+        recursos: sincronizarRecursosDaFicha(fichaComInventario, modificadoresAtributos),
+      };
+    });
   }
 
   function handleChangeMoedas(chave, novoValor) {
-    atualizarFicha(id, (ficha) => ({
-      moedas: { ...ficha.moedas, [chave]: novoValor },
+    atualizarFicha(id, (fichaAtual) => ({
+      moedas: atualizarMoeda(fichaAtual.moedas, chave, novoValor),
     }));
   }
 
@@ -749,9 +713,16 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
   }
 
   function handleChangeHabilidades(novasHabilidades) {
-    atualizarFicha(id, (fichaAtual) => ({
-      habilidades: sincronizarFichaComSubclasses({ ...fichaAtual, habilidades: novasHabilidades }).habilidades,
-    }));
+    atualizarFicha(id, (fichaAtual) => {
+      const fichaSincronizada = sincronizarFichaComSubclasses({
+        ...fichaAtual,
+        habilidades: novasHabilidades,
+      });
+      return {
+        habilidades: fichaSincronizada.habilidades,
+        recursos: sincronizarRecursosDaFicha(fichaSincronizada, modificadoresAtributos),
+      };
+    });
   }
 
   function handleChangeAtaques(novosAtaques) {
@@ -789,9 +760,13 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
       return {};
     }
     const fichaSincronizada = sincronizarFichaComSubclasses(fichaHipotetica);
+    const modificadores = calcularModificadoresAtributos(
+      fichaSincronizada.atributos,
+      calcularBonusRacialFicha(fichaSincronizada)
+    );
     return {
       ...alteracoes,
-      recursos: sincronizarRecursosDeClasse(fichaSincronizada, modificadoresAtributos),
+      recursos: sincronizarRecursosDaFicha(fichaSincronizada, modificadores),
       habilidades: fichaSincronizada.habilidades,
       magias: fichaSincronizada.magias,
       ...calcularAtualizacoesEspacosMagia(fichaHipotetica),
@@ -799,9 +774,61 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
   });
 }
 
+  function handleIrParaSecaoValidacao(secao) {
+    if (secao !== "identidade") setAbaAtiva(secao);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById(`ficha-secao-${secao}`)?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    });
+  }
+
+  function handleAplicarEfeitoPv(tipo, valor) {
+    const resultado = aplicarEfeitoPv(ficha.status, tipo, valor);
+    avisarTesteConcentracao(resultado.danoRecebido);
+    atualizarFicha(id, () => ({ status: resultado.status }));
+  }
+
+  function handleAplicarCondicao(dadosCondicao) {
+    const condicao = criarCondicaoAtiva(dadosCondicao);
+    atualizarFicha(id, (fichaAtual) => ({
+      condicoesAtivas: adicionarCondicao(fichaAtual.condicoesAtivas, condicao),
+    }));
+  }
+
+  function handleAvancarCondicao(condicaoId) {
+    atualizarFicha(id, (fichaAtual) => ({
+      condicoesAtivas: avancarCondicao(fichaAtual.condicoesAtivas, condicaoId),
+    }));
+  }
+
+  function handleRemoverCondicao(condicaoId) {
+    atualizarFicha(id, (fichaAtual) => ({
+      condicoesAtivas: (fichaAtual.condicoesAtivas ?? []).filter(
+        (condicao) => condicao.id !== condicaoId
+      ),
+    }));
+  }
+
+  function handleImprimirFicha() {
+    const tituloAnterior = document.title;
+    document.title = `${ficha.nome || "Personagem"} - D&D Fichas`;
+    window.addEventListener("afterprint", () => {
+      document.title = tituloAnterior;
+    }, { once: true });
+    window.print();
+  }
+
   return (
-    <div className="ficha-shell">
-      <aside className="ficha-coluna-fixa">
+    <>
+      <button type="button" className="ficha-imprimir-botao" onClick={handleImprimirFicha}>
+        Imprimir / Salvar em PDF
+      </button>
+      <div className="ficha-shell">
+      <aside id="ficha-secao-identidade" className="ficha-coluna-fixa">
         <input
           type="text"
           className="ficha-nome-input"
@@ -848,7 +875,7 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
   ficha={ficha}
   atributosTotais={atributosTotais}
   onMarcarPronta={() => atualizarFicha(id, () => ({ estadoFicha: "pronta" }))}
-  onIrParaSecao={(secao) => setAbaAtiva(secao === "identidade" ? "pericias" : secao)}
+  onIrParaSecao={handleIrParaSecaoValidacao}
 />
 
 <button
@@ -916,7 +943,7 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
           ))}
         </nav>
 
-        <div className="ficha-conteudo-aba">
+        <div id={`ficha-secao-${abaAtiva}`} className="ficha-conteudo-aba">
           {abaAtiva === "combate" && (
             <>
               <BlocoStatus
@@ -930,6 +957,9 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
                 avisoConcentracao={avisoConcentracao}
                 onPararConcentracao={handlePararConcentracao}
                 onFecharAvisoConcentracao={handleFecharAvisoConcentracao}
+                condicoesAtivas={ficha.condicoesAtivas ?? []}
+                onAvancarCondicao={handleAvancarCondicao}
+                onRemoverCondicao={handleRemoverCondicao}
               />
               <BlocoAtaques
                 modificadoresAtributos={modificadoresAtributos}
@@ -953,6 +983,7 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
                 modificadoresAtributos={modificadoresAtributos}
                 salvaguardasProficientes={ficha.salvaguardasProficientes ?? classe?.salvaguardasProficientes}
                 bonusProficiencia={bonusProficiencia}
+                bonusItens={bonusSalvaguardasItens}
               />
             </>
           )}
@@ -1015,6 +1046,8 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
               concentracaoAtual={ficha.concentracao}
               onIniciarConcentracao={handleIniciarConcentracao}
               onPararConcentracao={handlePararConcentracao}
+              onAplicarEfeitoPv={handleAplicarEfeitoPv}
+              onAplicarCondicao={handleAplicarCondicao}
             />
           )}
 
@@ -1024,6 +1057,7 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
                 inventario={ficha.inventario ?? []}
                 onChangeInventario={handleChangeInventario}
                 forcaTotal={forcaTotal}
+                onAplicarEfeitoPv={handleAplicarEfeitoPv}
               />
               <BlocoMoedas moedas={ficha.moedas ?? {}} onChangeMoedas={handleChangeMoedas} />
             </>
@@ -1105,6 +1139,16 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
           )}
         </div>
       </div>
-    </div>
+      </div>
+      <FichaImpressao
+        ficha={ficha}
+        atributosTotais={atributosTotais}
+        modificadoresAtributos={modificadoresAtributos}
+        bonusProficiencia={bonusProficiencia}
+        nivelTotal={nivelTotal}
+        percepcaoPassiva={percepcaoPassiva}
+        investigacaoPassiva={investigacaoPassiva}
+      />
+    </>
   );
 }

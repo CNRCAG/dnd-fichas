@@ -72,6 +72,23 @@ test("avisos identificam lista incorreta, excesso de conhecidas e preparação",
   assert.equal(limites.limitesMagiasDaClasse("paladino", 2, atributos).preparadas, 4);
 });
 
+test("grimório do Mago não limita magias registradas, apenas as preparadas", () => {
+  const magiasDoMago = catalogo.MAGIAS
+    .filter((magia) => magia.nivel > 0 && listas.classesDaMagia(magia.id).includes("mago"))
+    .slice(0, 25)
+    .map((magia, indice) => ({
+      id: `grimorio-${indice}`,
+      origemId: magia.id,
+      nome: magia.nome,
+      nivel: magia.nivel,
+      classeId: "mago",
+      preparada: indice < 5,
+    }));
+  const avisos = validacao.validarFicha(ficha("mago", 20, magiasDoMago), atributos).avisos;
+  assert.equal(avisos.some((aviso) => aviso.includes("magias conhecidas")), false);
+  assert.equal(avisos.some((aviso) => aviso.includes("magias preparadas")), false);
+});
+
 test("Arcano Místico usa progressão própria e não conta como magia de Pacto conhecida", () => {
   const bruxo = ficha("bruxo", 11, [{
     id: "1", origemId: "verdadeira-visao", nome: "Verdadeira Visão",
@@ -117,6 +134,22 @@ test("subclasses liberam magias no nível correto", () => {
     }).map(({ classeId }) => classeId),
     ["bruxo"]
   );
+});
+
+test("truque concedido pela subclasse não consome o limite normal da classe", () => {
+  const luz = catalogo.MAGIAS.find((magia) => magia.id === "luz");
+  const outros = ["chama-sagrada", "orientacao", "taumaturgia"].map((id, indice) => {
+    const magia = catalogo.MAGIAS.find((item) => item.id === id);
+    return { id: `clerigo-${indice}`, origemId: id, nome: magia.nome, nivel: 0, classeId: "clerigo" };
+  });
+  const clerigoLuz = {
+    ...ficha("clerigo", 1, [
+      ...outros,
+      { id: "luz-bonus", origemId: luz.id, nome: luz.nome, nivel: 0, classeId: "clerigo", origemSubclasseAutomatica: true, origemSubclasseId: "dominio-luz", origemSubclasseTipo: "concedida" },
+    ]),
+    subclasseId: "dominio-luz",
+  };
+  assert.equal(validacao.validarFicha(clerigoLuz, atributos).avisos.some((aviso) => aviso.includes("truques cadastrados")), false);
 });
 test("conjuração parcial usa tabela própria e contribuição multiclasse", async () => {
   const conjuracao = await servidor.ssrLoadModule("/src/utils/conjuracao.js");

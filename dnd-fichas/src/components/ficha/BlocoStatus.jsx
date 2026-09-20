@@ -1,6 +1,9 @@
 import { useState } from "react"
 import { formatarModificador } from "../../utils/dnd";
-import { rolarTesteD20 } from "../../utils/dados";
+import {
+  alternarTesteMorte,
+  estadoTestesMorte,
+} from "../../utils/status";
 import { useRolagem } from "../../context/useRolagem";
 import "./BlocoStatus.css";
 
@@ -23,8 +26,11 @@ export default function BlocoStatus({
   avisoConcentracao,         // NOVO
   onPararConcentracao,       // NOVO
   onFecharAvisoConcentracao, // NOVO
+  condicoesAtivas = [],
+  onAvancarCondicao,
+  onRemoverCondicao,
 }) {
-    const { registrarRolagem } = useRolagem();
+    const { registrarRolagem, rolarD20 } = useRolagem();
   const [resultadoConcentracao, setResultadoConcentracao] = useState(null);
   const [ultimoAvisoConcentracao, setUltimoAvisoConcentracao] = useState(avisoConcentracao);
   const iniciativaTotal = modDestreza + (status.iniciativa ?? 0);
@@ -38,7 +44,7 @@ export default function BlocoStatus({
   }
 
   function handleTestarConcentracao() {
-    const resultado = rolarTesteD20(modConstituicao);
+    const resultado = rolarD20(modConstituicao);
     const sucesso = resultado.total >= avisoConcentracao.cd;
     registrarRolagem(
       `Teste de concentração (CD ${avisoConcentracao.cd})`,
@@ -54,15 +60,10 @@ export default function BlocoStatus({
   
 
   function handleRolarIniciativa() {
-    const resultado = rolarTesteD20(iniciativaTotal);
+    const resultado = rolarD20(iniciativaTotal);
     registrarRolagem("Iniciativa", resultado, "d20");
   }
-  const pvAtual = status.pvAtual ?? 0;
-  const emAgonia = pvAtual <= 0;
-  const sucessos = status.testesMorteSucessos ?? 0;
-  const falhas = status.testesMorteFalhas ?? 0;
-  const estabilizado = sucessos >= 3;
-  const morto = falhas >= 3;
+  const { emAgonia, sucessos, falhas, estabilizado, morto } = estadoTestesMorte(status);
 
   function handleChange(chave, evento) {
     const novoValor = Number(evento.target.value);
@@ -70,13 +71,9 @@ export default function BlocoStatus({
   }
 
   function handleTogglePip(tipo, indice) {
-    if (tipo === "sucesso" && falhas >= 3) return;
-    if (tipo === "falha" && sucessos >= 3) return;
-
     const chave = tipo === "sucesso" ? "testesMorteSucessos" : "testesMorteFalhas";
-    const atual = tipo === "sucesso" ? sucessos : falhas;
-    const novoValor = atual === indice + 1 ? indice : indice + 1;
-    onChangeStatus(chave, novoValor);
+    const proximo = alternarTesteMorte(status, tipo, indice);
+    onChangeStatus(chave, proximo[chave]);
   }
 
   function handleReiniciarTestes() {
@@ -127,6 +124,39 @@ export default function BlocoStatus({
         <span>
           Investigação passiva: <strong>{investigacaoPassiva}</strong>
         </span>
+      </div>
+
+      <div className="condicoes-ativas">
+        <h4 className="condicoes-ativas-titulo">Condições ativas</h4>
+        {condicoesAtivas.length === 0 ? (
+          <p className="condicoes-ativas-vazio">Nenhuma condição ativa.</p>
+        ) : (
+          <ul className="condicoes-ativas-lista">
+            {condicoesAtivas.map((condicao) => (
+              <li key={condicao.id} className="condicao-ativa-item">
+                <div>
+                  <strong>{condicao.nome}</strong>
+                  <small>
+                    Fonte: {condicao.fonte || "Manual"}
+                    {condicao.rodadasRestantes === null
+                      ? " · duração não definida"
+                      : ` · ${condicao.rodadasRestantes} rodada(s) restante(s)`}
+                  </small>
+                </div>
+                <div className="condicao-ativa-acoes">
+                  {condicao.rodadasRestantes !== null && (
+                    <button type="button" onClick={() => onAvancarCondicao(condicao.id)}>
+                      −1 rodada
+                    </button>
+                  )}
+                  <button type="button" onClick={() => onRemoverCondicao(condicao.id)}>
+                    Encerrar
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
             {concentracao && (

@@ -15,15 +15,4 @@ export const RECURSOS_CLASSES = [
   { id: "canalizar-divindade-paladino", classeId: "paladino", nome: "Canalizar Divindade", tipoUsosMax: "fixo", valorFixo: 1, restauraEm: "curto" },
 ];
 
-export function resolverUsosMax(template, contexto) {
-  if (template.tipoUsosMax === "fixo") return template.valorFixo;
-  if (template.tipoUsosMax === "porNivel") return Math.max(1, contexto.nivel ?? 1);
-  if (template.tipoUsosMax === "modCarisma") return Math.max(1, contexto.modCarisma ?? 0);
-  if (template.tipoUsosMax === "modSabedoria") return Math.max(1, contexto.modSabedoria ?? 0);
-  if (template.tipoUsosMax === "faixasNivel") {
-    return [...(template.faixas ?? [])]
-      .filter(([nivel]) => contexto.nivel >= nivel)
-      .at(-1)?.[1] ?? 1;
-  }
-  return 1;
-}
+export { resolverUsosMax } from "../utils/recurso";

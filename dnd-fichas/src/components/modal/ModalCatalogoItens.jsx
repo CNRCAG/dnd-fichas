@@ -3,7 +3,7 @@ import { CATALOGO_ITENS } from "../../data/catalogoItens";
 import DetalheItemCatalogo from "./DetalheItemCatalogo";
 import "./ModalCatalogoItens.css";
 
-const GRUPOS = ["Armas", "Armaduras", "Equipamentos"];
+const GRUPOS = ["Armas", "Armaduras", "Equipamentos", "Itens mágicos"];
 
 export default function ModalCatalogoItens({ aberto, onFechar, onAdicionarItem }) {
   const [abaAtiva, setAbaAtiva] = useState("Armas");

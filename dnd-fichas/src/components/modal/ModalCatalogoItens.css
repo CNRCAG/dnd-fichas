@@ -233,6 +233,27 @@
 .magia-rolar-dano-botao:hover {
   border-color: var(--color-accent);
 }
+
+.magia-aplicar-efeito dd {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.magia-aplicar-efeito-botao {
+  margin-left: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-accent);
+  background: transparent;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+}
+
+.magia-aplicar-efeito-botao:hover {
+  border-color: var(--color-accent);
+}
 .item-catalogo.is-bloqueado {
   opacity: 0.5;
 }

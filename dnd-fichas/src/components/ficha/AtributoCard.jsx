@@ -1,5 +1,4 @@
 import { calcularModificador, formatarModificador } from "../../utils/dnd";
-import { rolarTesteD20 } from "../../utils/dados";
 import { useRolagem } from "../../context/useRolagem";
 import "./AtributoCard.css";
 
@@ -10,7 +9,7 @@ export default function AtributoCard({
   bonusRacial = 0,
   onChange,
 }) {
-  const { registrarRolagem } = useRolagem();
+  const { registrarRolagem, rolarD20 } = useRolagem();
   const total = valor + bonusRacial;
   const modificador = calcularModificador(total);
 
@@ -20,7 +19,7 @@ export default function AtributoCard({
   }
 
   function handleRolar() {
-    const resultado = rolarTesteD20(modificador);
+    const resultado = rolarD20(modificador);
     registrarRolagem(`Teste de ${label}`, resultado, "d20");
   }
 

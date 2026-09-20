@@ -10,6 +10,10 @@ import { FERRAMENTAS } from "../data/equipamentos";
 import { ATRIBUTOS, calcularModificador, formatarModificador } from "../utils/dnd";
 import { criarEspacosMagiaVazios } from "../utils/magia";
 import { obterEspacosPorNivel, mesclarEspacosNoAtual } from "../utils/conjuracao";
+import {
+  opcoesFerramentas,
+  quantidadeSubstituicoesFerramentas,
+} from "../utils/proficienciasCriacao";
 import "./NovaFicha.css";
 
 const ETAPAS = [
@@ -45,7 +49,7 @@ export default function NovaFicha() {
     personalidade: "",
     historico: "",
     objetivo: "",
-    escolhasCriacao: { periciasClasse: [], ferramentasClasse: [], periciasRaca: [], idiomasRaca: [], idiomasAntecedente: [], ferramentasAntecedente: [] },
+    escolhasCriacao: { periciasClasse: [], ferramentasClasse: [], periciasRaca: [], idiomasRaca: [], ferramentasRaca: [], idiomasAntecedente: [], ferramentasAntecedente: [], ferramentasSubstitutas: [] },
     bonusRacialEscolhido: [],
   }));
 
@@ -64,17 +68,30 @@ export default function NovaFicha() {
   }
 
   function handleEscolherRaca(id) {
-    setRascunho((atual) => ({ ...atual, racaId: id }));
+    setRascunho((atual) => ({
+      ...atual,
+      racaId: id,
+      bonusRacialEscolhido: [],
+      escolhasCriacao: { ...atual.escolhasCriacao, periciasRaca: [], idiomasRaca: [], ferramentasRaca: [], ferramentasSubstitutas: [] },
+    }));
     irPara(etapa + 1);
   }
 
   function handleEscolherClasse(id) {
-    setRascunho((atual) => ({ ...atual, classeId: id }));
+    setRascunho((atual) => ({
+      ...atual,
+      classeId: id,
+      escolhasCriacao: { ...atual.escolhasCriacao, periciasClasse: [], ferramentasClasse: [], ferramentasSubstitutas: [] },
+    }));
     irPara(etapa + 1);
   }
 
   function handleEscolherAntecedente(id) {
-    setRascunho((atual) => ({ ...atual, antecedenteId: id }));
+    setRascunho((atual) => ({
+      ...atual,
+      antecedenteId: id,
+      escolhasCriacao: { ...atual.escolhasCriacao, idiomasAntecedente: [], ferramentasAntecedente: [], ferramentasSubstitutas: [] },
+    }));
     irPara(etapa + 1);
   }
 
@@ -401,15 +418,23 @@ function EscolhasDeCriacao({ rascunho, raca, classe, antecedente, onChange, onBo
   const periciasClasse = classeRegra?.opcoes === "todas" ? PERICIAS.map((item) => item.chave) : classeRegra?.opcoes ?? [];
   const periciasRaca = raca?.periciasEscolha?.opcoes === "todas" ? PERICIAS.map((item) => item.chave) : raca?.periciasEscolha?.opcoes ?? [];
   const bloqueadasClasse = [...(antecedente?.periciasConcedidas ?? []), ...(raca?.periciasConcedidas ?? []), ...(escolha.periciasRaca ?? [])];
+  const ferramentasFixas = [
+    ...(classe?.proficienciasIniciais?.ferramentas ?? []),
+    ...(raca?.ferramentasFixas ?? []),
+    ...(antecedente?.ferramentasFixas ?? []),
+  ];
+  const substituicoes = quantidadeSubstituicoesFerramentas(classe, raca, antecedente);
   return <section className="criacao-escolhas">
     <h3 className="criacao-titulo">Escolhas obrigatórias</h3>
     {raca?.atributosEscolhaLivre && Array.from({ length: raca.atributosEscolhaLivre }).map((_, indice) => <select key={`atributo-${indice}`} value={rascunho.bonusRacialEscolhido?.[indice] ?? ""} onChange={(evento) => { const proximos = [...(rascunho.bonusRacialEscolhido ?? [])]; proximos[indice] = evento.target.value || null; onBonusRacial(proximos); }}><option value="">Atributo para +1...</option>{ATRIBUTOS.filter((a) => !raca.bonusAtributos?.[a.chave] && (!(rascunho.bonusRacialEscolhido ?? []).includes(a.chave) || rascunho.bonusRacialEscolhido?.[indice] === a.chave)).map((a) => <option key={a.chave} value={a.chave}>{a.label}</option>)}</select>)}
     {seletor("Perícias da classe", "periciasClasse", classeRegra?.quantidade, periciasClasse, pericias, bloqueadasClasse)}
-    {seletor("Instrumentos da classe", "ferramentasClasse", classe?.proficienciasIniciais?.ferramentasEscolha?.quantidade, classe?.proficienciasIniciais?.ferramentasEscolha?.opcoes ?? [], ferramentas)}
+    {seletor("Ferramentas da classe", "ferramentasClasse", classe?.proficienciasIniciais?.ferramentasEscolha?.quantidade, opcoesFerramentas(classe?.proficienciasIniciais?.ferramentasEscolha), ferramentas, [...ferramentasFixas, ...(escolha.ferramentasRaca ?? []), ...(escolha.ferramentasAntecedente ?? [])])}
     {seletor("Perícias da raça", "periciasRaca", raca?.periciasEscolha?.quantidade, periciasRaca, pericias, antecedente?.periciasConcedidas ?? [])}
     {seletor("Idiomas da raça", "idiomasRaca", raca?.idiomasEscolha, IDIOMAS.map((item) => item.id), idiomas, raca?.idiomasFixos ?? [])}
+    {seletor("Ferramentas da raça", "ferramentasRaca", raca?.ferramentasEscolha?.quantidade, opcoesFerramentas(raca?.ferramentasEscolha), ferramentas, [...ferramentasFixas, ...(escolha.ferramentasClasse ?? []), ...(escolha.ferramentasAntecedente ?? [])])}
     {seletor("Idiomas do antecedente", "idiomasAntecedente", antecedente?.idiomasEscolha, IDIOMAS.map((item) => item.id), idiomas, [...(raca?.idiomasFixos ?? []), ...(escolha.idiomasRaca ?? [])])}
-    {seletor("Ferramentas do antecedente", "ferramentasAntecedente", antecedente?.ferramentasEscolha?.quantidade, antecedente?.ferramentasEscolha?.opcoes ?? [], ferramentas, antecedente?.ferramentasFixas ?? [])}
+    {seletor("Ferramentas do antecedente", "ferramentasAntecedente", antecedente?.ferramentasEscolha?.quantidade, opcoesFerramentas(antecedente?.ferramentasEscolha), ferramentas, [...ferramentasFixas, ...(escolha.ferramentasClasse ?? []), ...(escolha.ferramentasRaca ?? [])])}
+    {seletor("Substituições por proficiências repetidas", "ferramentasSubstitutas", substituicoes, FERRAMENTAS.map((item) => item.id), ferramentas, [...new Set([...ferramentasFixas, ...(escolha.ferramentasClasse ?? []), ...(escolha.ferramentasRaca ?? []), ...(escolha.ferramentasAntecedente ?? [])])])}
   </section>;
 }
 

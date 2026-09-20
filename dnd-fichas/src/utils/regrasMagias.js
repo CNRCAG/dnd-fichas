@@ -1,6 +1,10 @@
 import { MAGIAS } from "../data/magiasSistema";
 import { classesDaMagia } from "../data/magiasClasses";
-import { escolhasSegredosMagicos, regraTrocaMagias } from "../data/regrasMagias";
+import {
+  escolhasSegredosMagicos,
+  escolhasSegredosMagicosAdicionais,
+  regraTrocaMagias,
+} from "../data/regrasMagias";
 import { nivelMaximoMagiaDaClasse } from "./acessoMagias";
 
 export function dadosDaClasseNaFicha(ficha, classeId) {
@@ -18,9 +22,17 @@ export function contarSegredosMagicos(ficha, classeId) {
   return (ficha.magias ?? []).filter((magia) => magia.origemEspecial?.tipo === "segredos-magicos" && magia.origemEspecial?.classeId === classeId).length;
 }
 
+export function limiteSegredosMagicosAdicionais(ficha, classeId) {
+  const dados = dadosDaClasseNaFicha(ficha, classeId);
+  return dados
+    ? escolhasSegredosMagicosAdicionais(dados.subclasseId, dados.nivel)
+    : 0;
+}
+
 export function magiaElegivelPorSegredo(ficha, classeId, magia) {
   const dados = dadosDaClasseNaFicha(ficha, classeId);
-  if (!dados || !magia || Number(magia.nivel) <= 0) return false;
+  if (!dados || !magia || Number(magia.nivel) < 0) return false;
+  if (Number(magia.nivel) === 0) return true;
   return Number(magia.nivel) <= nivelMaximoMagiaDaClasse(classeId, dados.nivel, dados.subclasseId);
 }
 
@@ -42,15 +54,24 @@ export function validarOrigemEspecial(ficha, magia) {
   }
   if (origem.tipo === "talento") {
     const talento = (ficha.habilidades ?? []).find((habilidade) => habilidade.tipo === "talento" && habilidade.origemId === origem.fonteId);
-    if (!talento) return { categoria: "pendencia", mensagem: `${magia.nome}: o talento que concede a magia não está na ficha.` };
+    if (!talento) return { categoria: "aviso", mensagem: `${magia.nome}: o talento que concede a magia não está na ficha.` };
     if (origem.fonteId === "iniciado-magia") {
-      if (Number(magia.nivel) > 1 || (origem.classeLista && !classesDaMagia(magia.origemId).includes(origem.classeLista))) return { categoria: "erro", mensagem: `${magia.nome}: não é uma escolha válida de Iniciado em Magia.` };
+      const classesPermitidas = ["bardo", "bruxo", "clerigo", "druida", "feiticeiro", "mago"];
+      if (!classesPermitidas.includes(origem.classeLista)) return { categoria: "pendencia", mensagem: `${magia.nome}: escolha a lista de classe usada por Iniciado em Magia.` };
+      if (Number(magia.nivel) > 1 || !classesDaMagia(magia.origemId).includes(origem.classeLista)) return { categoria: "erro", mensagem: `${magia.nome}: não é uma escolha válida de Iniciado em Magia.` };
+      const magiasDoTalento = (ficha.magias ?? []).filter((item) => item.origemEspecial?.tipo === "talento" && item.origemEspecial?.fonteId === "iniciado-magia");
+      const listasUsadas = new Set(magiasDoTalento.map((item) => item.origemEspecial?.classeLista).filter(Boolean));
+      const truques = magiasDoTalento.filter((item) => Number(item.nivel) === 0).length;
+      const magiasNivelUm = magiasDoTalento.filter((item) => Number(item.nivel) === 1).length;
+      if (listasUsadas.size > 1 || truques > 2 || magiasNivelUm > 1 || magiasDoTalento.some((item) => Number(item.nivel) > 1)) {
+        return { categoria: "erro", mensagem: "Iniciado em Magia permite dois truques e uma magia de 1º círculo, todos da mesma lista de classe." };
+      }
     }
     return null;
   }
   if (origem.tipo === "item") {
-    const item = (ficha.inventario ?? []).find((registro) => registro.id === origem.fonteId);
-    return item ? { categoria: "aviso", mensagem: `${magia.nome}: o item ${item.nome} foi relacionado; seus efeitos continuam sob conferência da mesa.` } : { categoria: "pendencia", mensagem: `${magia.nome}: o item que concede a magia não existe mais no inventário.` };
+    const item = (ficha.inventario ?? []).find((registro) => registro.id === origem.fonteId || registro.origemId === origem.fonteId);
+    return item ? { categoria: "aviso", mensagem: `${magia.nome}: o item ${item.nome} foi relacionado; seus efeitos continuam sob conferência da mesa.` } : { categoria: "aviso", mensagem: `${magia.nome}: o item que concede a magia não existe mais no inventário.` };
   }
   return { categoria: "aviso", mensagem: `${magia.nome}: origem especial não verificável automaticamente.` };
 }
@@ -64,9 +85,39 @@ export function magiasElegiveisParaTroca(ficha, classeId, nivel) {
   const regra = obterRegraTroca(ficha, classeId, nivel);
   if (!regra) return [];
   return (ficha.magias ?? []).filter((magia) => {
-    if (magia.classeId !== classeId || Number(magia.nivel) === 0 || magia.origemSubclasseAutomatica) return false;
+    if (Number(magia.nivel) === 0 || magia.origemSubclasseAutomatica) return false;
     const especial = origemEspecialDaMagia(magia);
-    return especial === "segredos-magicos" ? regra.tipos.includes("segredo-magico") : !especial && regra.tipos.includes("conhecida");
+    if (especial === "segredos-magicos") {
+      return magia.origemEspecial?.classeId === classeId && regra.tipos.includes("segredo-magico");
+    }
+    return magia.classeId === classeId && !especial && regra.tipos.includes("conhecida");
+  });
+}
+
+export function aplicarTrocasMagias(magias, trocas, classeId) {
+  const trocasValidas = new Map(
+    (trocas ?? [])
+      .filter((troca) => troca?.removidaId && troca?.novaMagiaId)
+      .map((troca) => [troca.removidaId, troca.novaMagiaId])
+  );
+
+  return (magias ?? []).map((magia) => {
+    const novaMagia = MAGIAS.find((item) => item.id === trocasValidas.get(magia.id));
+    if (!novaMagia) return magia;
+    const segredoMagico = magia.origemEspecial?.tipo === "segredos-magicos";
+    return {
+      ...magia,
+      nome: novaMagia.nome,
+      nivel: novaMagia.nivel,
+      origemId: novaMagia.id,
+      preparada: false,
+      fonteEspecial: segredoMagico ? "Segredos Mágicos" : null,
+      classeId: segredoMagico ? "especial" : classeId,
+      origemEspecial: segredoMagico ? magia.origemEspecial : null,
+      origemSubclasseId: null,
+      origemSubclasseTipo: null,
+      origemSubclasseAutomatica: false,
+    };
   });
 }
 

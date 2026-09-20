@@ -1,7 +1,6 @@
 import { IDIOMAS } from "../../data/idiomas";
 import { FERRAMENTAS } from "../../data/equipamentos";
 import { ATRIBUTOS, formatarModificador } from "../../utils/dnd";
-import { rolarTesteD20 } from "../../utils/dados";
 import { useRolagem } from "../../context/useRolagem";
 import "./BlocoProficiencias.css";
 
@@ -22,7 +21,16 @@ export default function BlocoProficiencias({
   bonusProficiencia,
   origensProficiencias = {},
 }) {
-  const { registrarRolagem } = useRolagem();
+  const { registrarRolagem, rolarD20 } = useRolagem();
+  const idiomasLegados = idiomas
+    .filter((id) => !IDIOMAS.some((idioma) => idioma.id === id))
+    .map((id) => ({ id, nome: id }));
+  const ferramentasExibidas = [
+    ...FERRAMENTAS,
+    ...proficienciasFerramentas
+      .filter((id) => !FERRAMENTAS.some((ferramenta) => ferramenta.id === id))
+      .map((id) => ({ id, nome: id })),
+  ];
 
   function renderChipsIdiomas(lista) {
     return lista.map((idioma) => {
@@ -47,7 +55,7 @@ export default function BlocoProficiencias({
     const atributoChave = atributoFerramentas[ferramenta.id] ?? "inteligencia";
     const modificador =
       modificadoresAtributos[atributoChave] + (proficiente ? bonusProficiencia : 0);
-    const resultado = rolarTesteD20(modificador);
+    const resultado = rolarD20(modificador);
     registrarRolagem(`Ferramenta: ${ferramenta.nome}`, resultado, "d20");
   }
 
@@ -65,6 +73,13 @@ export default function BlocoProficiencias({
 
         <h4 className="proficiencias-subtitulo">Exóticos</h4>
         <div className="idiomas-grid">{renderChipsIdiomas(IDIOMAS_EXOTICOS)}</div>
+
+        {idiomasLegados.length > 0 && (
+          <>
+            <h4 className="proficiencias-subtitulo">Legados e personalizados</h4>
+            <div className="idiomas-grid">{renderChipsIdiomas(idiomasLegados)}</div>
+          </>
+        )}
       </section>
 
       <section>
@@ -85,7 +100,7 @@ export default function BlocoProficiencias({
           ferramentas de artesão usa Inteligência, mas isso varia por mesa).
         </p>
         <ul className="ferramentas-lista">
-          {FERRAMENTAS.map((ferramenta) => {
+          {ferramentasExibidas.map((ferramenta) => {
             const proficiente = proficienciasFerramentas.includes(ferramenta.id);
             const origem = (origensProficiencias.ferramentas?.[ferramenta.id] ?? []).join(", ");
             const atributoChave = atributoFerramentas[ferramenta.id] ?? "inteligencia";

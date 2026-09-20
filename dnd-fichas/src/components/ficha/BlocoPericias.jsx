@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { PERICIAS } from "../../data/pericias";
 import { ATRIBUTOS, formatarModificador } from "../../utils/dnd";
-import { rolarTesteD20 } from "../../utils/dados";
 import { useRolagem } from "../../context/useRolagem";
 import "./BlocoPericias.css";
 
@@ -12,7 +11,7 @@ export default function BlocoPericias({
   onTogglePericia,
 }) {
   const [expandidas, setExpandidas] = useState(() => new Set());
-  const { registrarRolagem } = useRolagem();
+  const { registrarRolagem, rolarD20 } = useRolagem();
 
   function alternarExpandida(chave) {
     setExpandidas((atual) => {
@@ -40,7 +39,7 @@ export default function BlocoPericias({
 
           function handleRolar(evento) {
             evento.stopPropagation();
-            const resultado = rolarTesteD20(modificador);
+            const resultado = rolarD20(modificador);
             registrarRolagem(`Perícia: ${pericia.label}`, resultado, "d20");
           }
 

@@ -23,6 +23,9 @@ export default function ModalCatalogoMagias({
   onFechar,
   onAdicionarMagia,
   ficha,
+  modificadoresConjuracao = {},
+  onAplicarEfeitoPv,
+  onAplicarCondicao,
 }) {
   const [classeAtiva, setClasseAtiva] = useState(ficha.classeId ?? "");
   const [nivelAtivo, setNivelAtivo] = useState(0);
@@ -243,7 +246,18 @@ export default function ModalCatalogoMagias({
 
                   {expandido && (
                     <div className="item-catalogo-corpo">
-                      <DetalheMagia magia={magia} />
+                      <DetalheMagia
+                        magia={magia}
+                        modificadorConjuracao={
+                          modificadoresConjuracao[
+                            classeSelecionada === "segredos-magicos"
+                              ? "bardo"
+                              : classeSelecionada
+                          ] ?? 0
+                        }
+                        onAplicarEfeitoPv={onAplicarEfeitoPv}
+                        onAplicarCondicao={onAplicarCondicao}
+                      />
                     </div>
                   )}
                 </div>

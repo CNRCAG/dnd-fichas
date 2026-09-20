@@ -1,5 +1,4 @@
 import { ATRIBUTOS, formatarModificador } from "../../utils/dnd";
-import { rolarTesteD20 } from "../../utils/dados";
 import { useRolagem } from "../../context/useRolagem";
 import "./BlocoSalvaguardas.css";
 
@@ -7,8 +6,9 @@ export default function BlocoSalvaguardas({
   modificadoresAtributos,
   salvaguardasProficientes,
   bonusProficiencia,
+  bonusItens = 0,
 }) {
-  const { registrarRolagem } = useRolagem();
+  const { registrarRolagem, rolarD20 } = useRolagem();
 
   return (
     <section>
@@ -25,10 +25,11 @@ export default function BlocoSalvaguardas({
           );
           const modificador =
             modificadoresAtributos[atributo.chave] +
-            (proficiente ? bonusProficiencia : 0);
+            (proficiente ? bonusProficiencia : 0) +
+            bonusItens;
 
           function handleRolar() {
-            const resultado = rolarTesteD20(modificador);
+            const resultado = rolarD20(modificador);
             registrarRolagem(`Salvaguarda: ${atributo.label}`, resultado, "d20");
           }
 

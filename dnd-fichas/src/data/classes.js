@@ -45,7 +45,7 @@ export const CLASSES = [
     dadoVida: 8,
     atributoPrincipal: "sabedoria",
     salvaguardasProficientes: ["inteligencia", "sabedoria"],
-    proficienciasIniciais: { armaduras: ["leves", "medias", "escudos-nao-metalicos"], armas: ["clavas", "adagas", "dardos", "azagaias", "macas", "bordoes", "cimitarras", "foices", "fundas", "lancas"], ferramentas: ["kit-ervanario"], pericias: { quantidade: 2, opcoes: ["arcanismo", "adestrarAnimais", "intuicao", "medicina", "natureza", "percepcao", "religiao", "sobrevivencia"] } },
+    proficienciasIniciais: { armaduras: ["leves", "medias"], escudos: true, armas: ["clavas", "adagas", "dardos", "azagaias", "macas", "bordoes", "cimitarras", "foices", "fundas", "lancas"], ferramentas: ["kit-ervanario"], pericias: { quantidade: 2, opcoes: ["arcanismo", "adestrarAnimais", "intuicao", "medicina", "natureza", "percepcao", "religiao", "sobrevivencia"] } },
   },
   {
     id: "feiticeiro",
@@ -90,7 +90,7 @@ export const CLASSES = [
     dadoVida: 8,
     atributoPrincipal: "destreza",
     salvaguardasProficientes: ["forca", "destreza"],
-    proficienciasIniciais: { armas: ["simples", "espadas-curtas"], pericias: { quantidade: 2, opcoes: ["acrobacia", "atletismo", "historia", "intuicao", "religiao", "furtividade"] } },
+    proficienciasIniciais: { armas: ["simples", "espadas-curtas"], ferramentasEscolha: { quantidade: 1, grupo: "artesao-ou-instrumento" }, pericias: { quantidade: 2, opcoes: ["acrobacia", "atletismo", "historia", "intuicao", "religiao", "furtividade"] } },
   },
   {
     id: "paladino",

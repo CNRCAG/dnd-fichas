@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { carregarFichas, salvarFichas } from "../utils/storage";
 import { criarFichaVazia, normalizarFicha } from "../utils/ficha";
 import { sincronizarFichaComSubclasses } from "../utils/subclassesFicha";
-import { validarFicha } from "../utils/validacaoFicha";
+import { reconciliarEstadoProntidao } from "../utils/validacaoFicha";
 import { obterRaca } from "../data/racas";
 import { FichasContext } from "./fichasContext";
 
@@ -15,37 +15,69 @@ export function FichasProvider({ children }) {
       if (atributo) bonus[atributo] = (bonus[atributo] ?? 0) + 1;
     }
     const atributosTotais = Object.fromEntries(Object.entries(normalizada.atributos ?? {}).map(([chave, valor]) => [chave, Number(valor) + (bonus[chave] ?? 0)]));
-    const validacao = validarFicha(normalizada, atributosTotais);
-    return normalizada.estadoFicha === "pronta" && !validacao.pronta
-      ? { ...normalizada, estadoFicha: "rascunho" }
-      : normalizada;
+    return reconciliarEstadoProntidao(normalizada, atributosTotais);
   };
 
-  const [fichas, setFichas] = useState(() =>
-    (carregarFichas() ?? []).map(sincronizarFicha)
+  const [estadoInicial] = useState(() => {
+    const fichasCarregadas = (carregarFichas() ?? []).map(sincronizarFicha);
+    const resultado = salvarFichas(fichasCarregadas);
+    return {
+      fichas: fichasCarregadas,
+      falhaPersistencia: resultado.ok
+        ? null
+        : { ...resultado.erro, ocorridoEm: Date.now() },
+    };
+  });
+  const [fichas, setFichas] = useState(estadoInicial.fichas);
+  const fichasRef = useRef(estadoInicial.fichas);
+  const [falhaPersistencia, setFalhaPersistencia] = useState(
+    estadoInicial.falhaPersistencia
   );
 
-  // Toda mudança na lista de fichas é persistida automaticamente.
-  useEffect(() => {
-    salvarFichas(fichas);
-  }, [fichas]);
+  function registrarResultadoPersistencia(resultado) {
+    if (resultado.ok) {
+      setFalhaPersistencia(null);
+      return true;
+    }
+    setFalhaPersistencia({
+      ...resultado.erro,
+      ocorridoEm: Date.now(),
+    });
+    return false;
+  }
+
+  function substituirFichas(proximasFichas) {
+    fichasRef.current = proximasFichas;
+    setFichas(proximasFichas);
+    registrarResultadoPersistencia(salvarFichas(proximasFichas));
+  }
+
+  function tentarSalvarNovamente() {
+    return registrarResultadoPersistencia(salvarFichas(fichasRef.current));
+  }
+
+  function dispensarFalhaPersistencia() {
+    setFalhaPersistencia(null);
+  }
 
   function criarFicha(nome, overrides = {}) {
     const novaFicha = sincronizarFicha({ ...criarFichaVazia(nome), ...overrides });
-    setFichas((atual) => [...atual, novaFicha]);
+    substituirFichas([...fichasRef.current, novaFicha]);
     return novaFicha;
   }
 
   function atualizarFicha(id, atualizador) {
-    setFichas((atual) =>
-      atual.map((ficha) =>
-        ficha.id === id ? sincronizarFicha({ ...ficha, ...atualizador(ficha) }) : ficha
+    substituirFichas(
+      fichasRef.current.map((ficha) =>
+        ficha.id === id
+          ? sincronizarFicha({ ...ficha, ...atualizador(ficha) })
+          : ficha
       )
     );
   }
 
   function removerFicha(id) {
-    setFichas((atual) => atual.filter((ficha) => ficha.id !== id));
+    substituirFichas(fichasRef.current.filter((ficha) => ficha.id !== id));
   }
 
   function obterFicha(id) {
@@ -58,6 +90,9 @@ export function FichasProvider({ children }) {
     atualizarFicha,
     removerFicha,
     obterFicha,
+    falhaPersistencia,
+    tentarSalvarNovamente,
+    dispensarFalhaPersistencia,
   };
 
   return (

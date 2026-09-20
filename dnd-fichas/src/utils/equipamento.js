@@ -1,4 +1,5 @@
 import { obterItemCatalogo } from "../data/catalogoItens";
+import { itemMagicoAtivo, somarEfeitoItens } from "./itensMagicos";
 
 // Pega os itens de inventário que são armadura/escudo, equipados, e resolve
 // os dados completos deles no catálogo (dano, ca etc. não ficam duplicados
@@ -9,7 +10,7 @@ function armadurasEquipadas(inventario) {
     .map((item) => {
       const original = obterItemCatalogo(item.origemId)?.original;
       if (!original) return null;
-      return { ...original, bonusMagico: item.magico ? item.bonusMagico ?? 0 : 0 };
+      return { ...original, bonusMagico: itemMagicoAtivo(item) ? item.bonusMagico ?? 0 : 0 };
     })
     .filter(Boolean);
 }
@@ -40,6 +41,8 @@ export function calcularCaEquipada(inventario, modificadoresAtributos, classeId)
   if (escudo) {
     ca += escudo.caBase + (escudo.bonusMagico ?? 0);   // era só escudo.caBase
   }
+
+  ca += somarEfeitoItens(inventario, "bonus-ca");
 
   return ca;
 }

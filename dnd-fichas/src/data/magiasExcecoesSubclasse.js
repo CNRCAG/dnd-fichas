@@ -6,33 +6,33 @@ export const REGRAS_MAGIAS_SUBCLASSES = {
   "dominio-vida": {
     classeId: "clerigo",
     tipo: "sempre-preparada",
-    niveis: { 1: ["bencao", "curar-ferimentos"], 3: ["restauracao-menor"], 5: ["revivificar"], 9: ["cura-em-massa"] },
+    niveis: { 1: ["bencao", "curar-ferimentos"], 3: ["restauracao-menor", "arma-espiritual"], 5: ["sinal-esperanca", "revivificar"], 7: ["protecao-contra-morte", "guardiao-da-fe"], 9: ["cura-em-massa", "reviver-os-mortos"] },
   },
   "dominio-luz": {
     classeId: "clerigo",
     tipo: "sempre-preparada",
     concedidas: { 1: ["luz"] },
-    niveis: { 3: ["raio-ardente"], 5: ["bola-de-fogo"], 7: ["parede-de-fogo"] },
+    niveis: { 1: ["maos-flamejantes", "fogo-das-fadas"], 3: ["esfera-flamejante", "raio-ardente"], 5: ["luz-do-dia", "bola-de-fogo"], 7: ["guardiao-da-fe", "parede-de-fogo"], 9: ["coluna-de-chamas", "videncia"] },
   },
   "patrono-arquifada": {
     classeId: "bruxo",
     tipo: "lista-expandida",
-    niveis: { 1: ["sono"], 3: ["invisibilidade"], 9: ["dominar-pessoa"] },
+    niveis: { 1: ["fogo-das-fadas", "sono"], 3: ["acalmar-emocoes", "forca-fantasmagorica"], 5: ["piscar", "ampliar-plantas"], 7: ["dominar-besta", "invisibilidade-maior"], 9: ["dominar-pessoa", "similaridade"] },
   },
   "patrono-corruptor": {
     classeId: "bruxo",
     tipo: "lista-expandida",
-    niveis: { 1: ["comando"], 3: ["raio-ardente"], 5: ["bola-de-fogo"], 7: ["parede-de-fogo"] },
+    niveis: { 1: ["maos-flamejantes", "comando"], 3: ["cegueira-surdez", "raio-ardente"], 5: ["bola-de-fogo", "nuvem-fetida"], 7: ["escudo-de-fogo", "parede-de-fogo"], 9: ["coluna-de-chamas", "consagrar"] },
   },
   "juramento-devocao": {
     classeId: "paladino",
     tipo: "sempre-preparada",
-    niveis: { 5: ["restauracao-menor"], 9: ["dissipar-magia"], 13: ["liberdade-de-movimento"] },
+    niveis: { 3: ["protecao-contra-bem-e-mal", "santuario"], 5: ["restauracao-menor", "zona-da-verdade"], 9: ["sinal-esperanca", "dissipar-magia"], 13: ["liberdade-de-movimento", "guardiao-da-fe"], 17: ["comunhao", "coluna-de-chamas"] },
   },
   "juramento-vinganca": {
     classeId: "paladino",
     tipo: "sempre-preparada",
-    niveis: { 5: ["passo-nebuloso"], 9: ["velocidade", "protecao-contra-energia"], 13: ["banimento"] },
+    niveis: { 3: ["perdicao", "marca-do-cacador"], 5: ["imobilizar-pessoa", "passo-nebuloso"], 9: ["velocidade", "protecao-contra-energia"], 13: ["banimento", "porta-dimensional"], 17: ["imobilizar-monstro", "videncia"] },
   },
   "trapaceiro-arcano": {
     classeId: "ladino",

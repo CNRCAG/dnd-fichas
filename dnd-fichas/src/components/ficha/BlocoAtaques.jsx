@@ -5,7 +5,7 @@ import {
   criarAtaqueVazio,
   formatarDano,
 } from "../../utils/ataque";
-import { rolarTesteD20, rolarFormula } from "../../utils/dados";
+import { rolarFormula } from "../../utils/dados";
 import { useRolagem } from "../../context/useRolagem";
 import "./BlocoAtaques.css";
 
@@ -22,7 +22,7 @@ export default function BlocoAtaques({
   ataques,
   onChangeAtaques,
 }) {
-  const { registrarRolagem } = useRolagem();
+  const { registrarRolagem, rolarD20 } = useRolagem();
   const armasEquipadas = inventario
     .filter((item) => item.tipoItem === "arma" && item.equipado)
     .map(criarAtaqueApartirDeItemEquipado)
@@ -45,7 +45,7 @@ export default function BlocoAtaques({
   }
 
   function handleRolarAcerto(ataque, bonusAcerto) {
-    const resultado = rolarTesteD20(bonusAcerto);
+    const resultado = rolarD20(bonusAcerto);
     registrarRolagem(`${ataque.nome || "Ataque"} (acerto)`, resultado, "d20");
   }
 

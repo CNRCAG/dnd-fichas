@@ -1,5 +1,39 @@
+import { RARIDADES } from "../../data/raridades";
+
 export default function DetalheItemCatalogo({ item }) {
   const { tipoItem, original } = item;
+  const nomeRaridade = RARIDADES.find((raridade) => raridade.id === original.raridade)?.label;
+
+  if (item.grupo === "Itens mágicos") {
+    return (
+      <dl className="item-catalogo-detalhes">
+        <div>
+          <dt>Raridade</dt>
+          <dd>{nomeRaridade ?? original.raridade}</dd>
+        </div>
+        <div>
+          <dt>Sintonização</dt>
+          <dd>{original.requerSintonizacao ? "Necessária" : "Não necessária"}</dd>
+        </div>
+        {original.cargas && (
+          <div>
+            <dt>Cargas</dt>
+            <dd>{original.cargas.maximo}</dd>
+          </div>
+        )}
+        {original.recarga && (
+          <div>
+            <dt>Recarga</dt>
+            <dd>{original.recarga.formula} ao {original.recarga.momento}</dd>
+          </div>
+        )}
+        <div className="item-catalogo-detalhe-full">
+          <dt>Regras</dt>
+          <dd>{original.regras.join(" ")}</dd>
+        </div>
+      </dl>
+    );
+  }
 
   if (tipoItem === "arma") {
     return (

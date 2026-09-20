@@ -10,13 +10,18 @@ import { obterHabilidadesPorSubclasse } from "../../data/habilidadesSubclasses";
 import { MAGIAS } from "../../data/magiasSistema";
 import { classesElegiveisParaMagia } from "../../utils/acessoMagias";
 import { pendenciasProficienciasMulticlasse } from "../../utils/proficienciasMulticlasse";
-import { magiasElegiveisParaTroca, obterRegraTroca, magiaElegivelPorSegredo } from "../../utils/regrasMagias";
+import {
+  aplicarTrocasMagias,
+  magiasElegiveisParaTroca,
+  obterRegraTroca,
+  magiaElegivelPorSegredo,
+} from "../../utils/regrasMagias";
+import { calcularNivelTotal, NIVEL_MAXIMO_PERSONAGEM } from "../../utils/niveis";
 import DetalheHabilidade from "./DetalheHabilidade";
 import "./ModalCatalogoItens.css";
 import "./ModalLevelUp.css";
 
 const NIVEIS_ASI = [4, 8, 12, 16, 19];
-const NIVEL_MAXIMO_PERSONAGEM = 20;
 
 export default function ModalLevelUp({
   aberto,
@@ -66,12 +71,7 @@ export default function ModalLevelUp({
     opcoesClasse.find((o) => o.id === classeEscolhidaId) ?? opcoesClasse[0];
   const novoNivelDaEscolhida = classeEscolhida.nivelAtual + 1;
 
-  const nivelTotalAtual =
-    (ficha.nivel ?? 1) +
-    (ficha.classesSecundarias ?? []).reduce(
-      (soma, c) => soma + (c.classeId ? (c.nivel ?? 0) : 0),
-      0
-    );
+  const nivelTotalAtual = calcularNivelTotal(ficha);
   const novoNivelTotal = nivelTotalAtual + 1;
 
   // ---- rascunho das escolhas, só vira de verdade ao "Concluir" ----
@@ -88,8 +88,7 @@ export default function ModalLevelUp({
 
   const [habilidadesSelecionadas, setHabilidadesSelecionadas] = useState(() => new Set());
   const [subclasseEscolhidaId, setSubclasseEscolhidaId] = useState(null);
-  const [magiaSubstituidaId, setMagiaSubstituidaId] = useState("");
-  const [novaMagiaId, setNovaMagiaId] = useState("");
+  const [trocasMagias, setTrocasMagias] = useState([]);
 
   if (!aberto || !classe || nivelTotalAtual >= NIVEL_MAXIMO_PERSONAGEM) return null;
 
@@ -127,23 +126,14 @@ export default function ModalLevelUp({
       };
   const chaveTroca = `${classeEscolhida.id}-${novoNivelDaEscolhida}`;
   const regraTroca = obterRegraTroca(fichaNoNovoNivel, classeEscolhida.id, novoNivelDaEscolhida);
-  const magiasSubstituiveis = magiasElegiveisParaTroca(ficha, classeEscolhida.id, novoNivelDaEscolhida);
-  const podeTrocarMagia = Boolean(regraTroca) && magiasSubstituiveis.length > 0 && !(ficha.trocasMagiasAplicadas ?? {})[chaveTroca];
-  const fichaParaNovaMagia = magiaSubstituidaId
-    ? {
-        ...fichaNoNovoNivel,
-        magias: (fichaNoNovoNivel.magias ?? []).filter(
-          (magia) => magia.id !== magiaSubstituidaId
-        ),
-      }
-    : fichaNoNovoNivel;
-  const magiaRemovida = (ficha.magias ?? []).find((magia) => magia.id === magiaSubstituidaId);
-  const novasMagiasElegiveis = MAGIAS.filter((magia) =>
-    Number(magia.nivel) > 0 &&
-    (magiaRemovida?.origemEspecial?.tipo === "segredos-magicos"
-      ? magiaElegivelPorSegredo(fichaNoNovoNivel, classeEscolhida.id, magia)
-      : classesElegiveisParaMagia(fichaParaNovaMagia, magia, true).some((classeElegivel) => classeElegivel.classeId === classeEscolhida.id))
-  );
+  const magiasSubstituiveis = magiasElegiveisParaTroca(fichaNoNovoNivel, classeEscolhida.id, novoNivelDaEscolhida);
+  const quantidadeTrocas = regraTroca?.quantidade ?? 0;
+  const trocasAtivas = Array.from({ length: quantidadeTrocas }, (_, indice) => ({
+    removidaId: trocasMagias[indice]?.removidaId ?? "",
+    novaMagiaId: trocasMagias[indice]?.novaMagiaId ?? "",
+  }));
+  const trocaJaResolvida = Boolean((ficha.trocasMagiasAplicadas ?? {})[chaveTroca]);
+  const podeTrocarMagia = quantidadeTrocas > 0 && magiasSubstituiveis.length > 0 && !trocaJaResolvida;
   const temAsi = NIVEIS_ASI.includes(novoNivelDaEscolhida);
   const asiJaAplicado = (ficha.niveisAsiAplicados ?? []).includes(chaveAsi);
 
@@ -178,8 +168,7 @@ export default function ModalLevelUp({
     setAtributosAsiDuplo(["forca", "destreza"]);
     setHabilidadesSelecionadas(new Set());
     setSubclasseEscolhidaId(null);
-    setMagiaSubstituidaId("");
-    setNovaMagiaId("");
+    setTrocasMagias([]);
     onFechar();
   }
 
@@ -238,6 +227,78 @@ export default function ModalLevelUp({
     });
   }
 
+  function alterarTrocaMagia(indice, campo, valor) {
+    setTrocasMagias((atuais) => {
+      const proximas = [...atuais];
+      proximas[indice] = {
+        removidaId: proximas[indice]?.removidaId ?? "",
+        novaMagiaId: proximas[indice]?.novaMagiaId ?? "",
+        [campo]: valor,
+        ...(campo === "removidaId" ? { novaMagiaId: "" } : {}),
+      };
+      return proximas;
+    });
+  }
+
+  function novasMagiasElegiveisParaTroca(indiceTroca) {
+    const trocaAtual = trocasAtivas[indiceTroca];
+    const magiaRemovida = (ficha.magias ?? []).find(
+      (magia) => magia.id === trocaAtual.removidaId
+    );
+    if (!magiaRemovida) return [];
+
+    const idsRemovidos = new Set(trocasAtivas.map((troca) => troca.removidaId).filter(Boolean));
+    const idsNovosEmOutrasTrocas = new Set(
+      trocasAtivas
+        .filter((_, indice) => indice !== indiceTroca)
+        .map((troca) => troca.novaMagiaId)
+        .filter(Boolean)
+    );
+    const magiasMantidas = (fichaNoNovoNivel.magias ?? []).filter(
+      (magia) => !idsRemovidos.has(magia.id)
+    );
+    const magiasProvisorias = trocasAtivas.flatMap((troca, indice) => {
+      if (indice === indiceTroca || !troca.removidaId || !troca.novaMagiaId) return [];
+      const removida = (ficha.magias ?? []).find((magia) => magia.id === troca.removidaId);
+      const nova = MAGIAS.find((magia) => magia.id === troca.novaMagiaId);
+      if (!removida || !nova) return [];
+      return [{
+        ...removida,
+        origemId: nova.id,
+        nome: nova.nome,
+        nivel: nova.nivel,
+      }];
+    });
+    const fichaParaNovaMagia = {
+      ...fichaNoNovoNivel,
+      magias: [...magiasMantidas, ...magiasProvisorias],
+    };
+
+    return MAGIAS.filter((magia) =>
+      Number(magia.nivel) > 0 &&
+      magia.id !== magiaRemovida.origemId &&
+      !idsNovosEmOutrasTrocas.has(magia.id) &&
+      !magiasMantidas.some((existente) =>
+        existente.origemId === magia.id &&
+        (existente.classeId === classeEscolhida.id ||
+          existente.origemEspecial?.classeId === classeEscolhida.id)
+      ) &&
+      (magiaRemovida.origemEspecial?.tipo === "segredos-magicos"
+        ? magiaElegivelPorSegredo(fichaNoNovoNivel, classeEscolhida.id, magia)
+        : classesElegiveisParaMagia(fichaParaNovaMagia, magia, true).some(
+            (classeElegivel) => classeElegivel.classeId === classeEscolhida.id
+          ))
+    );
+  }
+
+  function trocaMagiaValida(troca, indice) {
+    if (!troca.removidaId && !troca.novaMagiaId) return true;
+    if (!troca.removidaId || !troca.novaMagiaId) return false;
+    return novasMagiasElegiveisParaTroca(indice).some(
+      (magia) => magia.id === troca.novaMagiaId
+    );
+  }
+
   // seleciona todas por padrão na primeira vez que a etapa é vista
   if (
     etapaAtual === "habilidades" &&
@@ -252,6 +313,7 @@ export default function ModalLevelUp({
     if (novoNivelTotal > NIVEL_MAXIMO_PERSONAGEM) return;
     if (classeEscolhida.pendenteMulticlasse) return;
     if (precisaEscolherSubclasse && !subclasseEscolhidaId) return;
+    if (trocasAtivas.some((troca, indice) => !trocaMagiaValida(troca, indice))) return;
 
     const novosAtributos = { ...ficha.atributos };
     if (!asiJaAplicado) {
@@ -285,7 +347,7 @@ export default function ModalLevelUp({
       { [novoNivelTotal]: ganhoPv ?? 0 }
     );
 
-        const niveisAsiAplicados =
+    const niveisAsiAplicados =
       temAsi && !asiJaAplicado
         ? [...(ficha.niveisAsiAplicados ?? []), chaveAsi]
         : ficha.niveisAsiAplicados ?? [];
@@ -296,33 +358,28 @@ export default function ModalLevelUp({
       status,
       atributos: novosAtributos,
       niveisAsiAplicados,
-            habilidades: [...(ficha.habilidades ?? []), ...novasHabilidades],
+      habilidades: [...(ficha.habilidades ?? []), ...novasHabilidades],
     };
-    if (magiaSubstituidaId && novaMagiaId) {
-      const novaMagia = MAGIAS.find((magia) => magia.id === novaMagiaId);
-      if (novaMagia) {
-        atualizacoes.magias = (ficha.magias ?? []).map((magia) =>
-          magia.id === magiaSubstituidaId
-            ? {
-                ...magia,
-                nome: novaMagia.nome,
-                nivel: novaMagia.nivel,
-                origemId: novaMagia.id,
-                preparada: false,
-                fonteEspecial: magia.origemEspecial?.tipo === "segredos-magicos" ? "Segredos Mágicos" : null,
-                classeId: magia.origemEspecial?.tipo === "segredos-magicos" ? "especial" : classeEscolhida.id,
-                origemSubclasseId: null,
-                origemSubclasseTipo: null,
-                origemSubclasseAutomatica: false,
-              }
-            : magia
-        );
-      }
+    const trocasConcluidas = trocasAtivas.filter(
+      (troca) => troca.removidaId && troca.novaMagiaId
+    );
+    if (trocasConcluidas.length > 0) {
+      atualizacoes.magias = aplicarTrocasMagias(
+        ficha.magias,
+        trocasConcluidas,
+        classeEscolhida.id
+      );
     }
-    if (magiaSubstituidaId && novaMagiaId) {
+    if (regraTroca && !trocaJaResolvida) {
       atualizacoes.trocasMagiasAplicadas = {
         ...(ficha.trocasMagiasAplicadas ?? {}),
-        [chaveTroca]: { removidaId: magiaSubstituidaId, novaMagiaId, classeId: classeEscolhida.id },
+        [chaveTroca]: {
+          classeId: classeEscolhida.id,
+          nivel: novoNivelDaEscolhida,
+          quantidadeDisponivel: quantidadeTrocas,
+          trocas: trocasConcluidas,
+          ignorada: trocasConcluidas.length === 0,
+        },
       };
     }
     if (classeEscolhida.ehSecundaria) {
@@ -393,6 +450,7 @@ export default function ModalLevelUp({
                     onClick={() => {
                       setClasseEscolhidaId(opcao.id);
                       setSubclasseEscolhidaId(null);
+                      setTrocasMagias([]);
                     }}
                     disabled={opcao.pendenteMulticlasse}
                   >
@@ -602,37 +660,53 @@ export default function ModalLevelUp({
 
           {etapaAtual === "troca-magia" && (
             <div className="levelup-etapa">
-              <h3>Trocar magia conhecida</h3>
+              <h3>{quantidadeTrocas === 1 ? "Trocar magia conhecida" : `Trocar até ${quantidadeTrocas} magias conhecidas`}</h3>
               <p className="levelup-texto">
                 {regraTroca?.mensagem ?? "Esta troca é opcional."} A nova magia precisa ser válida para {classeEscolhida.nome}
                 no nível {novoNivelDaEscolhida}; a mudança só será aplicada ao concluir.
               </p>
-              <select
-                className="levelup-select"
-                value={magiaSubstituidaId}
-                onChange={(evento) => setMagiaSubstituidaId(evento.target.value)}
-              >
-                <option value="">Não substituir agora</option>
-                {magiasSubstituiveis.map((magia) => (
-                  <option key={magia.id} value={magia.id}>
-                    {magia.nome} ({magia.nivel}º círculo)
-                  </option>
-                ))}
-              </select>
-              {magiaSubstituidaId && (
-                <select
-                  className="levelup-select"
-                  value={novaMagiaId}
-                  onChange={(evento) => setNovaMagiaId(evento.target.value)}
-                >
-                  <option value="">Escolha a nova magia</option>
-                  {novasMagiasElegiveis.map((magia) => (
-                    <option key={magia.id} value={magia.id}>
-                      {magia.nome} ({magia.nivel}º círculo)
-                    </option>
-                  ))}
-                </select>
-              )}
+              {trocasAtivas.map((troca, indice) => {
+                const removidasEmOutrasTrocas = new Set(
+                  trocasAtivas
+                    .filter((_, outroIndice) => outroIndice !== indice)
+                    .map((item) => item.removidaId)
+                    .filter(Boolean)
+                );
+                const novasElegiveis = novasMagiasElegiveisParaTroca(indice);
+                return (
+                  <div key={indice} className="levelup-troca-magia">
+                    <strong>Troca {indice + 1}</strong>
+                    <select
+                      className="levelup-select"
+                      value={troca.removidaId}
+                      onChange={(evento) => alterarTrocaMagia(indice, "removidaId", evento.target.value)}
+                    >
+                      <option value="">Não usar esta troca</option>
+                      {magiasSubstituiveis
+                        .filter((magia) => !removidasEmOutrasTrocas.has(magia.id))
+                        .map((magia) => (
+                          <option key={magia.id} value={magia.id}>
+                            {magia.nome} ({magia.nivel}º círculo)
+                          </option>
+                        ))}
+                    </select>
+                    {troca.removidaId && (
+                      <select
+                        className="levelup-select"
+                        value={troca.novaMagiaId}
+                        onChange={(evento) => alterarTrocaMagia(indice, "novaMagiaId", evento.target.value)}
+                      >
+                        <option value="">Escolha a nova magia</option>
+                        {novasElegiveis.map((magia) => (
+                          <option key={magia.id} value={magia.id}>
+                            {magia.nome} ({magia.nivel}º círculo)
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -688,13 +762,13 @@ export default function ModalLevelUp({
                       .join(", ")}
                   </li>
                 )}
-                {magiaSubstituidaId && novaMagiaId && (
-                  <li>
-                    Magia substituída: {magiasSubstituiveis.find((magia) => magia.id === magiaSubstituidaId)?.nome}
+                {trocasAtivas.filter((troca) => troca.removidaId && troca.novaMagiaId).map((troca, indice) => (
+                  <li key={`${troca.removidaId}-${indice}`}>
+                    Magia substituída: {magiasSubstituiveis.find((magia) => magia.id === troca.removidaId)?.nome}
                     {" → "}
-                    {MAGIAS.find((magia) => magia.id === novaMagiaId)?.nome}
+                    {MAGIAS.find((magia) => magia.id === troca.novaMagiaId)?.nome}
                   </li>
-                )}
+                ))}
                                 <li>Espaços de magia recalculados considerando todas as suas classes</li>
               </ul>
             </div>
@@ -723,7 +797,9 @@ export default function ModalLevelUp({
                 (etapaAtual === "pv" && !podeAvancarPv) ||
                 (etapaAtual === "asi" && !podeAvancarAsi) ||
                 (etapaAtual === "subclasse" && !subclasseEscolhidaId) ||
-                (etapaAtual === "troca-magia" && magiaSubstituidaId && !novaMagiaId)
+                (etapaAtual === "troca-magia" && trocasAtivas.some(
+                  (troca, indice) => !trocaMagiaValida(troca, indice)
+                ))
               }
             >
               Próximo

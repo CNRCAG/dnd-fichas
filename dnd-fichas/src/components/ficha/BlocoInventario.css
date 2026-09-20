@@ -34,6 +34,33 @@
   color: var(--color-ink-soft);
 }
 
+.inventario-resumos {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.inventario-sintonizacao {
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
+}
+
+.inventario-sintonizacao.is-limite {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.inventario-aviso {
+  padding: var(--space-2);
+  margin: 0 0 var(--space-3);
+  color: var(--color-ink);
+  background: var(--color-bg-inset);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
 .inventario-vazio {
   font-size: var(--text-sm);
   color: var(--color-ink-soft);
@@ -152,6 +179,7 @@
 
 .inventario-magico-detalhes {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-1);
   margin-top: var(--space-1);
 }
@@ -168,4 +196,83 @@
 
 .inventario-bonus-magico {
   width: 3.5rem !important;
+}
+
+.inventario-sintonizar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+}
+
+.inventario-sintonizar input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--color-accent);
+}
+
+.inventario-cargas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+}
+
+.inventario-cargas button {
+  padding: 2px var(--space-1);
+  color: var(--color-primary);
+  background: transparent;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+}
+
+.inventario-cargas button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.inventario-usar-efeito {
+  display: block;
+  margin-top: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-accent);
+  background: transparent;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+}
+
+.inventario-regras {
+  margin-top: var(--space-1);
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
+}
+
+.inventario-regras summary {
+  cursor: pointer;
+}
+
+.inventario-regras ul {
+  padding-left: var(--space-4);
+  margin: var(--space-1) 0 0;
+}
+
+@media (max-width: 760px) {
+  .inventario-cabecalho {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .inventario-resumos {
+    align-items: flex-start;
+  }
+
+  .inventario-tabela {
+    display: block;
+    overflow-x: auto;
+  }
 }

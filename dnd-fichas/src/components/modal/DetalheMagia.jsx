@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ESCOLAS } from "../../data/magiasSistema";
 import { ATRIBUTOS, extrairDadosDoDano } from "../../utils/dnd";
 import { rolarFormula } from "../../utils/dados";
@@ -12,15 +13,49 @@ function labelResistencia(magia) {
   return "Nenhuma";
 }
 
-export default function DetalheMagia({ magia }) {
+export default function DetalheMagia({
+  magia,
+  modificadorConjuracao = 0,
+  onAplicarEfeitoPv,
+  onAplicarCondicao,
+}) {
   const { registrarRolagem } = useRolagem();
-  const temEfeitoMecanico = Boolean(magia.dano || magia.condicao);
+  const [ultimoEfeitoPv, setUltimoEfeitoPv] = useState(null);
+  const temEfeitoMecanico = Boolean(magia.dano || magia.cura || magia.condicao);
   const formulaDano = extrairDadosDoDano(magia.dano);
 
   function handleRolarDano() {
     if (!formulaDano) return;
     const resultado = rolarFormula(formulaDano);
     registrarRolagem(`${magia.nome} (dano)`, resultado, "formula");
+    setUltimoEfeitoPv({ tipo: "dano", resultado });
+  }
+
+  function handleRolarCura() {
+    if (!magia.cura?.formula) return;
+    const base = rolarFormula(magia.cura.formula);
+    const modificador = magia.cura.somaModificadorConjuracao
+      ? modificadorConjuracao
+      : 0;
+    const resultado = modificador !== 0
+      ? {
+          ...base,
+          total: Math.max(0, base.total + modificador),
+          detalhes: [...base.detalhes, { texto: "mod. conjuração", rolagens: [], soma: modificador }],
+        }
+      : base;
+    registrarRolagem(`${magia.nome} (cura)`, resultado, "formula");
+    setUltimoEfeitoPv({ tipo: "cura", resultado });
+  }
+
+  function handleAplicarUltimoEfeito() {
+    if (!ultimoEfeitoPv || !onAplicarEfeitoPv) return;
+    onAplicarEfeitoPv(
+      ultimoEfeitoPv.tipo,
+      ultimoEfeitoPv.resultado.total,
+      magia.nome
+    );
+    setUltimoEfeitoPv(null);
   }
 
   return (
@@ -70,10 +105,58 @@ export default function DetalheMagia({ magia }) {
           </dd>
         </div>
       )}
+      {magia.cura && (
+        <div>
+          <dt>Cura</dt>
+          <dd>
+            {magia.cura.formula}
+            {magia.cura.somaModificadorConjuracao ? " + modificador de conjuração" : ""}
+            <button
+              type="button"
+              className="magia-rolar-dano-botao"
+              onClick={handleRolarCura}
+              title={`Rolar cura de ${magia.cura.formula}`}
+            >
+              🎲 {magia.cura.formula}
+            </button>
+          </dd>
+        </div>
+      )}
+      {ultimoEfeitoPv && onAplicarEfeitoPv && (
+        <div className="item-catalogo-detalhe-full magia-aplicar-efeito">
+          <dt>Resultado rolado</dt>
+          <dd>
+            {ultimoEfeitoPv.resultado.total} PV de {ultimoEfeitoPv.tipo === "cura" ? "cura" : "dano"}
+            <button
+              type="button"
+              className="magia-aplicar-efeito-botao"
+              onClick={handleAplicarUltimoEfeito}
+            >
+              Aplicar à ficha
+            </button>
+          </dd>
+        </div>
+      )}
       {magia.condicao && (
         <div className={magia.dano ? "item-catalogo-detalhe-full" : ""}>
           <dt>Condição</dt>
-          <dd>{magia.condicao}</dd>
+          <dd>
+            {magia.condicao}
+            {onAplicarCondicao && (
+              <button
+                type="button"
+                className="magia-aplicar-efeito-botao"
+                onClick={() => onAplicarCondicao({
+                  nome: magia.condicao,
+                  fonte: magia.nome,
+                  fonteId: magia.id,
+                  duracao: magia.duracao,
+                })}
+              >
+                Adicionar à ficha
+              </button>
+            )}
+          </dd>
         </div>
       )}
       {!temEfeitoMecanico && (

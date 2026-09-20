@@ -1,39 +1,44 @@
 import { useState } from "react";
-import { criarItemVazio } from "../../utils/inventario";
-import { RARIDADES } from "../../data/raridades";   // NOVO
+import { criarItemDoCatalogo, criarItemVazio } from "../../utils/inventario";
+import {
+  calcularCapacidadeCarga,
+  calcularPesoInventario,
+} from "../../utils/carga";
+import {
+  LIMITE_SINTONIZACAO,
+  alterarSintonizacao,
+  contarItensSintonizados,
+  gastarCargasItem,
+  itemMagicoAtivo,
+  itemPossuiCargas,
+  recuperarCargasItem,
+} from "../../utils/itensMagicos";
+import { rolarFormula } from "../../utils/dados";
+import { useRolagem } from "../../context/useRolagem";
+import { RARIDADES } from "../../data/raridades";
 import ModalCatalogoItens from "../modal/ModalCatalogoItens";
 import "./BlocoInventario.css";
 
-export default function BlocoInventario({ inventario, onChangeInventario, forcaTotal }) {
+export default function BlocoInventario({
+  inventario,
+  onChangeInventario,
+  forcaTotal,
+  onAplicarEfeitoPv,
+}) {
+  const { registrarRolagem } = useRolagem();
   const [modalAberto, setModalAberto] = useState(false);
-  const pesoTotal = inventario.reduce(
-    (soma, item) => soma + item.quantidade * item.peso,
-    0
-  );
-  const capacidadeCarga = forcaTotal * 7.5;
+  const [avisoItem, setAvisoItem] = useState("");
+  const pesoTotal = calcularPesoInventario(inventario);
+  const capacidadeCarga = calcularCapacidadeCarga(forcaTotal);
   const sobrecarregado = pesoTotal > capacidadeCarga;
+  const itensSintonizados = contarItensSintonizados(inventario);
 
   function handleAdicionarItem() {
     onChangeInventario([...inventario, criarItemVazio()]);
   }
 
-   function handleAdicionarDoCatalogo(item) {
-    onChangeInventario([
-      ...inventario,
-      {
-        id: crypto.randomUUID(),
-        nome: item.nome,
-        quantidade: 1,
-        peso: item.peso,
-        tipoItem: item.tipoItem,
-        origemId: item.id,
-        equipado: false,
-        atributoAtaque: "auto",
-        magico: false,       // NOVO
-        raridade: null,      // NOVO
-        bonusMagico: 0,      // NOVO
-      },
-    ]);
+  function handleAdicionarDoCatalogo(item) {
+    onChangeInventario([...inventario, criarItemDoCatalogo(item)]);
   }
 
   function handleRemoverItem(id) {
@@ -48,14 +53,65 @@ export default function BlocoInventario({ inventario, onChangeInventario, forcaT
     );
   }
 
+  function handleSintonizacao(item, sintonizado) {
+    const resultado = alterarSintonizacao(inventario, item.id, sintonizado);
+    setAvisoItem(resultado.erro ?? "");
+    if (!resultado.erro) onChangeInventario(resultado.inventario);
+  }
+
+  function handleGastarCarga(item) {
+    const resultado = gastarCargasItem(
+      inventario,
+      item.id,
+      item.custoCargaPadrao ?? 1
+    );
+    setAvisoItem(resultado.erro ?? "");
+    if (!resultado.erro) onChangeInventario(resultado.inventario);
+  }
+
+  function handleRecuperarCargas(item) {
+    const formula = item.recargaCargas?.formula;
+    if (!formula) return;
+    const quantidade = rolarFormula(formula).total;
+    const resultado = recuperarCargasItem(inventario, item.id, quantidade);
+    setAvisoItem(
+      resultado.erro ?? `${item.nome}: ${resultado.recuperadas} carga(s) recuperada(s).`
+    );
+    if (!resultado.erro) onChangeInventario(resultado.inventario);
+  }
+
+  function handleUsarEfeitoPv(item, efeito) {
+    if (!efeito?.formula || !onAplicarEfeitoPv) return;
+    const resultado = rolarFormula(efeito.formula);
+    registrarRolagem(`${item.nome} (${efeito.tipo})`, resultado, "formula");
+    onAplicarEfeitoPv(efeito.tipo, resultado.total, item.nome);
+    setAvisoItem(`${item.nome}: ${resultado.total} PV de ${efeito.tipo} aplicados.`);
+    if (efeito.consumivel) {
+      onChangeInventario(
+        (item.quantidade ?? 1) <= 1
+          ? inventario.filter((registro) => registro.id !== item.id)
+          : inventario.map((registro) =>
+              registro.id === item.id
+                ? { ...registro, quantidade: registro.quantidade - 1 }
+                : registro
+            )
+      );
+    }
+  }
+
   return (
     <section>
       <div className="inventario-cabecalho">
         <h3 className="bloco-titulo">Inventário</h3>
-        <span className={sobrecarregado ? "inventario-peso is-sobrecarregado" : "inventario-peso"}>
-          Peso total: {pesoTotal} / {capacidadeCarga} kg
-          {sobrecarregado && " (sobrecarregado!)"}
-        </span>
+        <div className="inventario-resumos">
+          <span className={sobrecarregado ? "inventario-peso is-sobrecarregado" : "inventario-peso"}>
+            Peso total: {pesoTotal} / {capacidadeCarga} kg
+            {sobrecarregado && " (sobrecarregado!)"}
+          </span>
+          <span className={itensSintonizados >= LIMITE_SINTONIZACAO ? "inventario-sintonizacao is-limite" : "inventario-sintonizacao"}>
+            Sintonização: {itensSintonizados}/{LIMITE_SINTONIZACAO}
+          </span>
+        </div>
       </div>
 
       <button
@@ -63,7 +119,7 @@ export default function BlocoInventario({ inventario, onChangeInventario, forcaT
         className="inventario-abrir-catalogo"
         onClick={() => setModalAberto(true)}
       >
-        Adicionar Itens
+        Adicionar itens
       </button>
 
       <ModalCatalogoItens
@@ -71,6 +127,8 @@ export default function BlocoInventario({ inventario, onChangeInventario, forcaT
         onFechar={() => setModalAberto(false)}
         onAdicionarItem={handleAdicionarDoCatalogo}
       />
+
+      {avisoItem && <p className="inventario-aviso" role="status">{avisoItem}</p>}
 
       {inventario.length === 0 ? (
         <p className="inventario-vazio">Nenhum item ainda.</p>
@@ -83,13 +141,24 @@ export default function BlocoInventario({ inventario, onChangeInventario, forcaT
               <th>Peso (kg)</th>
               <th>Equipado</th>
               <th>Ataca com</th>
+              <th>Mágico</th>
               <th aria-label="Remover"></th>
             </tr>
           </thead>
           <tbody>
             {inventario.map((item) => {
               const podeEquipar =
-                item.tipoItem === "arma" || item.tipoItem === "armadura";
+                item.tipoItem === "arma" ||
+                item.tipoItem === "armadura" ||
+                item.requerEquipado;
+              const possuiCargas = itemPossuiCargas(item);
+              const limiteSintonizacaoAtingido =
+                itensSintonizados >= LIMITE_SINTONIZACAO && !item.sintonizado;
+              const efeitosPv = itemMagicoAtivo(item)
+                ? (item.efeitos ?? []).filter(
+                    (efeito) => efeito.tipo === "cura" || efeito.tipo === "dano"
+                  )
+                : [];
 
               return (
                 <tr key={item.id}>
@@ -110,11 +179,7 @@ export default function BlocoInventario({ inventario, onChangeInventario, forcaT
                       className="inventario-input-numero"
                       value={item.quantidade}
                       onChange={(evento) =>
-                        handleAlterarItem(
-                          item.id,
-                          "quantidade",
-                          Number(evento.target.value) || 0
-                        )
+                        handleAlterarItem(item.id, "quantidade", Number(evento.target.value) || 0)
                       }
                     />
                   </td>
@@ -126,11 +191,7 @@ export default function BlocoInventario({ inventario, onChangeInventario, forcaT
                       className="inventario-input-numero"
                       value={item.peso}
                       onChange={(evento) =>
-                        handleAlterarItem(
-                          item.id,
-                          "peso",
-                          Number(evento.target.value) || 0
-                        )
+                        handleAlterarItem(item.id, "peso", Number(evento.target.value) || 0)
                       }
                     />
                   </td>
@@ -140,11 +201,7 @@ export default function BlocoInventario({ inventario, onChangeInventario, forcaT
                         type="checkbox"
                         checked={Boolean(item.equipado)}
                         onChange={(evento) =>
-                          handleAlterarItem(
-                            item.id,
-                            "equipado",
-                            evento.target.checked
-                          )
+                          handleAlterarItem(item.id, "equipado", evento.target.checked)
                         }
                         aria-label={`Equipar ${item.nome || "item"}`}
                       />
@@ -157,11 +214,7 @@ export default function BlocoInventario({ inventario, onChangeInventario, forcaT
                       <select
                         value={item.atributoAtaque ?? "auto"}
                         onChange={(evento) =>
-                          handleAlterarItem(
-                            item.id,
-                            "atributoAtaque",
-                            evento.target.value
-                          )
+                          handleAlterarItem(item.id, "atributoAtaque", evento.target.value)
                         }
                       >
                         <option value="auto">Automático</option>
@@ -172,60 +225,100 @@ export default function BlocoInventario({ inventario, onChangeInventario, forcaT
                       <span className="inventario-nao-aplica">—</span>
                     )}
                   </td>
+                  <td className="inventario-coluna-magico">
+                    <label className="inventario-magico-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(item.magico)}
+                        disabled={Boolean(item.itemMagicoId)}
+                        onChange={(evento) =>
+                          handleAlterarItem(item.id, "magico", evento.target.checked)
+                        }
+                        aria-label={`${item.nome || "Item"} é mágico`}
+                      />
+                      ✨
+                    </label>
 
+                    {item.magico && (
+                      <div className="inventario-magico-detalhes">
+                        <select
+                          value={item.raridade ?? "comum"}
+                          disabled={Boolean(item.itemMagicoId)}
+                          onChange={(evento) =>
+                            handleAlterarItem(item.id, "raridade", evento.target.value)
+                          }
+                          aria-label={`Raridade de ${item.nome || "item"}`}
+                        >
+                          {RARIDADES.map((raridade) => (
+                            <option key={raridade.id} value={raridade.id}>
+                              {raridade.label}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          className="inventario-input-numero inventario-bonus-magico"
+                          value={item.bonusMagico ?? 0}
+                          disabled={Boolean(item.itemMagicoId)}
+                          onChange={(evento) =>
+                            handleAlterarItem(item.id, "bonusMagico", Number(evento.target.value) || 0)
+                          }
+                          title="Bônus mágico aplicado quando o item estiver ativo"
+                          aria-label={`Bônus mágico de ${item.nome || "item"}`}
+                        />
+                      </div>
+                    )}
 
-                    <td className="inventario-coluna-magico">
-  <label className="inventario-magico-checkbox">
-    <input
-      type="checkbox"
-      checked={Boolean(item.magico)}
-      onChange={(evento) =>
-        handleAlterarItem(item.id, "magico", evento.target.checked)
-      }
-      aria-label={`${item.nome || "Item"} é mágico`}
-    />
-    ✨
-  </label>
+                    {item.requerSintonizacao && (
+                      <label className="inventario-sintonizar">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(item.sintonizado)}
+                          disabled={limiteSintonizacaoAtingido}
+                          onChange={(evento) => handleSintonizacao(item, evento.target.checked)}
+                        />
+                        Sintonizado
+                      </label>
+                    )}
 
-  {item.magico && (
-    <div className="inventario-magico-detalhes">
-      <select
-        value={item.raridade ?? "comum"}
-        onChange={(evento) =>
-          handleAlterarItem(item.id, "raridade", evento.target.value)
-        }
-        aria-label={`Raridade de ${item.nome || "item"}`}
-      >
-        {RARIDADES.map((raridade) => (
-          <option key={raridade.id} value={raridade.id}>
-            {raridade.label}
-          </option>
-        ))}
-      </select>
-      <input
-        type="number"
-        className="inventario-input-numero inventario-bonus-magico"
-        value={item.bonusMagico ?? 0}
-        onChange={(evento) =>
-          handleAlterarItem(
-            item.id,
-            "bonusMagico",
-            Number(evento.target.value) || 0
-          )
-        }
-        title={
-          item.tipoItem === "arma"
-            ? "Bônus mágico: soma no acerto e no dano quando equipada"
-            : item.tipoItem === "armadura"
-            ? "Bônus mágico: soma na CA quando equipada"
-            : "Bônus mágico: só informativo pra esse tipo de item — aplique manualmente onde fizer sentido"
-        }
-        aria-label={`Bônus mágico de ${item.nome || "item"}`}
-      />
-    </div>
-  )}
-</td>
+                    {possuiCargas && (
+                      <div className="inventario-cargas">
+                        <span>Cargas: {item.cargasAtuais}/{item.cargasMaximas}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleGastarCarga(item)}
+                          disabled={(item.cargasAtuais ?? 0) < (item.custoCargaPadrao ?? 1)}
+                        >
+                          Usar {item.custoCargaPadrao ?? 1}
+                        </button>
+                        {item.recargaCargas?.formula && (
+                          <button type="button" onClick={() => handleRecuperarCargas(item)}>
+                            Recarga diária
+                          </button>
+                        )}
+                      </div>
+                    )}
 
+                    {efeitosPv.map((efeito, indice) => (
+                      <button
+                        key={`${efeito.tipo}-${indice}`}
+                        type="button"
+                        className="inventario-usar-efeito"
+                        onClick={() => handleUsarEfeitoPv(item, efeito)}
+                      >
+                        🎲 Usar: {efeito.formula} de {efeito.tipo}
+                      </button>
+                    ))}
+
+                    {item.regras?.length > 0 && (
+                      <details className="inventario-regras">
+                        <summary>Regras</summary>
+                        <ul>
+                          {item.regras.map((regra, indice) => <li key={indice}>{regra}</li>)}
+                        </ul>
+                      </details>
+                    )}
+                  </td>
                   <td>
                     <button
                       type="button"

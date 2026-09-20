@@ -28,7 +28,9 @@ function DetalheRolagem({ rolagem }) {
     const desastre = resultado.d20 === 1;
     return (
       <p className="rolagem-detalhe-texto">
-        d20:{" "}
+        {resultado.rolagens?.length > 1
+          ? `d20 [${resultado.rolagens.join(", ")}] → `
+          : "d20: "}
         <span
           className={
             critico ? "is-critico" : desastre ? "is-desastre" : ""
@@ -57,12 +59,23 @@ function DetalheRolagem({ rolagem }) {
 }
 
 export default function PainelRolagens() {
-  const { rolagens, limparHistorico } = useRolagem();
+  const {
+    rolagens,
+    limparHistorico,
+    vantagem,
+    desvantagem,
+    setVantagem,
+    setDesvantagem,
+  } = useRolagem();
   const [expandido, setExpandido] = useState(false);
-
-  if (rolagens.length === 0) return null;
-
   const ultima = rolagens[0];
+  const modo = vantagem && desvantagem
+    ? "Normal (canceladas)"
+    : vantagem
+    ? "Vantagem"
+    : desvantagem
+    ? "Desvantagem"
+    : "Normal";
 
   return (
     <div className={expandido ? "painel-rolagens is-expandido" : "painel-rolagens"}>
@@ -74,16 +87,28 @@ export default function PainelRolagens() {
         <span className="painel-rolagens-icone" aria-hidden="true">
           🎲
         </span>
-        <span className="painel-rolagens-titulo">{ultima.titulo}</span>
-        {ultima.tipo === "d20" ? (
+        <span className="painel-rolagens-titulo">{ultima?.titulo ?? `d20: ${modo}`}</span>
+        {ultima?.tipo === "d20" ? (
           <ResumoD20 resultado={ultima.resultado} />
-        ) : (
+        ) : ultima ? (
           <span className="rolagem-total">{ultima.resultado.total}</span>
-        )}
+        ) : <span className="rolagem-modo-resumo">{modo}</span>}
       </button>
 
       {expandido && (
         <div className="painel-rolagens-lista">
+          <fieldset className="painel-rolagens-modo">
+            <legend>Modo das próximas rolagens d20</legend>
+            <label>
+              <input type="checkbox" checked={vantagem} onChange={(evento) => setVantagem(evento.target.checked)} />
+              Vantagem
+            </label>
+            <label>
+              <input type="checkbox" checked={desvantagem} onChange={(evento) => setDesvantagem(evento.target.checked)} />
+              Desvantagem
+            </label>
+            {vantagem && desvantagem && <small>As duas se cancelam: será rolado um único d20.</small>}
+          </fieldset>
           {rolagens.map((rolagem) => (
             <div key={rolagem.id} className="item-rolagem">
               <div className="item-rolagem-cabecalho">
@@ -92,13 +117,15 @@ export default function PainelRolagens() {
               <DetalheRolagem rolagem={rolagem} />
             </div>
           ))}
-          <button
-            type="button"
-            className="painel-rolagens-limpar"
-            onClick={limparHistorico}
-          >
-            Limpar histórico
-          </button>
+          {rolagens.length > 0 && (
+            <button
+              type="button"
+              className="painel-rolagens-limpar"
+              onClick={limparHistorico}
+            >
+              Limpar histórico
+            </button>
+          )}
         </div>
       )}
     </div>
