@@ -18,6 +18,8 @@ import {
 } from "../../utils/regrasMagias";
 import { calcularNivelTotal, NIVEL_MAXIMO_PERSONAGEM } from "../../utils/niveis";
 import DetalheHabilidade from "./DetalheHabilidade";
+import { useModalA11y } from "../../hooks/useModalA11y";
+import Icon from "../icons/Icon";
 import "./ModalCatalogoItens.css";
 import "./ModalLevelUp.css";
 
@@ -89,6 +91,10 @@ export default function ModalLevelUp({
   const [habilidadesSelecionadas, setHabilidadesSelecionadas] = useState(() => new Set());
   const [subclasseEscolhidaId, setSubclasseEscolhidaId] = useState(null);
   const [trocasMagias, setTrocasMagias] = useState([]);
+  const dialogRef = useModalA11y(
+    aberto && Boolean(classe) && nivelTotalAtual < NIVEL_MAXIMO_PERSONAGEM,
+    fecharEResetar
+  );
 
   if (!aberto || !classe || nivelTotalAtual >= NIVEL_MAXIMO_PERSONAGEM) return null;
 
@@ -411,13 +417,13 @@ export default function ModalLevelUp({
 
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick}>
-      <div className="modal-catalogo levelup-modal" role="dialog" aria-modal="true" aria-label="Subir de nível">
+      <div ref={dialogRef} tabIndex="-1" className="modal-catalogo levelup-modal" role="dialog" aria-modal="true" aria-label="Subir de nível">
         <div className="modal-catalogo-cabecalho">
           <h2>
             Subir de Nível — {classeEscolhida.nome} {classeEscolhida.nivelAtual} → {novoNivelDaEscolhida}
           </h2>
           <button type="button" className="modal-catalogo-fechar" onClick={fecharEResetar} aria-label="Fechar">
-            ×
+            <Icon name="remove" />
           </button>
         </div>
 
@@ -503,7 +509,7 @@ export default function ModalLevelUp({
                     onClick={handleRolarPv}
                     disabled={detalheRolagemPv !== null}
                   >
-                    🎲 Rolar o dado
+                    <Icon name="dice" /> Rolar o dado
                     <span className="levelup-opcao-detalhe">
                       {detalheRolagemPv
                         ? `${detalheRolagemPv.dado} + ${detalheRolagemPv.modCon} = +${detalheRolagemPv.total} PV (definitivo)`

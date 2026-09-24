@@ -1,0 +1,7 @@
+.surface-base { background: var(--surface-base); }
+.surface-raised, :where(.ficha-card, .ficha-coluna-fixa, .ficha-conteudo-aba, .criacao-conteudo) { background: var(--surface-raised); border: 1px solid var(--color-line); border-radius: var(--radius-md); }
+.surface-inset, :where(.atributo-card, .status-campo, .magias-resumo-item, .espaco-magia-campo, .recurso-item) { background: var(--surface-inset); border: 1px solid var(--color-line); border-radius: var(--radius-sm); }
+.surface-overlay, .modal-catalogo { background: var(--surface-overlay); border: 1px solid var(--color-line-strong); border-radius: var(--radius-md); }
+:where(.ficha-card, .criacao-card, .item-catalogo, .levelup-opcao-botao) { box-shadow: var(--shadow-sm); }
+:where(.painel-rolagens-toggle, .painel-rolagens-lista) { box-shadow: var(--shadow-md); }
+.modal-catalogo { box-shadow: var(--shadow-lg); }

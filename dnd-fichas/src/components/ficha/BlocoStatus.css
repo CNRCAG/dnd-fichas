@@ -30,7 +30,7 @@
   width: 100%;
 }
 
-.status-input:focus {
+.status-input:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
@@ -74,6 +74,8 @@
 }
 
 .testes-morte-pip {
+  display: grid;
+  place-items: center;
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -82,9 +84,20 @@
   cursor: pointer;
 }
 
+.testes-morte-pip.is-sucesso::after,
+.testes-morte-pip.is-falha::after {
+  color: var(--color-bg);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.testes-morte-pip.is-sucesso::after { content: "✓"; }
+.testes-morte-pip.is-falha::after { content: "×"; }
+
 .testes-morte-pip.is-sucesso {
-  background: #6fc978;
-  border-color: #6fc978;
+  background: var(--color-success);
+  border-color: var(--color-success);
 }
 
 .testes-morte-pip.is-falha {
@@ -111,11 +124,11 @@
   color: var(--color-ink);
 }
 .testes-morte.is-estabilizado {
-  border-color: #6fc978;
+  border-color: var(--color-success);
 }
 
 .testes-morte-titulo.is-estabilizado {
-  color: #6fc978;
+  color: var(--color-success-soft);
 }
 
 .status-iniciativa-botao {

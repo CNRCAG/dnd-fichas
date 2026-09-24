@@ -8,6 +8,8 @@ import {
 } from "../../utils/acessoMagias";
 import DetalheMagia from "./DetalheMagia";
 import { limiteSegredosMagicos, contarSegredosMagicos, magiaElegivelPorSegredo } from "../../utils/regrasMagias";
+import { useModalA11y } from "../../hooks/useModalA11y";
+import Icon from "../icons/Icon";
 import "./ModalCatalogoItens.css";
 
 const NIVEIS_ABA = [
@@ -31,6 +33,7 @@ export default function ModalCatalogoMagias({
   const [nivelAtivo, setNivelAtivo] = useState(0);
   const [busca, setBusca] = useState("");
   const [expandidos, setExpandidos] = useState(() => new Set());
+  const dialogRef = useModalA11y(aberto, onFechar);
 
   const classesDaFicha = useMemo(() => {
     const ids = [
@@ -111,6 +114,8 @@ export default function ModalCatalogoMagias({
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick}>
       <div
+        ref={dialogRef}
+        tabIndex="-1"
         className="modal-catalogo"
         role="dialog"
         aria-modal="true"
@@ -124,7 +129,7 @@ export default function ModalCatalogoMagias({
             onClick={onFechar}
             aria-label="Fechar"
           >
-            ×
+            <Icon name="remove" />
           </button>
         </div>
 
@@ -185,6 +190,7 @@ export default function ModalCatalogoMagias({
         <input
           type="text"
           className="modal-catalogo-busca"
+          aria-label="Buscar magias"
           placeholder="Buscar nesta classe e círculo..."
           value={busca}
           onChange={(evento) => setBusca(evento.target.value)}
@@ -221,7 +227,7 @@ export default function ModalCatalogoMagias({
                       }
                       aria-hidden="true"
                     >
-                      ▾
+                      <Icon name="chevron" className="ui-icon--chevron" />
                     </span>
                     <span className="item-catalogo-nome">{magia.nome}</span>
                     <span className="item-catalogo-resumo">
@@ -241,7 +247,7 @@ export default function ModalCatalogoMagias({
                     )}
                     aria-label={`Adicionar ${magia.nome} como ${classeSelecionada}`}
                   >
-                    +
+                    <Icon name="add" />
                   </button>
 
                   {expandido && (

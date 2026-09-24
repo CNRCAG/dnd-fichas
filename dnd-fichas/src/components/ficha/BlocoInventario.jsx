@@ -18,6 +18,7 @@ import { useRolagem } from "../../context/useRolagem";
 import { RARIDADES } from "../../data/raridades";
 import ModalCatalogoItens from "../modal/ModalCatalogoItens";
 import "./BlocoInventario.css";
+import Icon from "../icons/Icon";
 
 export default function BlocoInventario({
   inventario,
@@ -236,7 +237,7 @@ export default function BlocoInventario({
                         }
                         aria-label={`${item.nome || "Item"} é mágico`}
                       />
-                      ✨
+                      <Icon name="spell" title="Item mágico" />
                     </label>
 
                     {item.magico && (
@@ -306,7 +307,7 @@ export default function BlocoInventario({
                         className="inventario-usar-efeito"
                         onClick={() => handleUsarEfeitoPv(item, efeito)}
                       >
-                        🎲 Usar: {efeito.formula} de {efeito.tipo}
+                        <Icon name="dice" /> Usar: {efeito.formula} de {efeito.tipo}
                       </button>
                     ))}
 
@@ -326,7 +327,7 @@ export default function BlocoInventario({
                       onClick={() => handleRemoverItem(item.id)}
                       aria-label={`Remover ${item.nome || "item"}`}
                     >
-                      ×
+                      <Icon name="remove" />
                     </button>
                   </td>
                 </tr>
@@ -341,7 +342,7 @@ export default function BlocoInventario({
         className="inventario-adicionar"
         onClick={handleAdicionarItem}
       >
-        + Item personalizado
+        <Icon name="add" /> Item personalizado
       </button>
     </section>
   );

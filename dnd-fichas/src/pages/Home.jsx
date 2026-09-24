@@ -2,6 +2,8 @@ import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useFichas } from "../context/useFichas";
 import { obterClasse } from "../data/classes";
+import Icon from "../components/icons/Icon";
+import { calcularNivelTotal } from "../utils/niveis";
 import { exportarFicha, lerArquivoFicha } from "../utils/backup";
 import "./Home.css";
 
@@ -81,6 +83,7 @@ export default function Home() {
       <input
         type="text"
         className="home-busca"
+        aria-label="Buscar ficha"
         placeholder="Buscar ficha..."
         value={busca}
         onChange={(evento) => setBusca(evento.target.value)}
@@ -105,7 +108,7 @@ export default function Home() {
                   aria-label={`Exportar ${ficha.nome}`}
                   title="Exportar como backup (.json)"
                 >
-                  ⬇
+                  <Icon name="export" />
                 </button>
                 <button
                   type="button"
@@ -114,12 +117,12 @@ export default function Home() {
                   aria-label={`Excluir ${ficha.nome}`}
                   title="Excluir ficha"
                 >
-                  ⚙
+                  <Icon name="remove" />
                 </button>
                 <div className="ficha-card-corpo">
                   <span className="ficha-card-nome">{ficha.nome}</span>
                   <span className="ficha-card-classe">
-                    {classe ? classe.nome : "Sem classe"}
+                    {classe ? classe.nome : "Sem classe"} · Nível {calcularNivelTotal(ficha)}
                   </span>
                   <span className="ficha-card-data">
                     {ficha.criadoEm

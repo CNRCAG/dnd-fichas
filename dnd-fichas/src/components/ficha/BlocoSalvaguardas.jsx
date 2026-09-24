@@ -1,6 +1,7 @@
 import { ATRIBUTOS, formatarModificador } from "../../utils/dnd";
 import { useRolagem } from "../../context/useRolagem";
 import "./BlocoSalvaguardas.css";
+import Icon from "../icons/Icon";
 
 export default function BlocoSalvaguardas({
   modificadoresAtributos,
@@ -50,7 +51,7 @@ export default function BlocoSalvaguardas({
                 onClick={handleRolar}
                 title={`Rolar salvaguarda de ${atributo.label} (d20${formatarModificador(modificador)})`}
               >
-                🎲 {formatarModificador(modificador)}
+                <Icon name="dice" /> {formatarModificador(modificador)}
               </button>
             </li>
           );

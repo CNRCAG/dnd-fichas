@@ -79,8 +79,8 @@
   border-radius: var(--radius-sm);
 }
 
-.ataques-tabela input:focus,
-.ataques-tabela select:focus {
+.ataques-tabela input:focus-visible,
+.ataques-tabela select:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
@@ -155,4 +155,39 @@
   font-size: var(--text-lg);
   line-height: 1;
   padding: 0 var(--space-1);
+}
+
+@media (max-width: 640px) {
+  .ataques-tabela, .ataques-tabela tbody { display: block; width: 100%; }
+  .ataques-tabela thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  .ataques-tabela tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "nome acerto"
+      "dano dano"
+      "atributo tipo"
+      "remover remover";
+    gap: var(--space-2) var(--space-3);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+    background: var(--surface-inset);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+  }
+  .ataques-tabela td { display: flex; min-width: 0; padding: 0; border: 0; flex-direction: column; gap: var(--space-1); }
+  .ataques-tabela td:nth-child(1) { grid-area: nome; }
+  .ataques-tabela td:nth-child(2) { grid-area: atributo; }
+  .ataques-tabela td:nth-child(3) { grid-area: acerto; }
+  .ataques-tabela td:nth-child(4) { grid-area: dano; }
+  .ataques-tabela td:nth-child(5) { grid-area: tipo; }
+  .ataques-tabela td:nth-child(6) { grid-area: remover; align-items: flex-end; }
+  .ataques-tabela td:nth-child(2)::before { content: "Atributo"; }
+  .ataques-tabela td:nth-child(3)::before { content: "Acerto"; }
+  .ataques-tabela td:nth-child(4)::before { content: "Dano"; }
+  .ataques-tabela td:nth-child(5)::before { content: "Tipo"; }
+  .ataques-tabela td::before { color: var(--color-ink-soft); font-size: var(--text-xs); font-weight: 600; }
+  .ataques-acerto-linha { justify-content: flex-start; }
+  .ataques-rolar-botao { min-height: 44px; }
+  .ataques-bonus-input, .ataques-dano-input, .ataques-tipo-input { width: 100%; }
 }

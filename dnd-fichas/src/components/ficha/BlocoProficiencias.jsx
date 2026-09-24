@@ -3,6 +3,7 @@ import { FERRAMENTAS } from "../../data/equipamentos";
 import { ATRIBUTOS, formatarModificador } from "../../utils/dnd";
 import { useRolagem } from "../../context/useRolagem";
 import "./BlocoProficiencias.css";
+import Icon from "../icons/Icon";
 
 const IDIOMAS_PADRAO = IDIOMAS.filter((idioma) => idioma.tipo === "padrao");
 const IDIOMAS_EXOTICOS = IDIOMAS.filter((idioma) => idioma.tipo === "exotico");
@@ -140,7 +141,7 @@ export default function BlocoProficiencias({
                   onClick={() => handleRolarFerramenta(ferramenta, proficiente)}
                   title={`Rolar ${ferramenta.nome} (d20${formatarModificador(modificador)})`}
                 >
-                  🎲 {formatarModificador(modificador)}
+                  <Icon name="dice" /> {formatarModificador(modificador)}
                 </button>
               </li>
             );

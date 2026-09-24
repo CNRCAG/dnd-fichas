@@ -9,6 +9,7 @@ import { obterAtributoConjuracao } from "../../utils/conjuracao";
 import ModalCatalogoMagias from "../modal/ModalCatalogoMagias";
 import DetalheMagia from "../modal/DetalheMagia";
 import "./BlocoMagias.css";
+import Icon from "../icons/Icon";
 
 const NIVEIS_MAGIA = [
   { valor: 0, label: "Truque" },
@@ -268,7 +269,7 @@ export default function BlocoMagias({
                 <th>Nível</th>
                 <th>Origem</th>
                 <th>Preparada</th>
-                <th>Concentração</th>   {/* NOVO */}
+                <th>Concentração</th>
                 <th aria-label="Remover"></th>
               </tr>
             </thead>
@@ -299,7 +300,7 @@ export default function BlocoMagias({
                               aberta ? "magias-seta is-aberta" : "magias-seta"
                             }
                           >
-                            ▾
+                            <Icon name="chevron" className="ui-icon--chevron" />
                           </span>
                         </button>
                       </td>
@@ -389,7 +390,7 @@ export default function BlocoMagias({
         className="magias-concentracao-botao is-ativa"
         onClick={onPararConcentracao}
       >
-        🎯 Concentrando
+        <Icon name="target" /> Concentrando
       </button>
     ) : (
       <button
@@ -402,7 +403,7 @@ export default function BlocoMagias({
             : undefined
         }
       >
-        🎯 Concentrar
+        <Icon name="target" /> Concentrar
       </button>
     )
   ) : (
@@ -420,7 +421,7 @@ export default function BlocoMagias({
                           title={magia.origemSubclasseAutomatica ? "Remova ou altere a subclasse para retirar esta magia" : undefined}
                           aria-label={`Remover ${magia.nome || "magia"}`}
                         >
-                          ×
+                          <Icon name="remove" />
                         </button>
                       </td>
                     </tr>

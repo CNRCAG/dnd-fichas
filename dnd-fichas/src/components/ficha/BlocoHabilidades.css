@@ -47,7 +47,7 @@
   color: var(--color-ink);
 }
 
-.habilidades-tabela input:focus {
+.habilidades-tabela input:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
@@ -114,7 +114,7 @@
 .habilidades-seta {
   display: inline-block;
   font-size: var(--text-xs);
-  transition: transform 0.15s ease;
+  transition: transform var(--transition-fast);
 }
 
 .habilidades-seta.is-aberta {

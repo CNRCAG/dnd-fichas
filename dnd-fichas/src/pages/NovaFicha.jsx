@@ -258,6 +258,7 @@ export default function NovaFicha() {
                   <div key={atributo.chave} className="criacao-atributo-card">
                     <span className="criacao-atributo-label">{atributo.label}</span>
                     <select
+                      aria-label={`Valor base de ${atributo.label}`}
                       value={valorBase}
                       onChange={(evento) =>
                         handleChangeAtributoValor(

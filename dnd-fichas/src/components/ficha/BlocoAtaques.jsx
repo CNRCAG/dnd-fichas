@@ -8,6 +8,7 @@ import {
 import { rolarFormula } from "../../utils/dados";
 import { useRolagem } from "../../context/useRolagem";
 import "./BlocoAtaques.css";
+import Icon from "../icons/Icon";
 
 const OPCOES_ATRIBUTO = [
   { valor: "forca", label: "Força" },
@@ -135,7 +136,7 @@ export default function BlocoAtaques({
               onClick={() => handleRolarAcerto(ataque, bonusAcerto)}
               title={`Rolar ataque (d20${formatarModificador(bonusAcerto)})`}
             >
-              🎲 {formatarModificador(bonusAcerto)}
+              <Icon name="dice" /> {formatarModificador(bonusAcerto)}
             </button>
           </div>
         </td>
@@ -148,7 +149,7 @@ export default function BlocoAtaques({
                 onClick={() => handleRolarDano(ataque)}
                 title="Rolar dano"
               >
-                🎲 {formatarDano(ataque, modificadoresAtributos)}
+                <Icon name="dice" /> {formatarDano(ataque, modificadoresAtributos)}
               </button>
             ) : (
               <span className="ataques-nome-fixo">
@@ -173,7 +174,7 @@ export default function BlocoAtaques({
                   onClick={() => handleRolarDano(ataque)}
                   title="Rolar dano"
                 >
-                  🎲 {formatarDano(ataque, modificadoresAtributos)}
+                  <Icon name="dice" /> {formatarDano(ataque, modificadoresAtributos)}
                 </button>
               )}
             </>
@@ -202,7 +203,7 @@ export default function BlocoAtaques({
               onClick={() => handleRemover(ataque.id)}
               aria-label={`Remover ${ataque.nome || "ataque"}`}
             >
-              ×
+              <Icon name="remove" />
             </button>
           )}
         </td>
@@ -247,7 +248,7 @@ export default function BlocoAtaques({
           className="ataques-adicionar-manual"
           onClick={handleAdicionarManual}
         >
-          + Ataque manual
+          <Icon name="add" /> Ataque manual
         </button>
 
         {ataques.length === 0 ? (

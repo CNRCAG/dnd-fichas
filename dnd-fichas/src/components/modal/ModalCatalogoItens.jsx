@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { CATALOGO_ITENS } from "../../data/catalogoItens";
 import DetalheItemCatalogo from "./DetalheItemCatalogo";
+import { useModalA11y } from "../../hooks/useModalA11y";
+import Icon from "../icons/Icon";
 import "./ModalCatalogoItens.css";
 
 const GRUPOS = ["Armas", "Armaduras", "Equipamentos", "Itens mágicos"];
@@ -9,6 +11,7 @@ export default function ModalCatalogoItens({ aberto, onFechar, onAdicionarItem }
   const [abaAtiva, setAbaAtiva] = useState("Armas");
   const [busca, setBusca] = useState("");
   const [expandidos, setExpandidos] = useState(() => new Set());
+  const dialogRef = useModalA11y(aberto, onFechar);
 
   const itensFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -39,7 +42,7 @@ export default function ModalCatalogoItens({ aberto, onFechar, onAdicionarItem }
 
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick}>
-      <div className="modal-catalogo" role="dialog" aria-modal="true" aria-label="Adicionar itens">
+      <div ref={dialogRef} tabIndex="-1" className="modal-catalogo" role="dialog" aria-modal="true" aria-label="Adicionar itens">
         <div className="modal-catalogo-cabecalho">
           <h2>Adicionar Itens</h2>
           <button
@@ -48,7 +51,7 @@ export default function ModalCatalogoItens({ aberto, onFechar, onAdicionarItem }
             onClick={onFechar}
             aria-label="Fechar"
           >
-            ×
+            <Icon name="remove" />
           </button>
         </div>
 
@@ -72,6 +75,7 @@ export default function ModalCatalogoItens({ aberto, onFechar, onAdicionarItem }
         <input
           type="text"
           className="modal-catalogo-busca"
+          aria-label="Buscar itens"
           placeholder="Buscar..."
           value={busca}
           onChange={(evento) => setBusca(evento.target.value)}
@@ -99,7 +103,7 @@ export default function ModalCatalogoItens({ aberto, onFechar, onAdicionarItem }
                       }
                       aria-hidden="true"
                     >
-                      ▾
+                      <Icon name="chevron" className="ui-icon--chevron" />
                     </span>
                     <span className="item-catalogo-nome">{item.nome}</span>
                     <span className="item-catalogo-resumo">{item.resumo}</span>
@@ -111,7 +115,7 @@ export default function ModalCatalogoItens({ aberto, onFechar, onAdicionarItem }
                     onClick={() => onAdicionarItem(item)}
                     aria-label={`Adicionar ${item.nome}`}
                   >
-                    +
+                    <Icon name="add" />
                   </button>
 
                   {expandido && (

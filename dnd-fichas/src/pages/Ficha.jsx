@@ -73,6 +73,7 @@ import BlocoProgressao from "../components/ficha/BlocoProgressao"; // NOVO
 import BlocoValidacao from "../components/ficha/BlocoValidacao";
 import FichaImpressao from "../components/ficha/FichaImpressao";
 import "./Ficha.css";
+import Icon from "../components/icons/Icon";
 
 const ABAS = [
   { chave: "combate", label: "Combate" },
@@ -893,7 +894,7 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
       : undefined
   }
 >
-  ⬆ Subir de Nível
+          <Icon name="levelUp" /> Subir de Nível
 </button>
 
 
@@ -928,11 +929,14 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
       </aside>
 
       <div className="ficha-coluna-principal">
-        <nav className="ficha-abas">
+        <nav className="ficha-abas" role="tablist" aria-label="Seções da ficha">
           {ABAS.map((aba) => (
             <button
               key={aba.chave}
               type="button"
+              role="tab"
+              aria-selected={abaAtiva === aba.chave}
+              aria-controls={`ficha-secao-${aba.chave}`}
               className={
                 abaAtiva === aba.chave ? "ficha-aba is-ativa" : "ficha-aba"
               }
@@ -943,7 +947,7 @@ function handleChangeAtributoFerramenta(ferramentaId, atributoChave) {
           ))}
         </nav>
 
-        <div id={`ficha-secao-${abaAtiva}`} className="ficha-conteudo-aba">
+        <div id={`ficha-secao-${abaAtiva}`} className="ficha-conteudo-aba" role="tabpanel">
           {abaAtiva === "combate" && (
             <>
               <BlocoStatus

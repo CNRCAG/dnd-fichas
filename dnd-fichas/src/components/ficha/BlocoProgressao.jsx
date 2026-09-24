@@ -1,5 +1,6 @@
 import { xpParaProximoNivel, progressoXp } from "../../utils/xp";
 import "./BlocoProgressao.css";
+import Icon from "../icons/Icon";
 
 export default function BlocoProgressao({ progressao, nivelTotal, onChangeModo, onChangeXp }) {
   const modo = progressao?.modo ?? "marco";
@@ -68,7 +69,7 @@ export default function BlocoProgressao({ progressao, nivelTotal, onChangeModo, 
 
           {prontoPraSubir && (
             <p className="progressao-pronto">
-              ✨ XP suficiente — pode usar "Subir de Nível" quando quiser.
+              <Icon name="levelUp" /> XP suficiente — pode usar "Subir de Nível" quando quiser.
             </p>
           )}
         </div>

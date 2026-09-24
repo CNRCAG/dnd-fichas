@@ -75,7 +75,7 @@
 .pericia-seta {
   font-size: var(--text-xs);
   color: var(--color-ink-soft);
-  transition: transform 0.15s ease;
+  transition: transform var(--transition-fast);
 }
 
 .pericia-seta.is-aberta {

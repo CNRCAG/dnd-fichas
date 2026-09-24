@@ -1,0 +1,89 @@
+:where(button, .ui-button, .home-nova-ficha, .ficha-card-acessar) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  max-width: 100%;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+:where(button, .ui-button, .home-nova-ficha, .ficha-card-acessar):hover:not(:disabled) {
+  border-color: var(--color-line-strong);
+  background: var(--color-interactive-hover);
+}
+
+:where(button, .ui-button, .home-nova-ficha, .ficha-card-acessar):active:not(:disabled) { transform: translateY(1px); }
+
+:where(button, .ui-button, .home-nova-ficha, .ficha-card-acessar):disabled,
+:where(button, .ui-button)[aria-disabled="true"] {
+  background: var(--color-disabled-bg);
+  border-color: var(--color-line);
+  color: var(--color-disabled-ink);
+  cursor: not-allowed;
+  opacity: 1;
+  transform: none;
+}
+
+:is(.home-nova-ficha, .ficha-card-acessar, .ficha-levelup-botao, .criacao-card-escolher, .criacao-botao-avancar, .criacao-botao-finalizar, .inventario-abrir-catalogo, .magias-abrir-catalogo, .habilidades-abrir-catalogo, .descanso-botao:not(.descanso-botao--secundario), .concentracao-testar-botao, .levelup-concluir-botao, .levelup-nav-botao.is-primario) {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+:is(.home-nova-ficha, .ficha-card-acessar, .ficha-levelup-botao, .criacao-card-escolher, .criacao-botao-avancar, .criacao-botao-finalizar, .inventario-abrir-catalogo, .magias-abrir-catalogo, .habilidades-abrir-catalogo, .descanso-botao:not(.descanso-botao--secundario), .concentracao-testar-botao, .levelup-concluir-botao, .levelup-nav-botao.is-primario):hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  color: var(--color-accent-ink);
+}
+
+:is(.home-importar, .ataques-adicionar-manual, .ataques-rolar-botao, .magias-adicionar, .habilidades-adicionar, .inventario-adicionar, .recursos-adicionar, .recursos-sugestao-botao, .multiclasse-adicionar, .ferramenta-rolar-botao, .pericia-modificador-botao, .salvaguarda-modificador-botao, .status-iniciativa-botao, .magia-rolar-dano-botao, .magia-aplicar-efeito-botao, .validacao-ir, .validacao-confirmar, .levelup-nav-botao, .levelup-opcao-botao, .descanso-botao--secundario, .condicao-ativa-acoes button) {
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border-color: var(--color-line-strong);
+  color: var(--color-primary-hover);
+}
+
+:is(.home-importar, .ataques-adicionar-manual, .ataques-rolar-botao, .magias-adicionar, .habilidades-adicionar, .inventario-adicionar, .recursos-adicionar, .recursos-sugestao-botao, .multiclasse-adicionar, .ferramenta-rolar-botao, .pericia-modificador-botao, .salvaguarda-modificador-botao, .status-iniciativa-botao, .magia-rolar-dano-botao, .magia-aplicar-efeito-botao, .validacao-ir, .validacao-confirmar, .levelup-nav-botao, .levelup-opcao-botao, .descanso-botao--secundario, .condicao-ativa-acoes button):hover:not(:disabled) {
+  background: var(--color-interactive-hover);
+  border-color: var(--color-accent);
+  color: var(--color-accent-hover);
+}
+
+:is(.criacao-pular, .criacao-botao-pular, .criacao-botao-voltar, .painel-rolagens-limpar, .testes-morte-reiniciar, .ficha-imprimir-botao, .magias-concentracao-botao, .concentracao-parar-botao, .progressao-modo-botao, .ficha-aba, .modal-catalogo-aba, .item-catalogo-cabecalho, .pericia-botao-expandir) {
+  background: transparent;
+  color: var(--color-ink-soft);
+}
+
+:is(.modal-catalogo-fechar, .ficha-card-exportar, .ficha-card-remover, .ataques-remover, .inventario-remover, .magias-remover, .habilidades-remover, .multiclasse-remover, .recurso-remover, .magias-expandir, .habilidades-expandir, .aviso-persistencia-dispensar) {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  background: transparent;
+}
+
+:is(.ficha-card-remover, .ataques-remover, .inventario-remover, .magias-remover, .habilidades-remover, .multiclasse-remover, .recurso-remover) {
+  border-color: color-mix(in srgb, var(--color-danger) 55%, var(--color-line));
+  color: var(--color-danger-soft);
+}
+
+:is(.ficha-card-remover, .ataques-remover, .inventario-remover, .magias-remover, .habilidades-remover, .multiclasse-remover, .recurso-remover):hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-danger) 18%, transparent);
+  border-color: var(--color-danger-soft);
+  color: var(--color-danger-soft);
+}
+
+:is(.recurso-pip, .testes-morte-pip) { display: inline-block; min-height: 18px; padding: 0; border-radius: var(--radius-pill); }

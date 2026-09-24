@@ -3,6 +3,7 @@ import { rolarDado } from "../../utils/dados";
 import { useRolagem } from "../../context/useRolagem";
 import { dadosVidaDisponiveis } from "../../utils/dadosVida";
 import "./BlocoDescanso.css";
+import Icon from "../icons/Icon";
 
 export default function BlocoDescanso({
   classe,
@@ -80,14 +81,14 @@ export default function BlocoDescanso({
           onClick={handleGastarDado}
           disabled={dadosDisponiveis <= 0}
         >
-          🎲 Gastar 1 dado de vida (1d{poolSelecionado?.dadoVida ?? classe.dadoVida} + CON)
+          <Icon name="dice" /> Gastar 1 dado de vida (1d{poolSelecionado?.dadoVida ?? classe.dadoVida} + CON)
         </button>
         <button
           type="button"
           className="descanso-botao descanso-botao--secundario"
           onClick={onDescansoCurto}
         >
-          ✅ Concluir descanso curto (restaura recursos)
+          <Icon name="success" /> Concluir descanso curto (restaura recursos)
         </button>
 
         {ehBruxo && (
@@ -108,7 +109,7 @@ export default function BlocoDescanso({
           {Math.max(1, Math.floor(dadosTotais / 2))} dado(s) de vida, priorizando d12, d10, d8 e d6.
         </p>
         <button type="button" className="descanso-botao" onClick={onDescansoLongo}>
-          🌙 Fazer descanso longo
+          <Icon name="rest" /> Fazer descanso longo
         </button>
       </div>
 

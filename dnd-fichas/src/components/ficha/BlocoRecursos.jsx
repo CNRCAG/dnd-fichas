@@ -1,5 +1,6 @@
 import { criarRecursoVazio } from "../../utils/recurso";
 import "./BlocoRecursos.css";
+import Icon from "../icons/Icon";
 
 export default function BlocoRecursos({
   recursos,
@@ -129,7 +130,7 @@ export default function BlocoRecursos({
                 onClick={() => handleRemover(recurso.id)}
                 aria-label={`Remover ${recurso.nome || "recurso"}`}
               >
-                ×
+                <Icon name="remove" />
               </button>
             </div>
           ))}
@@ -137,7 +138,7 @@ export default function BlocoRecursos({
       )}
 
       <button type="button" className="recursos-adicionar" onClick={handleAdicionar}>
-        + Recurso personalizado
+        <Icon name="add" /> Recurso personalizado
       </button>
     </section>
   );

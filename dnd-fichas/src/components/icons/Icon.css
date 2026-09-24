@@ -1,0 +1,13 @@
+.ui-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  vertical-align: -0.15em;
+}
+
+.ui-icon--chevron {
+  transition: transform var(--transition-fast);
+}
+
+[aria-expanded="true"] .ui-icon--chevron {
+  transform: rotate(180deg);
+}

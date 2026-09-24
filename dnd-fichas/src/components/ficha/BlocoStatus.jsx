@@ -6,6 +6,7 @@ import {
 } from "../../utils/status";
 import { useRolagem } from "../../context/useRolagem";
 import "./BlocoStatus.css";
+import Icon from "../icons/Icon";
 
 const CAMPOS_STATUS = [
   { chave: "pvAtual", label: "PV atual" },
@@ -162,7 +163,7 @@ export default function BlocoStatus({
             {concentracao && (
         <div className="concentracao-bloco">
           <span className="concentracao-texto">
-            🎯 Concentrado em <strong>{concentracao.nome}</strong>
+            <Icon name="target" /> Concentrado em <strong>{concentracao.nome}</strong>
           </span>
           <button
             type="button"
@@ -177,7 +178,7 @@ export default function BlocoStatus({
       {avisoConcentracao && (
         <div className="concentracao-aviso">
           <p className="concentracao-aviso-texto">
-            ⚠ Você tomou dano — faça um teste de Constituição (CD{" "}
+            <Icon name="warning" /> Você tomou dano — faça um teste de Constituição (CD{" "}
             {avisoConcentracao.cd}) para manter a concentração.
           </p>
           {!resultadoConcentracao ? (
@@ -186,7 +187,7 @@ export default function BlocoStatus({
               className="concentracao-testar-botao"
               onClick={handleTestarConcentracao}
             >
-              🎲 Rolar teste ({formatarModificador(modConstituicao)})
+              <Icon name="dice" /> Rolar teste ({formatarModificador(modConstituicao)})
             </button>
           ) : (
             <>

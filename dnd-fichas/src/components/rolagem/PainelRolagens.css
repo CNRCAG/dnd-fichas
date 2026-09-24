@@ -2,7 +2,7 @@
   position: fixed;
   right: var(--space-4);
   bottom: var(--space-4);
-  z-index: 200;
+  z-index: var(--z-dropdown);
   font-family: var(--font-body);
 }
 
@@ -12,11 +12,11 @@
   gap: var(--space-2);
   background: var(--color-bg-raised);
   border: 1px solid var(--color-line-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: var(--space-2) var(--space-4) var(--space-2) var(--space-3);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-md);
   color: var(--color-ink);
-  animation: rolagem-entrada 0.25s ease;
+  animation: rolagem-entrada var(--transition-fast);
 }
 
 .painel-rolagens-toggle:hover {
@@ -38,7 +38,7 @@
 
 .rolagem-total {
   font-family: var(--font-display);
-  font-size: var(--text-lg);
+  font-size: var(--text-2xl);
   font-weight: 700;
   color: var(--color-accent);
 }
@@ -76,7 +76,7 @@
 }
 
 .rolagem-total.is-critico {
-  color: #6fc978;
+  color: var(--color-success-soft);
 }
 
 .rolagem-total.is-desastre {
@@ -92,7 +92,7 @@
   border: 1px solid var(--color-line-strong);
   border-radius: var(--radius-md);
   padding: var(--space-3);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -101,7 +101,7 @@
 .item-rolagem {
   border-bottom: 1px solid var(--color-line);
   padding-bottom: var(--space-2);
-  animation: rolagem-entrada 0.2s ease;
+  animation: rolagem-entrada var(--transition-fast);
 }
 
 .item-rolagem:last-of-type {
@@ -131,8 +131,23 @@
 }
 
 .rolagem-detalhe-texto .is-critico {
-  color: #6fc978;
+  color: var(--color-success-soft);
   font-weight: 700;
+}
+
+.rolagem-resumo { display: flex; align-items: center; gap: var(--space-2); }
+.rolagem-estado { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); font-weight: 700; white-space: nowrap; }
+.rolagem-estado::before { content: "!"; }
+.rolagem-estado.is-critico { color: var(--color-success-soft); }
+.rolagem-estado.is-critico::before { content: "✓"; }
+.rolagem-estado.is-desastre { color: var(--color-danger-soft); }
+
+@media (max-width: 640px) {
+  .painel-rolagens { right: var(--space-2); bottom: var(--space-2); left: var(--space-2); }
+  .painel-rolagens-toggle { width: 100%; justify-content: space-between; padding: var(--space-2) var(--space-3); }
+  .painel-rolagens-titulo { flex: 1; max-width: none; white-space: normal; }
+  .painel-rolagens-lista { width: 100%; max-height: min(60dvh, 420px); }
+  .rolagem-total { font-size: var(--text-xl); }
 }
 
 .rolagem-detalhe-texto .is-desastre {

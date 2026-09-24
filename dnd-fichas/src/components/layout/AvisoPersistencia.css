@@ -43,7 +43,7 @@
   font-size: var(--text-lg);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .aviso-persistencia {
     align-items: flex-start;
     justify-content: space-between;

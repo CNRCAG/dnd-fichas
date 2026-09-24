@@ -1,0 +1,15 @@
+.state-danger, [role="alert"] { border-color: var(--color-danger-soft); }
+.state-success { border-color: var(--color-success); }
+.state-warning { border-color: var(--color-warning); }
+.state-danger::before, .state-success::before, .state-warning::before { margin-right: var(--space-2); font-weight: 800; }
+.state-danger::before { content: "!"; color: var(--color-danger-soft); }
+.state-success::before { content: "✓"; color: var(--color-success-soft); }
+.state-warning::before { content: "!"; color: var(--color-warning-soft); }
+
+:where(button, a[href], input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 24%, transparent);
+}
+
+:where(button, a[href], input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus:not(:focus-visible) { outline: none; }

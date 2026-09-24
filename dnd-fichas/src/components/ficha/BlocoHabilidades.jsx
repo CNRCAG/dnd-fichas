@@ -7,6 +7,7 @@ import { obterTalento } from "../../data/talentos";
 import ModalCatalogoHabilidades from "../modal/ModalCatalogoHabilidades";
 import DetalheHabilidade from "../modal/DetalheHabilidade";
 import "./BlocoHabilidades.css";
+import Icon from "../icons/Icon";
 
 const LABEL_TIPO = {
   classe: "Classe",
@@ -144,7 +145,7 @@ export default function BlocoHabilidades({
                               : "habilidades-seta"
                           }
                         >
-                          ▾
+                          <Icon name="chevron" className="ui-icon--chevron" />
                         </span>
                       </button>
                     </td>
@@ -203,7 +204,7 @@ export default function BlocoHabilidades({
                         onClick={() => handleRemover(habilidade.id)}
                         aria-label={`Remover ${habilidade.nome || "habilidade"}`}
                       >
-                        ×
+                        <Icon name="remove" />
                       </button>
                     </td>
                   </tr>

@@ -3,6 +3,7 @@ import { ESCOLAS } from "../../data/magiasSistema";
 import { ATRIBUTOS, extrairDadosDoDano } from "../../utils/dnd";
 import { rolarFormula } from "../../utils/dados";
 import { useRolagem } from "../../context/useRolagem";
+import Icon from "../icons/Icon";
 
 function labelResistencia(magia) {
   if (magia.resistencia) {
@@ -99,7 +100,7 @@ export default function DetalheMagia({
                 onClick={handleRolarDano}
                 title={`Rolar ${formulaDano}`}
               >
-                🎲 {formulaDano}
+                <Icon name="dice" /> {formulaDano}
               </button>
             )}
           </dd>
@@ -117,7 +118,7 @@ export default function DetalheMagia({
               onClick={handleRolarCura}
               title={`Rolar cura de ${magia.cura.formula}`}
             >
-              🎲 {magia.cura.formula}
+              <Icon name="dice" /> {magia.cura.formula}
             </button>
           </dd>
         </div>

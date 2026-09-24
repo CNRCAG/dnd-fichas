@@ -3,6 +3,7 @@ import { PERICIAS } from "../../data/pericias";
 import { ATRIBUTOS, formatarModificador } from "../../utils/dnd";
 import { useRolagem } from "../../context/useRolagem";
 import "./BlocoPericias.css";
+import Icon from "../icons/Icon";
 
 export default function BlocoPericias({
   modificadoresAtributos,
@@ -65,7 +66,7 @@ export default function BlocoPericias({
                   <span className="pericia-nome">{pericia.label}</span>
                   <span className="pericia-atributo">({atributo?.abreviacao})</span>
                   <span className={aberta ? "pericia-seta is-aberta" : "pericia-seta"}>
-                    ▾
+                    <Icon name="chevron" className="ui-icon--chevron" />
                   </span>
                 </button>
                 <button
@@ -74,7 +75,7 @@ export default function BlocoPericias({
                   onClick={handleRolar}
                   title={`Rolar ${pericia.label} (d20${formatarModificador(modificador)})`}
                 >
-                  🎲 {formatarModificador(modificador)}
+                  <Icon name="dice" /> {formatarModificador(modificador)}
                 </button>
               </div>
 

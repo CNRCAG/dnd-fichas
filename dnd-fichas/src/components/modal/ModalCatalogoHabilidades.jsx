@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { obterHabilidadesPorClasse } from "../../data/habilidadesClasses";
 import { TALENTOS } from "../../data/talentos";
 import DetalheHabilidade from "./DetalheHabilidade";
+import { useModalA11y } from "../../hooks/useModalA11y";
+import Icon from "../icons/Icon";
 import "./ModalCatalogoItens.css";
 
 export default function ModalCatalogoHabilidades({
@@ -16,6 +18,7 @@ export default function ModalCatalogoHabilidades({
   const [abaAtiva, setAbaAtiva] = useState("classe");
   const [busca, setBusca] = useState("");
   const [expandidos, setExpandidos] = useState(() => new Set());
+  const dialogRef = useModalA11y(aberto, onFechar);
 
   const habilidadesClasse = useMemo(
     () => (classeId ? obterHabilidadesPorClasse(classeId) : []),
@@ -73,6 +76,8 @@ export default function ModalCatalogoHabilidades({
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick}>
       <div
+        ref={dialogRef}
+        tabIndex="-1"
         className="modal-catalogo"
         role="dialog"
         aria-modal="true"
@@ -86,7 +91,7 @@ export default function ModalCatalogoHabilidades({
             onClick={onFechar}
             aria-label="Fechar"
           >
-            ×
+            <Icon name="remove" />
           </button>
         </div>
 
@@ -99,6 +104,7 @@ export default function ModalCatalogoHabilidades({
                 : "modal-catalogo-aba"
             }
             onClick={() => setAbaAtiva("classe")}
+            aria-pressed={abaAtiva === "classe"}
           >
             {classeNome ?? "Sua classe"}
           </button>
@@ -110,6 +116,7 @@ export default function ModalCatalogoHabilidades({
                 : "modal-catalogo-aba"
             }
             onClick={() => setAbaAtiva("talento")}
+            aria-pressed={abaAtiva === "talento"}
           >
             Talentos
           </button>
@@ -118,6 +125,7 @@ export default function ModalCatalogoHabilidades({
         <input
           type="text"
           className="modal-catalogo-busca"
+          aria-label="Buscar habilidades ou talentos"
           placeholder="Buscar..."
           value={busca}
           onChange={(evento) => setBusca(evento.target.value)}
@@ -160,7 +168,7 @@ export default function ModalCatalogoHabilidades({
                       }
                       aria-hidden="true"
                     >
-                      ▾
+                      <Icon name="chevron" className="ui-icon--chevron" />
                     </span>
                     <span className="item-catalogo-nome">{item.nome}</span>
                     <span className="item-catalogo-resumo">
@@ -178,7 +186,7 @@ export default function ModalCatalogoHabilidades({
                     disabled={!atendido}
                     title={!atendido ? textoPreRequisito : undefined}
                   >
-                    +
+                    <Icon name="add" />
                   </button>
 
                   {expandido && (

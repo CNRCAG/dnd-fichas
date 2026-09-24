@@ -70,11 +70,18 @@
   border-radius: var(--radius-md);
   padding: var(--space-3);
   border: 1px solid var(--color-line);
-  transition: border-color 0.15s ease;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .ficha-card:hover {
   border-color: var(--color-line-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+}
+
+.ficha-card:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-interactive-selected), var(--shadow-sm);
 }
 
 .ficha-card-remover {
@@ -174,4 +181,15 @@
 
 .ficha-card-exportar:hover {
   color: var(--color-accent);
+}
+
+@media (max-width: 640px) {
+  .home-cabecalho { align-items: stretch; flex-direction: column; gap: var(--space-3); }
+  .home-cabecalho-acoes { display: grid; grid-template-columns: 1fr 1fr; }
+  .home-importar, .home-nova-ficha { min-height: 44px; width: 100%; }
+  .home-busca { max-width: none; min-height: 44px; margin-bottom: var(--space-4); }
+  .home-grid { grid-template-columns: 1fr; gap: var(--space-3); }
+  .ficha-card { min-width: 0; }
+  .ficha-card-corpo { padding-right: calc(2 * 38px + var(--space-2)); }
+  .ficha-card-acessar { align-self: stretch; min-height: 44px; margin-top: var(--space-4); }
 }

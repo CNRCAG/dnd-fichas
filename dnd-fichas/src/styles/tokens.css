@@ -16,6 +16,18 @@
   --color-accent-ink: #3a2c0f;
   --color-danger: #a3504f;
   --color-danger-soft: #bd6f6e;
+  --color-success: #6fa878;
+  --color-success-soft: #9ac6a1;
+  --color-warning: #c28a4b;
+  --color-warning-soft: #deb77d;
+
+  /* Estados interativos */
+  --color-interactive-hover: #242736;
+  --color-interactive-selected: rgba(201, 163, 85, 0.14);
+  --color-focus-ring: var(--color-accent);
+  --color-disabled-bg: #20222c;
+  --color-disabled-ink: #77766d;
+  --color-overlay: rgba(7, 8, 12, 0.76);
 
   /* Tipografia */
   --font-display: "Spectral", Georgia, serif;
@@ -40,4 +52,26 @@
   --topbar-height: 64px;
   --radius-sm: 4px;
   --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+
+  /* Superfícies */
+  --surface-base: var(--color-bg);
+  --surface-raised: var(--color-bg-raised);
+  --surface-inset: var(--color-bg-inset);
+  --surface-overlay: #202330;
+
+  /* Profundidade, movimento e camadas */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.34);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.48);
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --z-dropdown: 30;
+  --z-modal: 100;
+  --z-toast: 200;
+
+  /* Referência comum para os media queries: mobile 640px, tablet 900px. */
+  --breakpoint-mobile: 640px;
+  --breakpoint-tablet: 900px;
 }

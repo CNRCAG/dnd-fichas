@@ -232,15 +232,25 @@
 }
 
 .criacao-campo {
-  display: block;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--space-2);
+  min-width: 0;
   margin-bottom: var(--space-3);
 }
 
 .criacao-campo span {
   display: block;
+  grid-column: 1 / -1;
   font-size: var(--text-xs);
   color: var(--color-ink-soft);
   margin-bottom: var(--space-1);
+}
+
+.criacao-campo select {
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
 }
 
 .criacao-campo input,
@@ -265,7 +275,15 @@
   resize: vertical;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 640px) {
+  .criacao-conteudo { padding: var(--space-3); }
+  .criacao-passos { overflow-x: auto; margin-bottom: var(--space-4); }
+  .criacao-passo { flex: 0 0 auto; }
+  .criacao-passo:not(:last-child)::after { width: var(--space-4); flex: 0 0 var(--space-4); }
+  .criacao-card { align-items: stretch; flex-direction: column; gap: var(--space-3); padding: var(--space-3); }
+  .criacao-card-escolher { min-height: 44px; width: 100%; }
+  .criacao-navegacao { align-items: stretch; flex-wrap: wrap; gap: var(--space-2); }
+  .criacao-navegacao button { min-height: 44px; flex: 1 1 8rem; }
   .criacao-atributos-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

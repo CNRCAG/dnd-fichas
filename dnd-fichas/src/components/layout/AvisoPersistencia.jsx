@@ -1,5 +1,6 @@
 import { useFichas } from "../../context/useFichas";
 import "./AvisoPersistencia.css";
+import Icon from "../icons/Icon";
 
 export default function AvisoPersistencia() {
   const {
@@ -29,7 +30,7 @@ export default function AvisoPersistencia() {
           onClick={dispensarFalhaPersistencia}
           aria-label="Dispensar aviso de falha ao salvar"
         >
-          ×
+          <Icon name="remove" />
         </button>
       </div>
     </div>

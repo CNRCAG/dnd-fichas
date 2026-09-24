@@ -22,6 +22,7 @@ import {
 } from "../../data/proficienciasMulticlasse";
 import { obterRegraMulticlasse } from "../../data/proficienciasMulticlasse";
 import "./BlocoRacaClasse.css";
+import Icon from "../icons/Icon";
 
 function CampoNivel({ nivel, nivelMaximo, onChangeNivel }) {
   const [nivelRascunho, setNivelRascunho] = useState(String(nivel));
@@ -299,7 +300,7 @@ export default function BlocoRacaClasse({
                 className="multiclasse-remover"
                 onClick={() => onRemoverClasseSecundaria(indice)}
               >
-                ×
+                <Icon name="remove" />
               </button>
               {c.classeId && (
                 <div className="multiclasse-detalhes">

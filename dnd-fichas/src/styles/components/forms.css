@@ -1,0 +1,25 @@
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea) {
+  max-width: 100%;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-inset);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea)::placeholder { color: var(--color-ink-soft); opacity: 0.86; }
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea):disabled { background: var(--color-disabled-bg); color: var(--color-disabled-ink); cursor: not-allowed; opacity: 1; }
+:where(input, select, textarea)[aria-invalid="true"], :where(input, select, textarea):user-invalid { border-color: var(--color-danger-soft); box-shadow: inset 3px 0 0 var(--color-danger); }
+:where(label, .ui-label) { color: var(--color-ink-soft); }
+.ui-field { display: grid; gap: var(--space-1); }
+.ui-field__label { font-size: var(--text-xs); font-weight: 600; }
+.ui-field__help, .ui-field__error { margin: 0; font-size: var(--text-xs); }
+.ui-field__help { color: var(--color-ink-soft); }
+.ui-field__error { color: var(--color-danger-soft); }
+:where(input[type="checkbox"], input[type="radio"]) { accent-color: var(--color-accent); }
+
+@media (max-width: 640px) {
+  :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select) { min-height: 44px; }
+  :where(input[type="checkbox"], input[type="radio"]) { width: 20px; height: 20px; }
+}
